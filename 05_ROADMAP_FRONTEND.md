@@ -27,8 +27,16 @@ Mettre en place l'infrastructure Frontend avant tout développement fonctionnel.
 | ID | Titre | Dépendance | Critère de Fin | Temps |
 |----|-------|------------|----------------|-------|
 | **SETUP-001** | Initialiser projet React Native (Expo ou React Native CLI) | - | `npx expo start` ou `npx react-native start` fonctionne | 30min |
+
+-----Contre Expertise--------
+**Expo ou React Native CLI : choix non tranché** : Cette décision architecturale majeure est laissée ouverte ("Expo ou React Native CLI"). Expo simplifie considérablement le setup, le build et la CI/CD, mais peut limiter l'accès à certains modules natifs. React Native CLI offre plus de contrôle mais requiert Xcode/Android Studio configurés. Pour un MVP, **Expo (avec dev-client)** est recommandé — le gain de temps est significatif et les limitations sont quasi inexistantes depuis Expo SDK 49+. Cette décision doit être prise **avant** le Sprint 0, pas pendant.
+-----Fin Contre Expertise--------
 | **SETUP-002** | Configurer TypeScript strict + ESLint + Prettier | SETUP-001 | `npm run lint` passe sans erreur | 30min |
 | **SETUP-003** | Installer React Navigation 6.x (Stack + Tab Navigator) | SETUP-001 | Navigation fonctionne entre 2 écrans de test | 1h |
+
+-----Contre Expertise--------
+**React Navigation 6.x obsolète** : La version actuelle stable est React Navigation 7.x (sortie fin 2024). La version 6.x n'est plus maintenue activement. Installer directement la v7 pour éviter une migration douloureuse plus tard.
+-----Fin Contre Expertise--------
 | **SETUP-004** | Installer Zustand (state management) | SETUP-001 | Store créé et accessible dans composants | 45min |
 | **SETUP-005** | Installer React Native Paper (UI components) | SETUP-001 | Bouton + TextInput affichés avec thème | 45min |
 | **SETUP-006** | Configurer Axios (HTTP client) + intercepteurs JWT | SETUP-001 | Requête authentifiée avec Bearer token | 1h30 |
@@ -36,6 +44,12 @@ Mettre en place l'infrastructure Frontend avant tout développement fonctionnel.
 | **SETUP-008** | Créer service API `apiClient.ts` (basé sur Axios) avec switch mock/real | SETUP-006 | Variable `USE_MOCK=true` pointe vers Prism | 1h |
 | **SETUP-009** | Configurer React Native Async Storage (persistence tokens) | SETUP-001 | Token sauvegardé et récupéré après redémarrage | 1h |
 | **SETUP-010** | Setup CI/CD GitHub Actions (lint + tests Detox) | SETUP-002 | Pipeline passe sur `main` et `develop` | 1h30 |
+
+-----Contre Expertise--------
+**Detox en CI/CD dès le Sprint 0 : très ambitieux** : Configurer Detox en CI requiert un émulateur Android ou un simulateur iOS sur le runner GitHub Actions. C'est complexe (images macOS pour iOS, KVM pour Android), lent (~10-15 min de build), et coûteux (runners macOS = 10x le prix des runners Linux). Recommandation : commencer la CI avec **lint + tests unitaires (Jest/RNTL)** uniquement. Ajouter Detox en CI au Sprint 4-5 quand les flows critiques sont stabilisés, ou utiliser un service dédié (EAS Build, Bitrise).
+
+**Absence de react-hook-form** : La checklist de fin de sprint mentionne "formulaires validés côté client (react-hook-form)" mais aucune tâche du Sprint 0 ne prévoit son installation. C'est une dépendance clé utilisée dès le Sprint 1 (LoginForm, RegisterForm). À ajouter au setup.
+-----Fin Contre Expertise--------
 
 **Livrable Sprint 0** : 🚀 App démarrable avec navigation + mock API fonctionnel.
 
@@ -95,6 +109,12 @@ Authentification complète + Édition de profil. **Se connecte au Mock Server im
 | **AUTH-023** | Écrire test Detox : Flow login → Dashboard | AUTH-018 | Test E2E passe ✅ | 1h30 |
 | **AUTH-024** | Écrire test Detox : Flow register → Dashboard | AUTH-018 | Test E2E passe ✅ | 1h |
 | **AUTH-025** | Écrire test Detox : Édition profil | AUTH-014 | Test E2E passe ✅ | 1h |
+
+-----Contre Expertise--------
+**Detox pour tester le login : overkill en Sprint 1** : Les flows auth (login, register, profil) sont des formulaires simples avec navigation. **React Native Testing Library (RNTL)** peut tester ces flows (render, fireEvent, waitFor) en quelques secondes, sans build natif. Réserver Detox pour les flows vraiment E2E (Sprint 4+, workflow complet de prêt). Cela allège aussi la CI/CD qui n'a pas besoin d'émulateur dès le Sprint 1.
+
+**Aucun test unitaire de composants** : Tout le Sprint 1 produit 5 composants UI (LoginForm, RegisterForm, etc.) et 5 écrans, mais seuls des tests Detox E2E sont prévus. Il manque des tests RNTL pour les composants isolés : validation de formulaire, affichage conditionnel d'erreurs, états de chargement. Ces tests sont rapides à écrire et à exécuter.
+-----Fin Contre Expertise--------
 
 **Livrable Sprint 1** : 🎉 **Authentification + Profil complets** (connectés au Mock Server).
 
@@ -184,6 +204,10 @@ Enregistrement d'objets avec reconnaissance automatique (OCR) + upload photos.
 | **ITEM-016** | Écrire test Detox : Créer objet manuellement | ITEM-009 | Test E2E passe ✅ | 1h |
 | **ITEM-017** | Écrire test Detox : Reconnaître objet via photo | ITEM-010 | Test E2E passe ✅ | 1h30 |
 
+-----Contre Expertise--------
+**OCR côté frontend : UX de fallback manquante** : Le Sprint 3 implémente l'écran `RecognizeItemScreen` mais ne prévoit aucun écran/flow de fallback si l'OCR échoue (erreur 503, timeout, résultat non pertinent). L'utilisateur doit pouvoir facilement basculer vers la saisie manuelle depuis l'écran OCR. Prévoir un bouton "Saisir manuellement" bien visible sur `RecognizeItemScreen`.
+-----Fin Contre Expertise--------
+
 **Livrable Sprint 3** : 🎉 **Enregistrement d'objets avec OCR** (connecté au Mock Server).
 
 ---
@@ -226,6 +250,12 @@ Gestion complète du cycle de vie des prêts (création, confirmation, suivi, cl
 |----|-------|------------|----------------|-------|
 | **LOAN-013** | Ajouter onglet "Prêts" dans Tab Navigator (écran par défaut) | SETUP-003, LOAN-008 | Onglet accessible | 30min |
 | **LOAN-014** | Implémenter deep linking pour confirmation emprunteur (lien email → app → ConfirmLoanScreen) | LOAN-011 | Lien `return://loans/{id}/confirm` fonctionne | 2h |
+
+-----Contre Expertise--------
+**Deep linking pour emprunteur sans app : non résolu** : LOAN-014 implémente `return://loans/{id}/confirm`, mais si l'emprunteur n'a **pas** l'app installée, le deep link ne fonctionne pas. Il faut une stratégie : Universal Links (iOS) / App Links (Android) avec fallback web, ou un lien web qui redirige vers l'app store si non installée. C'est significativement plus complexe que 2h — prévoir 4-6h incluant la configuration des domaines associés (apple-app-site-association, assetlinks.json).
+
+**Confirmation emprunteur : comment s'authentifie-t-il ?** : L'emprunteur reçoit un lien pour confirmer, mais s'il n'a pas de compte, comment accède-t-il à `ConfirmLoanScreen` qui est derrière un `AuthGuard` ? Il faut soit un token temporaire dans le lien (magic link), soit une page web publique. Ce flow n'est pas spécifié.
+-----Fin Contre Expertise--------
 | **LOAN-015** | Afficher boutons conditionnels selon status (ex: bouton "Envoyer rappel" si AWAITING_RETURN) | LOAN-010 | Boutons corrects selon machine à états | 1h30 |
 
 ### Phase 4.5 : Tests (Jours 6-7)
@@ -392,6 +422,12 @@ export const API_BASE_URL = (endpoint: string) => {
 | **Sprint 6** | 3 jours | Dashboard + History | 3 (Dashboard, History, Statistics) | ✅ 1 test |
 | **TOTAL** | **30 jours** | **7 modules** | **24 écrans** | **✅ 13+ tests** |
 
+-----Contre Expertise--------
+**13 tests E2E Detox pour 24 écrans : couverture très faible** : 13 tests Detox pour 24 écrans, c'est ~0.5 test par écran. Aucun test unitaire de composant n'est prévu dans toute la roadmap frontend. Le frontend n'a **aucune stratégie de test unitaire** (RNTL). Recommandation : ajouter au minimum 2-3 tests RNTL par module (validation formulaire, affichage conditionnel, gestion d'erreur) en plus des Detox. Cela représenterait ~30-40 tests unitaires rapides en complément des 13 E2E.
+
+**Basculement mock → réel : temps sous-estimé** : Le tableau de basculement prévoit 30min-1h30 par module. En pratique, les différences entre mock Prism et backend réel (format de date, pagination, gestion d'erreur, headers) génèrent des bugs subtils. Prévoir au minimum 1 journée de buffer global pour le debugging d'intégration.
+-----Fin Contre Expertise--------
+
 ---
 
 ## Points de Synchronisation Frontend/Backend
@@ -420,8 +456,21 @@ export const API_BASE_URL = (endpoint: string) => {
 - [ ] Tests de contrat Pact exécutés (si backend disponible)
 - [ ] Accessibilité testée (screen readers, contraste)
 
+-----Contre Expertise--------
+**Checklist hérite des mêmes problèmes que 02 et 04** :
+- "2 approvals" → impossible à 2 développeurs
+- "Tests Pact" → overkill pour l'équipe (cf. contre-expertise 02)
+- "CI/CD sur develop et main" → develop superflu (cf. contre-expertise 02)
+- "Accessibilité testée (screen readers, contraste)" → aucune tâche d'accessibilité n'apparaît dans aucun sprint. C'est une checklist aspirationnelle, pas réaliste pour le MVP. Soit l'accessibilité est un objectif V1 et on y alloue du temps, soit on la reporte en V2.
+-----Fin Contre Expertise--------
+
 ---
 
-**Auteur** : Return Team (Frontend)  
-**Version** : 1.0  
+**Auteur** : Return Team (Frontend)
+**Version** : 1.0
 **Date** : 8 février 2026
+
+---
+
+**Contre-expertise par :** Ismael AÏHOU
+**Date :** 10 février 2026

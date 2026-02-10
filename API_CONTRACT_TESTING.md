@@ -26,6 +26,10 @@ Les tests de contrat détectent ce problème **avant** le merge.
 2. Le **provider** (NestJS backend) valide qu'il respecte ce contrat
 3. Les deux équipes peuvent évoluer indépendamment tant que le contrat est respecté
 
+-----Contre Expertise--------
+**Pact repose sur le postulat de "deux équipes indépendantes"** : Le point 3 ci-dessus dit "les deux équipes peuvent évoluer indépendamment". Or il s'agit de la **même équipe de 2 développeurs** qui fait le front et le back. L'intérêt principal de Pact (synchronisation inter-équipes asynchrone) n'existe pas ici. L'approche **OpenAPI-first** (spec partagée → Prism mock → tests Supertest) couvre le même besoin sans la complexité supplémentaire de Pact (broker, publication, vérification, state handlers). Ce document entier, bien que pédagogiquement intéressant, décrit une infrastructure surdimensionnée pour le contexte du projet.
+-----Fin Contre Expertise--------
+
 **Alternatives rejetées** :
 - **Spring Cloud Contract** : Spécifique Java (incompatible avec NestJS)
 - **Dredd** : Validation unidirectionnelle (pas de feedback du consumer)
@@ -319,6 +323,10 @@ Le **Pact Broker** est un serveur central qui stocke les contrats et facilite la
 
 ### 6.1 Déploiement du Broker (Docker)
 
+-----Contre Expertise--------
+**Pact Broker = infrastructure supplémentaire à maintenir** : Le Broker nécessite un serveur Docker + une base PostgreSQL dédiée. C'est un service de plus à déployer, monitorer, et maintenir. Pour 2 développeurs, le fichier `.pact` peut simplement être partagé via le repository Git (ou un artefact CI). Le Broker n'apporte de la valeur que quand plusieurs équipes/repos consomment le même contrat.
+-----Fin Contre Expertise--------
+
 ```bash
 docker run -d \
   --name pactbroker \
@@ -484,6 +492,21 @@ npx pact-broker list-latest-pact-versions \
 
 ---
 
-**Auteur** : Return Team  
-**Version** : 1.0  
+-----Contre Expertise--------
+**Recommandation globale** : Ce document est bien rédigé et pédagogique. Il peut servir de référence si l'équipe grandit (3+ développeurs séparés front/back). Mais pour le MVP à 2 développeurs, **Pact est overkill**. L'approche recommandée est :
+1. OpenAPI spec comme contrat unique (déjà en place)
+2. Prism mock pour le développement frontend (déjà documenté)
+3. Tests Supertest côté backend pour valider les endpoints
+4. Tests d'intégration au moment du basculement mock → réel
+
+Cette approche couvre 95% des bénéfices de Pact avec 20% de la complexité.
+-----Fin Contre Expertise--------
+
+**Auteur** : Return Team
+**Version** : 1.0
 **Date** : 8 février 2026
+
+---
+
+**Contre-expertise par :** Ismael AÏHOU
+**Date :** 10 février 2026

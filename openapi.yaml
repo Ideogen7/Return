@@ -16,6 +16,71 @@ info:
     **Authentification** : JWT (Bearer Token)
     **Standards** : RFC 7807 pour toutes les erreurs
     
+  # -----Contre Expertise--------
+  # POINTS GÉNÉRAUX SUR L'OPENAPI SPEC :
+  #
+  # 1. GET /auth/me et GET /users/me : doublons fonctionnels
+  #    Les deux endpoints retournent le même schéma User. Le document dit
+  #    "Identique à /auth/me (alias pour cohérence REST)". Garder un seul
+  #    des deux pour éviter la confusion. Recommandation : garder /users/me
+  #    (plus RESTful) et supprimer /auth/me (ou le documenter comme déprécié).
+  #
+  # 2. CreateLoanDto : oneOf item/borrower = complexité de validation
+  #    Le champ "item" accepte soit un CreateItemDto soit un UUID string.
+  #    Ce pattern oneOf est puissant mais complique la validation côté backend
+  #    (discriminator nécessaire) et la génération de types TypeScript.
+  #    Cohérent avec LOAN-006 (création inline) déjà critiqué en 04_ROADMAP.
+  #
+  # 3. ReminderType enum : 5 types vs 4 rappels dans la bible
+  #    L'enum définit PREVENTIVE, ON_DUE_DATE, FIRST_OVERDUE, SECOND_OVERDUE,
+  #    FINAL_OVERDUE (5 types). La bible projet mentionne 4 rappels (J-3, J+3,
+  #    J+10, J+17) sans ON_DUE_DATE. La roadmap backend (04) dit aussi 5.
+  #    À aligner avec la bible ou mettre à jour la bible.
+  #
+  # 4. NotificationChannel enum : EMAIL et SMS en V1
+  #    L'enum inclut PUSH, EMAIL, SMS mais seul PUSH est V1.
+  #    UserSettings.notificationChannels a un exemple [PUSH, EMAIL].
+  #    Le frontend affichera des options non fonctionnelles en V1.
+  #    Recommandation : retirer EMAIL/SMS de l'enum V1 ou les marquer
+  #    comme "coming soon" dans la description.
+  #
+  # 5. UserRole ADMIN : scope fantôme
+  #    L'enum UserRole inclut ADMIN mais aucun endpoint admin n'existe
+  #    dans cette spec. Déjà soulevé dans la contre-expertise 01.
+  #
+  # 6. SubscriptionTier FREE/PREMIUM : prématuré pour V1
+  #    Le schéma User inclut un champ subscriptionTier avec FREE/PREMIUM.
+  #    Le freemium est prévu en V2+ (Post-MVP Sprint 10). Inclure ce champ
+  #    dès V1 force le frontend à gérer un état qui ne change jamais.
+  #
+  # 7. Pagination incohérente : /items et /borrowers ne sont pas paginés
+  #    GET /loans et GET /notifications retournent {data, pagination}
+  #    mais GET /items et GET /borrowers retournent un simple array.
+  #    Incohérence qui compliquera la généricité côté frontend.
+  #    Recommandation : paginer tous les endpoints de liste.
+  #
+  # 8. Endpoints manquants par rapport aux roadmaps :
+  #    - GET /borrowers/{id}/statistics (présent dans roadmap 04 HIST-010)
+  #      mais défini dans la spec. OK.
+  #    - POST /users/me/delete : devrait être DELETE /users/me (convention REST).
+  #      POST pour une suppression est inhabituel.
+  #    - PUT /users/me/avatar : absent des roadmaps backend et frontend.
+  #    - GET/PATCH /users/me/settings : absent des roadmaps.
+  #
+  # 9. trustScore formula définie ici mais pas dans la bible
+  #    BorrowerStatistics.trustScore a la formule dans la description :
+  #    "(returnedOnTime * 100 + returnedLate * 50) / totalLoans"
+  #    C'est la seule source qui définit cette formule.
+  #    Elle devrait être dans la bible ou un document métier dédié.
+  #
+  # 10. Photo.url "signée, expire après 7 jours" : non géré côté frontend
+  #     Si les URLs expirent, le frontend doit rafraîchir les URLs.
+  #     Aucun endpoint de renouvellement n'est prévu. Les images en cache
+  #     deviendront des liens morts après 7 jours.
+  #
+  # Contre-expertise par : Ismael AÏHOU — 10 février 2026
+  # -----Fin Contre Expertise--------
+
   contact:
     name: Return Support
     email: support@return.app

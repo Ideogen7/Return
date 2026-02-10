@@ -36,6 +36,15 @@ Mettre en place l'infrastructure Backend avant tout développement fonctionnel.
 | **SETUP-009** | Configurer Cloudflare R2 SDK (stockage photos) | SETUP-001 | Upload de test fonctionne | 1h |
 | **SETUP-010** | Setup CI/CD GitHub Actions (lint + tests) | SETUP-002 | Pipeline passe sur `main` et `develop` | 1h30 |
 
+-----Contre Expertise--------
+**Setup prématuré de R2 et Redis** : SETUP-008 (Redis/BullMQ) n'est utilisé qu'au Sprint 4 (CRON timeout 48h) et SETUP-009 (Cloudflare R2) qu'au Sprint 3 (photos). Configurer des services 2-3 sprints à l'avance = maintenance de configuration inutilisée, risque de drift de config. Mieux vaut installer au moment du besoin réel (just-in-time setup) : R2 au Sprint 3 et Redis au Sprint 4.
+
+**Éléments manquants au Sprint 0** :
+- **Health check endpoint** : Aucun `/health` prévu pour le monitoring Fly.io (readiness/liveness probes). Indispensable pour le déploiement.
+- **Gestion des environnements** : Pas de tâche pour `.env`, secrets management, configurations par environnement (dev/staging/prod).
+- **FCM (Firebase)** : Le SDK Firebase pour les push notifications (Sprint 5) n'est configuré nulle part. FCM nécessite un projet Firebase, un service account, et un `google-services.json`. À prévoir ici ou au Sprint 5.
+-----Fin Contre Expertise--------
+
 **Livrable Sprint 0** : 🚀 Backend démarrable avec auth JWT fonctionnel (pas de BDD métier encore).
 
 ---
@@ -65,6 +74,10 @@ Authentification complète + Gestion de profil. **Le Frontend peut s'y connecter
 | **AUTH-009** | TEST : Écrire le test de `POST /auth/logout` (success 204, refresh token invalidé) | AUTH-006 | Test écrit (échoue) | 20min |
 | **AUTH-010** | TEST : Écrire le test de `GET /auth/me` (success 200 avec infos utilisateur) | AUTH-006 | Test écrit (échoue) | 20min |
 
+-----Contre Expertise--------
+**Faux TDD : tous les tests d'un coup** : La Phase 1.2 écrit les 7 tests en une seule journée (Jour 2), puis l'implémentation en Jour 3-4. Ce n'est **pas du TDD**, c'est du "test-first waterfall". Le vrai cycle TDD (RED-GREEN-REFACTOR-COMMIT tel que décrit en 02_NORMES) impose d'écrire UN test → le code minimal → refactorer → commiter, **avant** de passer au test suivant. Écrire 7 tests qui échouent tous simultanément ne donne aucun feedback incrémental et complique le debugging. Ce problème se répète dans **tous les sprints** de cette roadmap (Phases x.2 systématiquement groupées). Restructurer le plan pour entremêler tests et implémentation par fonctionnalité.
+-----Fin Contre Expertise--------
+
 ### Phase 1.3 : Logique Métier (Jour 3)
 
 | ID | Titre | Dépendance | Critère de Fin | Temps |
@@ -74,6 +87,10 @@ Authentification complète + Gestion de profil. **Le Frontend peut s'y connecter
 | **AUTH-013** | Implémenter `AuthService.login()` (vérifier credentials, générer JWT) | AUTH-012 | Tests AUTH-006 et AUTH-007 passent ✅ | 1h30 |
 | **AUTH-014** | Implémenter `AuthService.refreshToken()` (vérifier refresh token, générer nouveau access token) | AUTH-013 | Test AUTH-008 passe ✅ | 1h |
 | **AUTH-015** | Implémenter `AuthService.logout()` (invalider refresh token en Redis) | AUTH-014 | Test AUTH-009 passe ✅ | 45min |
+
+-----Contre Expertise--------
+**AUTH-015 : Logout via Redis contradictoire avec l'ADR-004** : Cette tâche prévoit "invalider refresh token en Redis", mais l'ADR-004 (01_ARCHITECTURE_TECHNIQUE) classe la révocation Redis comme **dette technique**, pas V1. Soit on l'implémente dès le Sprint 1 (et l'ADR est faux), soit on fait un logout simple (suppression du refresh token en base de données PostgreSQL) et Redis viendra plus tard. Incohérence à trancher.
+-----Fin Contre Expertise--------
 
 ### Phase 1.4 : Endpoints API (Jour 4)
 
@@ -111,6 +128,10 @@ Gérer les contacts (emprunteurs). **Simple CRUD, pas de logique complexe.**
 |----|-------|------------|----------------|-------|
 | **BORR-001** | Créer le schema Prisma `Borrower` (firstName, lastName, email, phoneNumber, userId FK) | AUTH-001 | Migration appliquée | 30min |
 | **BORR-002** | Ajouter index sur `borrowers.email` (unique) et `borrowers.userId` | BORR-001 | Index créés | 15min |
+
+-----Contre Expertise--------
+**Borrower.email unique : problème de modèle** : BORR-002 impose un index unique sur `borrowers.email`. Mais un emprunteur est un **contact** du prêteur, pas un utilisateur de l'app. Si Alice et Bob prêtent tous deux à Charlie (même email), chacun crée un contact "Charlie" → conflit d'unicité. L'unicité devrait être sur le couple `(userId, email)` (unique par prêteur), pas sur `email` seul. De même, BORR-004 teste "erreur 409 si email existe déjà" : cela devrait être "si email existe déjà **pour ce prêteur**".
+-----Fin Contre Expertise--------
 
 ### Phase 2.2 : Tests (TDD)
 
@@ -157,6 +178,10 @@ Gérer les objets prêtables + Reconnaissance OCR + Upload photos.
 | **ITEM-001** | Créer le schema Prisma `Item` (name, description, category, estimatedValue, userId FK) | AUTH-001 | Migration appliquée | 30min |
 | **ITEM-002** | Créer le schema Prisma `Photo` (url, thumbnailUrl, itemId FK) | ITEM-001 | Relation 1-N avec `Item` | 30min |
 | **ITEM-003** | Ajouter index sur `items.userId` et `items.category` | ITEM-002 | Index créés | 15min |
+
+-----Contre Expertise--------
+**OCR Google Vision : coût et ROI douteux en V1** : ITEM-013 prévoit 2h pour implémenter `GoogleVisionService` avec retry. C'est très optimiste : il faut un compte GCP, une clé API, la gestion de billing/quotas, le parsing de la réponse Vision API, et la transformation en suggestions d'items. On a déjà soulevé dans la contre-expertise de la bible (00) que l'OCR est un scope creep pour V1. La saisie manuelle + photo descriptive suffit amplement. Si maintenu malgré tout, prévoir au minimum 4-6h et un fallback propre en cas de dépassement de quota ou d'indisponibilité de l'API.
+-----Fin Contre Expertise--------
 
 ### Phase 3.2 : Tests (TDD)
 
@@ -212,6 +237,10 @@ Gestion complète du cycle de vie des prêts (7 statuts, workflow de confirmatio
 | **LOAN-004** | TEST : `POST /loans` (success 201, status=PENDING_CONFIRMATION) | LOAN-003 | Test écrit (échoue) | 30min |
 | **LOAN-005** | TEST : `POST /loans` (erreur 400 si returnDate < today) | LOAN-004 | Test écrit (échoue) | 15min |
 | **LOAN-006** | TEST : `POST /loans` (créer item+borrower inline si UUID non fourni) | LOAN-004 | Test écrit (échoue) | 25min |
+
+-----Contre Expertise--------
+**LOAN-006 : création inline item+borrower = God-endpoint** : Cet endpoint créerait potentiellement 3 entités (Loan + Item + Borrower) dans une seule requête. Cela viole le SRP prôné en 02_NORMES, complexifie la gestion d'erreur (que faire si l'item est créé mais le loan échoue ? Rollback ?), et crée une transaction lourde. Recommandation : le frontend crée l'item et le borrower d'abord via les endpoints dédiés (Sprint 2-3), puis passe les UUIDs au `POST /loans`. Un endpoint = une responsabilité.
+-----Fin Contre Expertise--------
 | **LOAN-007** | TEST : `GET /loans` (liste paginée avec filtres status/borrowerId) | LOAN-004 | Test écrit (échoue) | 25min |
 | **LOAN-008** | TEST : `GET /loans/{id}` (success 200 avec relations item+borrower) | LOAN-004 | Test écrit (échoue) | 20min |
 
@@ -226,6 +255,12 @@ Gestion complète du cycle de vie des prêts (7 statuts, workflow de confirmatio
 | **LOAN-013** | TEST : `PATCH /loans/{id}/status` (AWAITING_RETURN → RETURNED) | LOAN-004 | Test écrit (échoue) | 20min |
 | **LOAN-014** | TEST : `PATCH /loans/{id}/status` (AWAITING_RETURN → NOT_RETURNED après 3 rappels) | LOAN-004 | Test écrit (échoue) | 25min |
 | **LOAN-015** | TEST : Transition invalide retourne 400 (ex: CONTESTED → ACTIVE) | LOAN-004 | Test écrit (échoue) | 20min |
+
+-----Contre Expertise--------
+**LOAN-014 : transition dépendante des rappels = couplage inter-modules** : La transition "AWAITING_RETURN → NOT_RETURNED après 3 rappels" signifie que le module Loan doit **connaître** le nombre de rappels envoyés pour décider d'une transition. C'est un couplage fort entre Loan et Reminder, en contradiction directe avec le pattern Observer/EventBus qui prône le découplage inter-modules. La transition devrait être déclenchée par un événement du module Reminder (`AllRemindersExhaustedEvent`) que le module Loan écoute, sans que Loan sache combien de rappels il y a eu.
+
+**LOAN-011 : timeout 48h d'auto-confirmation** : On a déjà signalé dans la contre-expertise de la bible (00) que le consentement implicite après 48h est juridiquement questionnable. La roadmap l'implémente sans réserve. À minima, prévoir un flag de configuration pour activer/désactiver ce comportement.
+-----Fin Contre Expertise--------
 
 ### Phase 4.4 : Logique Métier - Factory + Service
 
@@ -280,6 +315,10 @@ Système de rappels automatiques + Notifications push.
 | ID | Titre | Dépendance | Critère de Fin | Temps |
 |----|-------|------------|----------------|-------|
 | **REM-004** | TEST : Création automatique de 5 rappels (PREVENTIVE, ON_DUE_DATE, 3x OVERDUE) quand prêt créé | REM-003 | Test écrit (échoue) | 30min |
+
+-----Contre Expertise--------
+**Nombre de rappels incohérent entre les documents** : REM-004 mentionne "5 rappels (PREVENTIVE, ON_DUE_DATE, 3x OVERDUE)", mais la bible projet (00) décrit 4 rappels (J-3, J+3, J+10, J+17) sans "ON_DUE_DATE" le jour J. L'OpenAPI spec (`openapi.yaml`) peut encore avoir un schéma différent. Il faut aligner **toutes** les sources sur un nombre et un calendrier unique de rappels. C'est une donnée métier fondamentale qui ne peut pas varier d'un document à l'autre.
+-----Fin Contre Expertise--------
 | **REM-005** | TEST : `POST /loans/{id}/reminders/manual` (envoi manuel success 201) | REM-003 | Test écrit (échoue) | 20min |
 | **REM-006** | TEST : `POST /loans/{id}/reminders/manual` (erreur 429 si > 10/heure) | REM-005 | Test écrit (échoue) | 20min |
 | **REM-007** | TEST : `POST /reminders/{id}/cancel` (annulation success 204) | REM-005 | Test écrit (échoue) | 15min |
@@ -300,6 +339,12 @@ Système de rappels automatiques + Notifications push.
 | **REM-017** | Implémenter `ReminderService.cancel()` | REM-011 | Test REM-007 passe ✅ | 45min |
 | **REM-018** | Implémenter CRON Job `sendScheduledReminders()` (BullMQ chaque heure) | REM-011 | Test REM-008 passe ✅ | 2h |
 | **REM-019** | Implémenter `NotificationService.send()` (push FCM + création en DB) | REM-012 | Notification créée en DB | 2h |
+
+-----Contre Expertise--------
+**FCM (Firebase) : absent du Sprint 0** : REM-019 implémente les push notifications via FCM, mais le SDK Firebase, le service account, et les credentials ne sont configurés nulle part dans le Sprint 0 (ni ailleurs). FCM nécessite un projet Firebase, un fichier `google-services.json`, la configuration côté mobile, et un test d'envoi. Ajouter une tâche SETUP dédiée, soit au Sprint 0 soit en début de Sprint 5.
+
+**REM-013 : ReminderStrategy** : On a déjà soulevé en 02_NORMES que le Strategy Pattern est sur-ingénieré pour V1 (une seule politique de rappel fixe). Ici, 2h sont allouées à l'implémenter. Un simple service avec la logique en dur suffit, refactorer en Strategy quand un deuxième algorithme sera nécessaire.
+-----Fin Contre Expertise--------
 
 ### Phase 5.4 : Endpoints API
 
@@ -332,6 +377,10 @@ Statistiques + Historique archivé + Tests E2E complets.
 | **HIST-002** | TEST : `GET /history/loans` (filtre status RETURNED/NOT_RETURNED) | HIST-001 | Test écrit (échoue) | 20min |
 | **HIST-003** | TEST : `GET /history/statistics` (overview + byCategory + topBorrowers + mostLoanedItems) | HIST-001 | Test écrit (échoue) | 30min |
 | **HIST-004** | TEST : `GET /borrowers/{id}/statistics` (trustScore calculation) | BORR-001 | Test écrit (échoue) | 25min |
+
+-----Contre Expertise--------
+**trustScore sans règles métier définies** : HIST-004 et HIST-007 implémentent un "trustScore" pour les emprunteurs, mais **aucun document** (bible, architecture, OpenAPI) ne définit la formule de calcul. Taux de retour à l'heure ? Pondération par ancienneté ? Pénalité par jour de retard ? Score sur 100 ou sur 5 ? Sans spécification métier précise, le développeur inventera un algorithme arbitraire qui devra être retravaillé.
+-----Fin Contre Expertise--------
 
 ### Phase 6.3 : Logique Métier
 
@@ -375,6 +424,14 @@ Statistiques + Historique archivé + Tests E2E complets.
 | **Sprint 6** | 3 jours | History + E2E | 3 | ✅ E2E complet |
 | **TOTAL** | **30 jours** | **7 modules** | **35 endpoints** | **✅ 54+ tests** |
 
+-----Contre Expertise--------
+**Estimation globale : 30 jours calendaires irréaliste** : 35 endpoints + 54 tests + OCR + push notifications + CRON jobs + CI/CD + E2E pour 2 développeurs en 30 jours calendaires. Aucun buffer pour les bugs, les blockers techniques (configuration FCM, quotas GCP, problèmes Docker), la courbe d'apprentissage (Prisma, BullMQ, NestJS EventBus), ou les absences. En pratique, un facteur x2 à x2.5 est courant en développement logiciel. Recommandation : prévoir **45-60 jours** ou réduire le scope V1 (supprimer OCR, simplifier les statistiques, reporter les push notifications à la V1.1).
+
+**Seeding/fixtures de données manquant** : Aucune tâche dans aucun sprint pour créer des données de test ou des scripts de seed. Pourtant, le frontend a besoin de données réalistes pour développer en parallèle (en complément du mock Prism). Prévoir une tâche de seeding au Sprint 1 ou 2.
+
+**Migration strategy absente** : Pas de tâche pour gérer les migrations Prisma en production (rollback en cas d'échec, data migration pour les schémas existants). Dès le Sprint 1, la DB de production existera — les sprints suivants ajouteront des tables et des colonnes. Comment gérer un rollback si le Sprint 3 échoue ?
+-----Fin Contre Expertise--------
+
 ---
 
 ## Points de Synchronisation Frontend/Backend
@@ -403,8 +460,20 @@ Statistiques + Historique archivé + Tests E2E complets.
 - [ ] Contract Pact publié (si changement d'API)
 - [ ] Changelog mis à jour (Conventional Commits)
 
+-----Contre Expertise--------
+**Checklist hérite des problèmes identifiés en 02_NORMES** :
+- "2 approvals" → mathématiquement impossible à 2 développeurs (cf. contre-expertise 02)
+- "Contract Pact publié" → Pact est overkill pour l'équipe, l'OpenAPI-first approach suffit (cf. contre-expertise 02)
+- "CI/CD sur develop et main" → la branche `develop` est superflue avec GitHub Flow (cf. contre-expertise 02)
+-----Fin Contre Expertise--------
+
 ---
 
-**Auteur** : Return Team (Backend)  
-**Version** : 1.0  
+**Auteur** : Return Team (Backend)
+**Version** : 1.0
 **Date** : 8 février 2026
+
+---
+
+**Contre-expertise par :** Ismael AÏHOU
+**Date :** 10 février 2026

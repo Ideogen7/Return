@@ -7,8 +7,14 @@
 
 **Équipe** : 2 Développeurs (Full-Stack)  
 **Stratégie** : **Développement parallèle Backend/Frontend avec synchronisations progressives**  
-**Durée totale** : **30 jours calendaires** (6 Sprints de 5 jours)  
+**Durée totale** : **30 jours calendaires** (6 Sprints de 5 jours)
 **Livraison MVP** : 8 Mars 2026
+
+-----Contre Expertise--------
+**30 jours calendaires = irréaliste (cohérent avec les contre-expertises 04 et 05)** : Ce plan consolide les roadmaps backend et frontend qui totalisent chacune 30 jours. Mais 30 jours calendaires pour 2 développeurs = 60 person-days, sans aucun buffer. En ajoutant les points de synchronisation mock→réel, le debugging d'intégration, les imprévus techniques (FCM, Google Vision, Detox CI), et les absences, une estimation réaliste serait **45-60 jours calendaires** (livraison fin mars/mi-avril 2026 au lieu du 8 mars).
+
+**Date de début déjà dépassée** : Le document indique "Date de Début : 6 février 2026". Nous sommes le 10 février. Si le développement n'a pas commencé, le planning est déjà en retard de 4 jours.
+-----Fin Contre Expertise--------
 
 ---
 
@@ -94,6 +100,12 @@ Sprint 6 : History + Dashboard (3 jours)
 | **M4 - Prêts Fonctionnels** | Jour 23 | Workflow 7 statuts complet Frontend → Backend réel | Dev 1 & 2 |
 | **M5 - Notifications Push** | Jour 28 | Notifications temps réel fonctionnelles | Dev 1 & 2 |
 | **M6 - MVP Complet** | Jour 30 | App complète prête pour déploiement staging | Dev 1 & 2 |
+
+-----Contre Expertise--------
+**Jalons sans critères de succès mesurables** : Les milestones disent "Frontend → Backend réel" mais ne définissent pas de critères de validation concrets. Par exemple, M1 "Login/Register fonctionnel" : combien de scénarios doivent passer ? Quel est le seuil d'erreur acceptable ? Suggestion : associer à chaque milestone une liste de smoke tests spécifiques qui constituent le go/no-go.
+
+**Aucun milestone de "gel de scope"** : Il n'y a pas de point de décision pour réévaluer le scope si un sprint prend du retard. Si le Sprint 4 (Loans, 7 jours) déborde de 3 jours, tout le planning glisse. Prévoir un checkpoint à mi-parcours (Jour 15) pour décider : on continue comme prévu, ou on coupe l'OCR/les stats pour tenir la date ?
+-----Fin Contre Expertise--------
 
 ---
 
@@ -398,6 +410,16 @@ const MOCK_MODULES = {
 | **Deep linking iOS/Android divergent** | Moyenne | Moyen | Tests sur émulateurs + devices réels | Dev 2 |
 | **Timeout CRON Job (48h) non déclenché** | Faible | Moyen | Tests unitaires avec fake clock (Jest), logs BullMQ | Dev 1 |
 
+-----Contre Expertise--------
+**Gestion des risques incomplète** :
+
+- **Risque "Tests Detox instables" → Impact "Faible"** : Sous-estimé. Si les tests E2E sont instables, la CI est bloquée et personne ne peut merger. L'impact réel est **Élevé**. La mitigation "retry 3x" masque le problème sans le résoudre.
+
+- **Risque manquant : Scope creep** : Aucune mention du risque principal d'un MVP — le dépassement de scope. L'OCR, les statistiques avancées (trustScore, topBorrowers, mostLoanedItems), le deep linking, et les préférences de notification sont autant de features qui pourraient être coupées pour tenir la deadline. Il faut définir un **scope minimal** (auth + borrowers + loans + rappels basiques) vs **scope complet**.
+
+- **Risque manquant : Rejet App Store** : Pas de mention du processus de review Apple/Google. Le premier submit prend souvent 1-2 semaines avec des allers-retours. Prévoir ce délai dans le planning post-MVP.
+-----Fin Contre Expertise--------
+
 ---
 
 ## Checklist de Livraison MVP (Jour 30)
@@ -409,6 +431,21 @@ const MOCK_MODULES = {
 - [ ] Tous les tests E2E passent (flow complet register → loan → return)
 - [ ] Documentation Swagger accessible `/api/docs`
 - [ ] Contrat Pact publié sur Pact Broker
+
+-----Contre Expertise--------
+**Checklist de livraison MVP : points irréalistes ou contradictoires** :
+- "Domain 100%" → on a recommandé 95% (cf. 02)
+- "Contrat Pact publié" → Pact est overkill (cf. 02)
+- "OCR Google Vision fonctionnel" → ROI douteux pour V1 (cf. 00, 04)
+- "Accessibilité testée (iOS VoiceOver + Android TalkBack)" → aucun temps alloué dans les roadmaps
+- "Backup DB automatique (daily)" → aucune tâche dans les roadmaps backend
+- "Monitoring (Sentry)" → pas installé dans le Sprint 0
+- "DNS configuré" → pas dans les roadmaps
+- "CONTRIBUTING.md créé" → temps non alloué
+
+Plusieurs items de cette checklist ne sont couverts par **aucune tâche** dans les roadmaps 04 et 05. Soit la checklist est aspirationnelle (et doit être indiquée comme telle), soit il faut ajouter les tâches correspondantes dans les sprints.
+-----Fin Contre Expertise--------
+
 - [ ] CI/CD passe sur `main` (0 erreur, 0 warning)
 - [ ] Logs Winston en JSON (ERROR, WARN, INFO seulement en prod)
 - [ ] Rate limiting actif (login 10/15min, OCR 100/jour, reminders 10/heure)
@@ -464,6 +501,10 @@ const MOCK_MODULES = {
 | **Web Version** (React) | Faible | Élevée | Sprint 11-13 (15j) |
 | **AR Object Recognition** (ARKit/ARCore) | Faible | Élevée | Sprint 14-15 (10j) |
 
+-----Contre Expertise--------
+**Post-MVP : i18n et Freemium à haute priorité mais absence de pré-requis** : L'i18n (Sprint 9) est marquée "Haute" priorité, mais aucune préparation n'est faite en V1 (pas d'extraction de chaînes, pas de bibliothèque i18n installée). Ajouter les chaînes i18n dès le Sprint 0 (i18next / react-i18next) coûte peu et économise une migration douloureuse plus tard. De même, le Freemium (Sprint 10) nécessitera un système de comptage de prêts/mois — autant prévoir le tracking dès V1.
+-----Fin Contre Expertise--------
+
 ---
 
 ## Calendrier Récapitulatif (30 jours)
@@ -485,6 +526,11 @@ const MOCK_MODULES = {
 
 ---
 
-**Auteur** : Return Team (Technical Project Manager & Scrum Master)  
-**Version** : 1.0  
+**Auteur** : Return Team (Technical Project Manager & Scrum Master)
+**Version** : 1.0
 **Date** : 8 février 2026
+
+---
+
+**Contre-expertise par :** Ismael AÏHOU
+**Date :** 10 février 2026

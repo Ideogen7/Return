@@ -27,6 +27,10 @@ Le mocking de l'API permet de :
 - CLI facile à intégrer en CI/CD
 - Support complet d'OpenAPI 3.1
 
+-----Contre Expertise--------
+**Prism : bon choix, mais attention aux limites en mode `--dynamic`** : Le mode `--dynamic` génère des données aléatoires, ce qui est pratique pour démarrer mais problématique pour les tests répétables. Un `POST /loans` retournera un `id` aléatoire différent à chaque appel, rendant impossible le chaînage `create → get by id` dans les tests automatisés. Recommandation : privilégier le mode **examples** (exemples définis dans l'OpenAPI spec) pour les flows de test, et réserver `--dynamic` pour l'exploration manuelle.
+-----Fin Contre Expertise--------
+
 ---
 
 ## 3. Installation et Lancement
@@ -218,6 +222,10 @@ async function createLoan(data: CreateLoanDto) {
 
 ### Intégration dans Jest
 
+-----Contre Expertise--------
+**Confusion entre Prism et MSW** : Le code ci-dessous importe `msw/node` (Mock Service Worker), pas Prism. MSW et Prism sont deux outils différents avec des philosophies différentes. MSW intercepte les requêtes au niveau réseau dans Node.js, tandis que Prism est un serveur HTTP externe. Le document mélange les deux sans trancher. Pour les tests Jest frontend, **MSW est plus adapté** (pas besoin de lancer un serveur externe). Clarifier : Prism pour le développement interactif, MSW pour les tests automatisés.
+-----Fin Contre Expertise--------
+
 ```typescript
 // __tests__/api/loans.test.ts
 import { setupServer } from 'msw/node';
@@ -299,6 +307,10 @@ Avant de considérer le mock comme source de vérité :
 - [ ] Les requêtes invalides retournent bien des erreurs de validation
 - [ ] Le frontend peut effectuer un flow complet (register → login → create loan → list loans)
 
+-----Contre Expertise--------
+**Checklist de validation : difficile à satisfaire avec Prism seul** : Le dernier point "flow complet (register → login → create loan → list loans)" est impossible avec Prism car il n'a **pas de persistence** (comme mentionné en section 8). Le loan créé par `POST /loans` ne sera pas retourné par `GET /loans`. Ce flow ne peut être validé qu'avec le vrai backend ou un mock plus avancé (MSW avec state, ou un fake server custom). Ajuster la checklist pour refléter les limites de Prism.
+-----Fin Contre Expertise--------
+
 ---
 
 **Commande Finale pour Lancer le Mock** :
@@ -311,6 +323,11 @@ Le serveur mock écoute sur : **http://localhost:3000/v1**
 
 ---
 
-**Auteur** : Return Team  
-**Version** : 1.0  
+**Auteur** : Return Team
+**Version** : 1.0
 **Date** : 8 février 2026
+
+---
+
+**Contre-expertise par :** Ismael AÏHOU
+**Date :** 10 février 2026
