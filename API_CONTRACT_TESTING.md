@@ -1,18 +1,22 @@
 # API_CONTRACT_TESTING.md
+
 **Return ↺ - Stratégie de Tests de Contrat (Contract Testing)**
 
 ---
 
 ## 1. Qu'est-ce que le Contract Testing ?
 
-Les **tests de contrat** vérifient que le **fournisseur** (backend) et le **consommateur** (frontend mobile) respectent le même contrat d'API défini dans `openapi.yaml`.
+Les **tests de contrat** vérifient que le **fournisseur** (backend) et le **consommateur** (frontend mobile) respectent
+le même contrat d'API défini dans `openapi.yaml`.
 
 **Différence avec les tests E2E classiques** :
+
 - **E2E** : Teste le flow complet (UI → API → DB → API → UI). Lent, fragile.
 - **Contract Testing** : Teste uniquement l'interface API (request/response). Rapide, ciblé.
 
 **Problème résolu** :
-> "Le backend a changé le format de la réponse `/loans` (ajout d'un champ obligatoire), mais le frontend n'est pas au courant → l'app crash en production."
+> "Le backend a changé le format de la réponse `/loans` (ajout d'un champ obligatoire), mais le frontend n'est pas au
+> courant → l'app crash en production."
 
 Les tests de contrat détectent ce problème **avant** le merge.
 
@@ -27,10 +31,16 @@ Les tests de contrat détectent ce problème **avant** le merge.
 3. Les deux équipes peuvent évoluer indépendamment tant que le contrat est respecté
 
 -----Contre Expertise--------
-**Pact repose sur le postulat de "deux équipes indépendantes"** : Le point 3 ci-dessus dit "les deux équipes peuvent évoluer indépendamment". Or il s'agit de la **même équipe de 2 développeurs** qui fait le front et le back. L'intérêt principal de Pact (synchronisation inter-équipes asynchrone) n'existe pas ici. L'approche **OpenAPI-first** (spec partagée → Prism mock → tests Supertest) couvre le même besoin sans la complexité supplémentaire de Pact (broker, publication, vérification, state handlers). Ce document entier, bien que pédagogiquement intéressant, décrit une infrastructure surdimensionnée pour le contexte du projet.
+**Pact repose sur le postulat de "deux équipes indépendantes"** : Le point 3 ci-dessus dit "les deux équipes peuvent
+évoluer indépendamment". Or il s'agit de la **même équipe de 2 développeurs** qui fait le front et le back. L'intérêt
+principal de Pact (synchronisation inter-équipes asynchrone) n'existe pas ici. L'approche **OpenAPI-first** (spec
+partagée → Prism mock → tests Supertest) couvre le même besoin sans la complexité supplémentaire de Pact (broker,
+publication, vérification, state handlers). Ce document entier, bien que pédagogiquement intéressant, décrit une
+infrastructure surdimensionnée pour le contexte du projet.
 -----Fin Contre Expertise--------
 
 **Alternatives rejetées** :
+
 - **Spring Cloud Contract** : Spécifique Java (incompatible avec NestJS)
 - **Dredd** : Validation unidirectionnelle (pas de feedback du consumer)
 - **Postman Contract Testing** : Moins mature, lock-in outil propriétaire
@@ -95,16 +105,16 @@ npm install --save-dev @pact-foundation/pact jest
 
 ```typescript
 // __tests__/pact/setup.ts
-import { Pact } from '@pact-foundation/pact';
+import {Pact} from '@pact-foundation/pact';
 import path from 'path';
 
 export const provider = new Pact({
-  consumer: 'ReturnMobileApp',
-  provider: 'ReturnAPI',
-  port: 1234, // Port local pour le mock Pact
-  log: path.resolve(process.cwd(), 'logs', 'pact.log'),
-  dir: path.resolve(process.cwd(), 'pacts'),
-  logLevel: 'info',
+    consumer: 'ReturnMobileApp',
+    provider: 'ReturnAPI',
+    port: 1234, // Port local pour le mock Pact
+    log: path.resolve(process.cwd(), 'logs', 'pact.log'),
+    dir: path.resolve(process.cwd(), 'pacts'),
+    logLevel: 'info',
 });
 ```
 
@@ -112,117 +122,117 @@ export const provider = new Pact({
 
 ```typescript
 // __tests__/pact/loan.pact.spec.ts
-import { provider } from './setup';
-import { like, iso8601DateTime } from '@pact-foundation/pact/src/dsl/matchers';
+import {provider} from './setup';
+import {like, iso8601DateTime} from '@pact-foundation/pact/src/dsl/matchers';
 
 describe('Loan API Contract', () => {
-  beforeAll(() => provider.setup());
-  afterEach(() => provider.verify());
-  afterAll(() => provider.finalize());
+    beforeAll(() => provider.setup());
+    afterEach(() => provider.verify());
+    afterAll(() => provider.finalize());
 
-  describe('POST /loans', () => {
-    it('creates a loan with pending confirmation status', async () => {
-      // Définir les attentes du consumer
-      await provider.addInteraction({
-        state: 'user is authenticated',
-        uponReceiving: 'a request to create a loan',
-        withRequest: {
-          method: 'POST',
-          path: '/v1/loans',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer some-token',
-          },
-          body: {
-            item: {
-              name: 'Perceuse Bosch',
-              category: 'TOOLS',
-              estimatedValue: 129.99,
-            },
-            borrower: {
-              firstName: 'Marie',
-              lastName: 'Dupont',
-              email: 'marie.dupont@example.com',
-            },
-            returnDate: '2026-03-15',
-          },
-        },
-        willRespondWith: {
-          status: 201,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: {
-            id: like('loan-123'),
-            item: {
-              id: like('item-456'),
-              name: 'Perceuse Bosch',
-              category: 'TOOLS',
-              estimatedValue: 129.99,
-            },
-            borrower: {
-              id: like('borrower-789'),
-              firstName: 'Marie',
-              lastName: 'Dupont',
-              email: 'marie.dupont@example.com',
-            },
-            status: 'PENDING_CONFIRMATION',
-            returnDate: '2026-03-15',
-            createdAt: iso8601DateTime('2026-02-08T14:00:00Z'),
-            updatedAt: iso8601DateTime('2026-02-08T14:00:00Z'),
-          },
-        },
-      });
+    describe('POST /loans', () => {
+        it('creates a loan with pending confirmation status', async () => {
+            // Définir les attentes du consumer
+            await provider.addInteraction({
+                state: 'user is authenticated',
+                uponReceiving: 'a request to create a loan',
+                withRequest: {
+                    method: 'POST',
+                    path: '/v1/loans',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer some-token',
+                    },
+                    body: {
+                        item: {
+                            name: 'Perceuse Bosch',
+                            category: 'TOOLS',
+                            estimatedValue: 129.99,
+                        },
+                        borrower: {
+                            firstName: 'Marie',
+                            lastName: 'Dupont',
+                            email: 'marie.dupont@example.com',
+                        },
+                        returnDate: '2026-03-15',
+                    },
+                },
+                willRespondWith: {
+                    status: 201,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: {
+                        id: like('loan-123'),
+                        item: {
+                            id: like('item-456'),
+                            name: 'Perceuse Bosch',
+                            category: 'TOOLS',
+                            estimatedValue: 129.99,
+                        },
+                        borrower: {
+                            id: like('borrower-789'),
+                            firstName: 'Marie',
+                            lastName: 'Dupont',
+                            email: 'marie.dupont@example.com',
+                        },
+                        status: 'PENDING_CONFIRMATION',
+                        returnDate: '2026-03-15',
+                        createdAt: iso8601DateTime('2026-02-08T14:00:00Z'),
+                        updatedAt: iso8601DateTime('2026-02-08T14:00:00Z'),
+                    },
+                },
+            });
 
-      // Appeler l'API avec le client réel
-      const loan = await createLoan({
-        item: { name: 'Perceuse Bosch', category: 'TOOLS', estimatedValue: 129.99 },
-        borrower: { firstName: 'Marie', lastName: 'Dupont', email: 'marie.dupont@example.com' },
-        returnDate: '2026-03-15',
-      });
+            // Appeler l'API avec le client réel
+            const loan = await createLoan({
+                item: {name: 'Perceuse Bosch', category: 'TOOLS', estimatedValue: 129.99},
+                borrower: {firstName: 'Marie', lastName: 'Dupont', email: 'marie.dupont@example.com'},
+                returnDate: '2026-03-15',
+            });
 
-      // Vérifier le comportement
-      expect(loan.status).toBe('PENDING_CONFIRMATION');
-      expect(loan.item.name).toBe('Perceuse Bosch');
+            // Vérifier le comportement
+            expect(loan.status).toBe('PENDING_CONFIRMATION');
+            expect(loan.item.name).toBe('Perceuse Bosch');
+        });
     });
-  });
 
-  describe('GET /loans/{loanId}', () => {
-    it('returns 404 when loan does not exist', async () => {
-      await provider.addInteraction({
-        state: 'user is authenticated',
-        uponReceiving: 'a request for a non-existent loan',
-        withRequest: {
-          method: 'GET',
-          path: '/v1/loans/loan-999',
-          headers: {
-            'Authorization': 'Bearer some-token',
-          },
-        },
-        willRespondWith: {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: {
-            type: like('https://api.return.app/errors/loan-not-found'),
-            title: 'Loan Not Found',
-            status: 404,
-            detail: like('The loan with ID \'loan-999\' does not exist.'),
-            instance: '/v1/loans/loan-999',
-            timestamp: iso8601DateTime('2026-02-08T14:32:00Z'),
-            requestId: like('req-7f3c9a2b'),
-          },
-        },
-      });
+    describe('GET /loans/{loanId}', () => {
+        it('returns 404 when loan does not exist', async () => {
+            await provider.addInteraction({
+                state: 'user is authenticated',
+                uponReceiving: 'a request for a non-existent loan',
+                withRequest: {
+                    method: 'GET',
+                    path: '/v1/loans/loan-999',
+                    headers: {
+                        'Authorization': 'Bearer some-token',
+                    },
+                },
+                willRespondWith: {
+                    status: 404,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: {
+                        type: like('https://api.return.app/errors/loan-not-found'),
+                        title: 'Loan Not Found',
+                        status: 404,
+                        detail: like('The loan with ID \'loan-999\' does not exist.'),
+                        instance: '/v1/loans/loan-999',
+                        timestamp: iso8601DateTime('2026-02-08T14:32:00Z'),
+                        requestId: like('req-7f3c9a2b'),
+                    },
+                },
+            });
 
-      // Appeler l'API et vérifier l'erreur
-      await expect(getLoanById('loan-999')).rejects.toMatchObject({
-        status: 404,
-        type: 'https://api.return.app/errors/loan-not-found',
-      });
+            // Appeler l'API et vérifier l'erreur
+            await expect(getLoanById('loan-999')).rejects.toMatchObject({
+                status: 404,
+                type: 'https://api.return.app/errors/loan-not-found',
+            });
+        });
     });
-  });
 });
 ```
 
@@ -248,60 +258,60 @@ npm install --save-dev @pact-foundation/pact
 
 ```typescript
 // test/pact/loan.provider.spec.ts
-import { Verifier } from '@pact-foundation/pact';
+import {Verifier} from '@pact-foundation/pact';
 import path from 'path';
-import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
-import { AppModule } from '../../src/app.module';
+import {INestApplication} from '@nestjs/common';
+import {Test} from '@nestjs/testing';
+import {AppModule} from '../../src/app.module';
 
 describe('Pact Verification', () => {
-  let app: INestApplication;
+    let app: INestApplication;
 
-  beforeAll(async () => {
-    // Démarrer l'application NestJS
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    beforeAll(async () => {
+        // Démarrer l'application NestJS
+        const moduleRef = await Test.createTestingModule({
+            imports: [AppModule],
+        }).compile();
 
-    app = moduleRef.createNestApplication();
-    await app.init();
-  });
+        app = moduleRef.createNestApplication();
+        await app.init();
+    });
 
-  afterAll(async () => {
-    await app.close();
-  });
+    afterAll(async () => {
+        await app.close();
+    });
 
-  it('validates the expectations of ReturnMobileApp', async () => {
-    const opts = {
-      provider: 'ReturnAPI',
-      providerBaseUrl: 'http://localhost:3000', // URL du backend de test
-      pactUrls: [
-        path.resolve(__dirname, '../../pacts/ReturnMobileApp-ReturnAPI.json'),
-      ],
-      stateHandlers: {
-        'user is authenticated': async () => {
-          // Setup : Créer un utilisateur de test et générer un token
-          const user = await createTestUser({ email: 'test@example.com' });
-          const token = generateJWT(user.id);
-          process.env.TEST_AUTH_TOKEN = token;
-        },
-        'loan loan-123 exists': async () => {
-          // Setup : Créer un prêt en base de test
-          await createTestLoan({ id: 'loan-123', status: 'ACTIVE' });
-        },
-      },
-      requestFilter: (req, res, next) => {
-        // Injecter le token de test si nécessaire
-        if (process.env.TEST_AUTH_TOKEN) {
-          req.headers['authorization'] = `Bearer ${process.env.TEST_AUTH_TOKEN}`;
-        }
-        next();
-      },
-    };
+    it('validates the expectations of ReturnMobileApp', async () => {
+        const opts = {
+            provider: 'ReturnAPI',
+            providerBaseUrl: 'http://localhost:3000', // URL du backend de test
+            pactUrls: [
+                path.resolve(__dirname, '../../pacts/ReturnMobileApp-ReturnAPI.json'),
+            ],
+            stateHandlers: {
+                'user is authenticated': async () => {
+                    // Setup : Créer un utilisateur de test et générer un token
+                    const user = await createTestUser({email: 'test@example.com'});
+                    const token = generateJWT(user.id);
+                    process.env.TEST_AUTH_TOKEN = token;
+                },
+                'loan loan-123 exists': async () => {
+                    // Setup : Créer un prêt en base de test
+                    await createTestLoan({id: 'loan-123', status: 'ACTIVE'});
+                },
+            },
+            requestFilter: (req, res, next) => {
+                // Injecter le token de test si nécessaire
+                if (process.env.TEST_AUTH_TOKEN) {
+                    req.headers['authorization'] = `Bearer ${process.env.TEST_AUTH_TOKEN}`;
+                }
+                next();
+            },
+        };
 
-    const verifier = new Verifier(opts);
-    await verifier.verifyProvider();
-  });
+        const verifier = new Verifier(opts);
+        await verifier.verifyProvider();
+    });
 });
 ```
 
@@ -312,6 +322,7 @@ npm run test:pact:provider
 ```
 
 **Résultat** :
+
 - ✅ Si toutes les interactions passent → Le backend respecte le contrat
 - ❌ Si une interaction échoue → Détail de l'écart (champ manquant, mauvais type, etc.)
 
@@ -324,7 +335,10 @@ Le **Pact Broker** est un serveur central qui stocke les contrats et facilite la
 ### 6.1 Déploiement du Broker (Docker)
 
 -----Contre Expertise--------
-**Pact Broker = infrastructure supplémentaire à maintenir** : Le Broker nécessite un serveur Docker + une base PostgreSQL dédiée. C'est un service de plus à déployer, monitorer, et maintenir. Pour 2 développeurs, le fichier `.pact` peut simplement être partagé via le repository Git (ou un artefact CI). Le Broker n'apporte de la valeur que quand plusieurs équipes/repos consomment le même contrat.
+**Pact Broker = infrastructure supplémentaire à maintenir** : Le Broker nécessite un serveur Docker + une base
+PostgreSQL dédiée. C'est un service de plus à déployer, monitorer, et maintenir. Pour 2 développeurs, le fichier `.pact`
+peut simplement être partagé via le repository Git (ou un artefact CI). Le Broker n'apporte de la valeur que quand
+plusieurs équipes/repos consomment le même contrat.
 -----Fin Contre Expertise--------
 
 ```bash
@@ -352,13 +366,13 @@ npx pact-broker publish \
 ```typescript
 // Modifier loan.provider.spec.ts
 const opts = {
-  provider: 'ReturnAPI',
-  providerBaseUrl: 'http://localhost:3000',
-  pactBrokerUrl: 'https://pact.return.app',
-  pactBrokerUsername: 'admin',
-  pactBrokerPassword: 'secret',
-  publishVerificationResult: true,
-  providerVersion: process.env.GIT_COMMIT,
+    provider: 'ReturnAPI',
+    providerBaseUrl: 'http://localhost:3000',
+    pactBrokerUrl: 'https://pact.return.app',
+    pactBrokerUsername: 'admin',
+    pactBrokerPassword: 'secret',
+    publishVerificationResult: true,
+    providerVersion: process.env.GIT_COMMIT,
 };
 ```
 
@@ -368,7 +382,7 @@ const opts = {
 # .github/workflows/pact.yml
 name: Pact Contract Tests
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   consumer:
@@ -410,16 +424,23 @@ jobs:
 ### Cas 1 : Le Backend Change le Format de Date
 
 **Avant** :
+
 ```json
-{ "createdAt": "2026-02-08T14:00:00Z" }
+{
+  "createdAt": "2026-02-08T14:00:00Z"
+}
 ```
 
 **Après (changement backend)** :
+
 ```json
-{ "createdAt": 1675868400 } // Timestamp Unix
+{
+  "createdAt": 1675868400
+} // Timestamp Unix
 ```
 
 **Résultat Pact** :
+
 ```
 ❌ Verification failed for GET /loans
 Expected: ISO 8601 DateTime (string)
@@ -427,6 +448,7 @@ Actual: Unix timestamp (number)
 ```
 
 → Le provider doit **soit** :
+
 - Revenir au format ISO 8601
 - Négocier un nouveau contrat avec le consumer
 
@@ -435,6 +457,7 @@ Actual: Unix timestamp (number)
 Le consumer met à jour son contrat pour accepter un nouveau champ `item.photos` (optionnel).
 
 **Comportement** :
+
 - Le provider (backend) continue de fonctionner sans `photos` → Tests passent ✅
 - Quand le backend implémente `photos`, le consumer l'utilise automatiquement
 
@@ -445,12 +468,14 @@ Le consumer met à jour son contrat pour accepter un nouveau champ `item.photos`
 ## 9. Limites du Contract Testing
 
 **Ce que Pact NE vérifie PAS** :
+
 - ❌ **Logique métier** : Pact ne teste pas si `PENDING_CONFIRMATION` → `ACTIVE` est valide
 - ❌ **Performance** : Pas de mesure de latence
 - ❌ **Sécurité** : Pas de test de JWT invalide (sauf si explicitement défini)
 - ❌ **Données réelles** : Pas de vérification sur une vraie base de données
 
 **Complément nécessaire** :
+
 - Tests unitaires (logique métier)
 - Tests E2E (flows complets)
 - Tests de charge (performance)
@@ -487,13 +512,17 @@ npx pact-broker list-latest-pact-versions \
 
 ---
 
-**Résumé en 1 phrase** :  
-> Pact garantit que le frontend React Native et le backend NestJS parlent le même langage (contrat API) en testant automatiquement leurs interactions, détectant les incompatibilités avant la production.
+**Résumé en 1 phrase** :
+> Pact garantit que le frontend React Native et le backend NestJS parlent le même langage (contrat API) en testant
+> automatiquement leurs interactions, détectant les incompatibilités avant la production.
 
 ---
 
 -----Contre Expertise--------
-**Recommandation globale** : Ce document est bien rédigé et pédagogique. Il peut servir de référence si l'équipe grandit (3+ développeurs séparés front/back). Mais pour le MVP à 2 développeurs, **Pact est overkill**. L'approche recommandée est :
+**Recommandation globale** : Ce document est bien rédigé et pédagogique. Il peut servir de référence si l'équipe
+grandit (3+ développeurs séparés front/back). Mais pour le MVP à 2 développeurs, **Pact est overkill**. L'approche
+recommandée est :
+
 1. OpenAPI spec comme contrat unique (déjà en place)
 2. Prism mock pour le développement frontend (déjà documenté)
 3. Tests Supertest côté backend pour valider les endpoints

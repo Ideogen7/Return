@@ -15,7 +15,7 @@ info:
     **Architecture** : Monolithe Modulaire (NestJS + PostgreSQL)
     **Authentification** : JWT (Bearer Token)
     **Standards** : RFC 7807 pour toutes les erreurs
-    
+
   # -----Contre Expertise--------
   # POINTS GÉNÉRAUX SUR L'OPENAPI SPEC :
   #
@@ -116,7 +116,7 @@ tags:
     description: Historique et statistiques des prêts
 
 security:
-  - BearerAuth: []
+  - BearerAuth: [ ]
 
 paths:
   # =============================================================================
@@ -132,7 +132,7 @@ paths:
         Inscription d'un nouvel utilisateur. Retourne un JWT valide après création.
         Le compte est créé avec le rôle `LENDER` par défaut.
       operationId: registerUser
-      security: []  # Public endpoint
+      security: [ ]  # Public endpoint
       requestBody:
         required: true
         content:
@@ -195,7 +195,7 @@ paths:
         Authentification par email + mot de passe. Retourne un access token (15 min)
         et un refresh token (30 jours).
       operationId: loginUser
-      security: []  # Public endpoint
+      security: [ ]  # Public endpoint
       requestBody:
         required: true
         content:
@@ -244,7 +244,7 @@ paths:
         Utilise le refresh token pour obtenir un nouveau access token.
         Le refresh token reste valide jusqu'à son expiration (30 jours).
       operationId: refreshToken
-      security: []  # Public endpoint (le refresh token est dans le body)
+      security: [ ]  # Public endpoint (le refresh token est dans le body)
       requestBody:
         required: true
         content:
@@ -363,7 +363,7 @@ paths:
           description: Champ de tri
           schema:
             type: string
-            enum: [createdAt, returnDate, status]
+            enum: [ createdAt, returnDate, status ]
             default: createdAt
           example: returnDate
         - name: sortOrder
@@ -371,7 +371,7 @@ paths:
           description: Ordre de tri
           schema:
             type: string
-            enum: [asc, desc]
+            enum: [ asc, desc ]
             default: desc
           example: asc
       responses:
@@ -881,7 +881,7 @@ paths:
                     type: array
                     items:
                       type: string
-                    example: ["Perceuse", "Drill", "Power tool"]
+                    example: [ "Perceuse", "Drill", "Power tool" ]
                     description: Noms alternatifs détectés
               example:
                 item:
@@ -894,7 +894,7 @@ paths:
                       url: https://photos.return.app/temp/photo-1.jpg
                       uploadedAt: "2026-02-08T18:00:00Z"
                 confidence: 0.92
-                alternativeNames: ["Perceuse", "Drill", "Power drill"]
+                alternativeNames: [ "Perceuse", "Drill", "Power drill" ]
         '400':
           description: Format de fichier invalide ou fichier trop volumineux
           content:
@@ -1124,14 +1124,14 @@ paths:
           description: Champ de tri
           schema:
             type: string
-            enum: [firstName, lastName, trustScore, totalLoans]
+            enum: [ firstName, lastName, trustScore, totalLoans ]
             default: firstName
           example: trustScore
         - name: sortOrder
           in: query
           schema:
             type: string
-            enum: [asc, desc]
+            enum: [ asc, desc ]
             default: asc
       responses:
         '200':
@@ -1817,7 +1817,7 @@ paths:
                   description: Mot de passe pour confirmer
                 confirmationText:
                   type: string
-                  enum: ["DELETE MY ACCOUNT"]
+                  enum: [ "DELETE MY ACCOUNT" ]
                   description: 'Doit être exactement "DELETE MY ACCOUNT"'
       responses:
         '204':
@@ -1865,7 +1865,7 @@ paths:
             type: array
             items:
               type: string
-              enum: [RETURNED, NOT_RETURNED, CONTESTED]
+              enum: [ RETURNED, NOT_RETURNED, CONTESTED ]
           style: form
           explode: false
         - name: borrowerId
@@ -2426,7 +2426,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/NotificationChannel'
-          example: [PUSH, EMAIL]
+          example: [ PUSH, EMAIL ]
           description: Canaux de notification activés
         reminderEnabled:
           type: boolean
@@ -2434,7 +2434,7 @@ components:
           description: Activer/désactiver les rappels automatiques
         language:
           type: string
-          enum: [fr, en, es, de]
+          enum: [ fr, en, es, de ]
           example: fr
           description: Langue de l'interface
         timezone:

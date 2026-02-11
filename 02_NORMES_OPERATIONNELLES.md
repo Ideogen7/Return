@@ -82,7 +82,9 @@ export class PhotoStorageService {
 - Remplacement du stockage (S3 → Cloudflare R2) sans toucher au domaine
 
 -----Contre Expertise--------
-**PhotoStorageService** : Ce service est montré ici comme exemple SRP, mais il n'apparaît nulle part dans la roadmap backend (04_ROADMAP_BACKEND.md). Le sprint 2 ne prévoit que la gestion photo via l'endpoint de création de prêt (upload multipart). Il faut clarifier si ce service est implémenté dès le sprint 2 ou s'il reste un exemple théorique.
+**PhotoStorageService** : Ce service est montré ici comme exemple SRP, mais il n'apparaît nulle part dans la roadmap
+backend (04_ROADMAP_BACKEND.md). Le sprint 2 ne prévoit que la gestion photo via l'endpoint de création de prêt (upload
+multipart). Il faut clarifier si ce service est implémenté dès le sprint 2 ou s'il reste un exemple théorique.
 -----Fin Contre Expertise--------
 
 ---
@@ -362,7 +364,12 @@ export class PrismaLoanRepository implements LoanRepository {
 - Le domaine métier reste pur (pas de dépendance à Prisma)
 
 -----Contre Expertise--------
-**DIP + Prisma = boilerplate massif** : Ce pattern impose la création d'une interface Repository + une implémentation Prisma + un Mapper (toDomain/toPersistence) pour **chaque** agrégat. Pour le MVP (Loan, Item, User, Reminder, Notification), cela représente ~30-45 classes de plomberie avant d'écrire une seule ligne de logique métier. C'est un coût d'entrée élevé pour un MVP à 2 développeurs. Suggestion : commencer avec Prisma directement dans les services pour les modules simples (User, Item) et réserver le pattern Repository+Mapper aux modules à logique riche (Loan, Reminder). Refactorer ensuite.
+**DIP + Prisma = boilerplate massif** : Ce pattern impose la création d'une interface Repository + une implémentation
+Prisma + un Mapper (toDomain/toPersistence) pour **chaque** agrégat. Pour le MVP (Loan, Item, User, Reminder,
+Notification), cela représente ~30-45 classes de plomberie avant d'écrire une seule ligne de logique métier. C'est un
+coût d'entrée élevé pour un MVP à 2 développeurs. Suggestion : commencer avec Prisma directement dans les services pour
+les modules simples (User, Item) et réserver le pattern Repository+Mapper aux modules à logique riche (Loan, Reminder).
+Refactorer ensuite.
 -----Fin Contre Expertise--------
 
 ---
@@ -450,7 +457,11 @@ class UrgentReminderStrategy implements ReminderStrategy {
 ```
 
 -----Contre Expertise--------
-**Strategy Pattern sur-ingénieré pour V1** : La bible projet (00_BIBLE_PROJET.md) décrit une politique de rappel **unique et fixe** (J-3, J+3, J+10, J+17). Il n'est nulle part prévu en V1 que l'utilisateur puisse choisir entre "Standard" et "Urgent". Implémenter le Strategy Pattern pour un seul algorithme, c'est ajouter une couche d'abstraction sans valeur immédiate. Recommandation : implémenter la politique fixe dans un simple service, et refactorer en Strategy Pattern **quand** un deuxième algorithme sera réellement nécessaire (YAGNI).
+**Strategy Pattern sur-ingénieré pour V1** : La bible projet (00_BIBLE_PROJET.md) décrit une politique de rappel *
+*unique et fixe** (J-3, J+3, J+10, J+17). Il n'est nulle part prévu en V1 que l'utilisateur puisse choisir entre "
+Standard" et "Urgent". Implémenter le Strategy Pattern pour un seul algorithme, c'est ajouter une couche d'abstraction
+sans valeur immédiate. Recommandation : implémenter la politique fixe dans un simple service, et refactorer en Strategy
+Pattern **quand** un deuxième algorithme sera réellement nécessaire (YAGNI).
 -----Fin Contre Expertise--------
 
 #### **Observer Pattern / Event-Driven** (Couplage faible)
@@ -511,9 +522,16 @@ export class AnalyticsService {
 | **API Contract Tests**          | Pact                                | Tests de contrats entre mobile et API               |
 
 -----Contre Expertise--------
-**Pact (Contract Testing) : overkill pour l'équipe** : Pact est conçu pour des équipes **séparées** (ex : équipe frontend ≠ équipe backend) qui doivent garantir la compatibilité de leurs contrats API de façon asynchrone. Ici, c'est la **même équipe de 2 développeurs** qui fait le front et le back. L'OpenAPI spec + Prism mock + tests d'intégration Supertest couvrent déjà ce besoin. Pact ajoute un broker à maintenir, des tests côté consumer ET provider, et une CI plus complexe. Recommandation : supprimer Pact du MVP, l'OpenAPI-first approach suffit.
+**Pact (Contract Testing) : overkill pour l'équipe** : Pact est conçu pour des équipes **séparées** (ex : équipe
+frontend ≠ équipe backend) qui doivent garantir la compatibilité de leurs contrats API de façon asynchrone. Ici, c'est
+la **même équipe de 2 développeurs** qui fait le front et le back. L'OpenAPI spec + Prism mock + tests d'intégration
+Supertest couvrent déjà ce besoin. Pact ajoute un broker à maintenir, des tests côté consumer ET provider, et une CI
+plus complexe. Recommandation : supprimer Pact du MVP, l'OpenAPI-first approach suffit.
 
-**Detox (E2E Frontend) : fragile et coûteux** : Detox est notoirement instable (timeouts, synchronisation), lent à exécuter, et nécessite des builds natifs complets. Pour un MVP, **React Native Testing Library (RNTL)** couvre 80% des besoins avec 20% de l'effort : tests de composants, navigation, interactions utilisateur. Recommandation : RNTL pour les tests frontend, réserver Detox pour un éventuel smoke test E2E critique post-MVP.
+**Detox (E2E Frontend) : fragile et coûteux** : Detox est notoirement instable (timeouts, synchronisation), lent à
+exécuter, et nécessite des builds natifs complets. Pour un MVP, **React Native Testing Library (RNTL)** couvre 80% des
+besoins avec 20% de l'effort : tests de composants, navigation, interactions utilisateur. Recommandation : RNTL pour les
+tests frontend, réserver Detox pour un éventuel smoke test E2E critique post-MVP.
 -----Fin Contre Expertise--------
 
 ### 2.2 Cycle TDD Strict
@@ -700,7 +718,10 @@ describe('ReminderService', () => {
 | **DTOs / Mappers**                         | 60%                 | ℹ️ Info seulement           |
 
 -----Contre Expertise--------
-**100% couverture Domain : bloque le merge, bloque la vélocité** : Exiger 100% de couverture sur le domaine signifie qu'un getter trivial non testé bloque toute la PR. En pratique, cela pousse à écrire des tests sans valeur (tester que `getName()` retourne `name`). Un seuil de **95%** avec review manuelle des lignes non couvertes est plus pragmatique et tout aussi rigoureux.
+**100% couverture Domain : bloque le merge, bloque la vélocité** : Exiger 100% de couverture sur le domaine signifie
+qu'un getter trivial non testé bloque toute la PR. En pratique, cela pousse à écrire des tests sans valeur (tester que
+`getName()` retourne `name`). Un seuil de **95%** avec review manuelle des lignes non couvertes est plus pragmatique et
+tout aussi rigoureux.
 -----Fin Contre Expertise--------
 
 **Configuration Jest** :
@@ -728,7 +749,10 @@ describe('ReminderService', () => {
 ```
 
 -----Contre Expertise--------
-**Incohérence entre le tableau et la config Jest** : Le tableau indique "Services 90%, seuil CI 85%" mais la config Jest globale montre `functions: 85, lines: 85`. Ces seuils globaux ne correspondent pas aux seuils par couche du tableau. Il faudrait soit configurer des seuils par dossier (`./src/services/**/*.ts`), soit clarifier que les seuils globaux sont un compromis. Tel quel, le lecteur ne sait pas quel seuil fait foi.
+**Incohérence entre le tableau et la config Jest** : Le tableau indique "Services 90%, seuil CI 85%" mais la config Jest
+globale montre `functions: 85, lines: 85`. Ces seuils globaux ne correspondent pas aux seuils par couche du tableau. Il
+faudrait soit configurer des seuils par dossier (`./src/services/**/*.ts`), soit clarifier que les seuils globaux sont
+un compromis. Tel quel, le lecteur ne sait pas quel seuil fait foi.
 -----Fin Contre Expertise--------
 
 ---
@@ -789,7 +813,12 @@ export class ProblemDetailsException extends HttpException {
 ```
 
 -----Contre Expertise--------
-**RequestContext.getCurrentRequestId() sous-estimé** : Ce pattern repose sur `AsyncLocalStorage` (Node.js) pour propager le requestId à travers toute la call stack sans le passer en paramètre. C'est un pattern avancé qui nécessite un middleware dédié pour l'initialiser à chaque requête. Or, ce middleware n'est documenté nulle part dans les roadmaps ni dans ce document. Il faut explicitement prévoir : 1) Un `RequestContextMiddleware` NestJS, 2) L'initialisation de `AsyncLocalStorage`, 3) Des tests pour vérifier la propagation. Sans cela, `getCurrentRequestId()` retournera `undefined` partout.
+**RequestContext.getCurrentRequestId() sous-estimé** : Ce pattern repose sur `AsyncLocalStorage` (Node.js) pour propager
+le requestId à travers toute la call stack sans le passer en paramètre. C'est un pattern avancé qui nécessite un
+middleware dédié pour l'initialiser à chaque requête. Or, ce middleware n'est documenté nulle part dans les roadmaps ni
+dans ce document. Il faut explicitement prévoir : 1) Un `RequestContextMiddleware` NestJS, 2) L'initialisation de
+`AsyncLocalStorage`, 3) Des tests pour vérifier la propagation. Sans cela, `getCurrentRequestId()` retournera
+`undefined` partout.
 -----Fin Contre Expertise--------
 
 ```typescript
@@ -921,7 +950,11 @@ export const loggerConfig = WinstonModule.createLogger({
 ```
 
 -----Contre Expertise--------
-**Winston File Transport inutile sur Fly.io** : Les conteneurs Fly.io sont **éphémères** — les fichiers `logs/error.log` et `logs/combined.log` disparaissent à chaque redéploiement ou crash. Ce transport est donc inutile en production. En V1, `Console` transport suffit : les logs stdout sont captés par `fly logs` et peuvent être routés vers un service externe (Logtail, Better Stack) si nécessaire. Supprimer les File transports pour éviter de remplir le disque du conteneur inutilement.
+**Winston File Transport inutile sur Fly.io** : Les conteneurs Fly.io sont **éphémères** — les fichiers `logs/error.log`
+et `logs/combined.log` disparaissent à chaque redéploiement ou crash. Ce transport est donc inutile en production. En
+V1, `Console` transport suffit : les logs stdout sont captés par `fly logs` et peuvent être routés vers un service
+externe (Logtail, Better Stack) si nécessaire. Supprimer les File transports pour éviter de remplir le disque du
+conteneur inutilement.
 -----Fin Contre Expertise--------
 
 ```typescript
@@ -1000,7 +1033,12 @@ hotfix/critical-bug-fix
 ```
 
 -----Contre Expertise--------
-**Branche `develop` inutile pour 2 développeurs** : Git Flow (main + develop + feature branches) a été conçu pour des équipes de 10+ développeurs avec des cycles de release complexes. Pour une équipe de 2 personnes, c'est de la friction inutile : chaque feature doit être mergée dans develop, puis develop dans main — deux PR reviews au lieu d'une. **GitHub Flow** (main + feature branches directement) est bien plus adapté : les features sont mergées directement dans main, un seul point de review, déploiement continu simplifié. Si un staging est nécessaire, utiliser un environnement de preview par PR (Fly.io le supporte nativement).
+**Branche `develop` inutile pour 2 développeurs** : Git Flow (main + develop + feature branches) a été conçu pour des
+équipes de 10+ développeurs avec des cycles de release complexes. Pour une équipe de 2 personnes, c'est de la friction
+inutile : chaque feature doit être mergée dans develop, puis develop dans main — deux PR reviews au lieu d'une. **GitHub
+Flow** (main + feature branches directement) est bien plus adapté : les features sont mergées directement dans main, un
+seul point de review, déploiement continu simplifié. Si un staging est nécessaire, utiliser un environnement de preview
+par PR (Fly.io le supporte nativement).
 -----Fin Contre Expertise--------
 
 #### Branches Principales
@@ -1011,7 +1049,10 @@ hotfix/critical-bug-fix
 | **develop** | Branche d'intégration pour la prochaine release | ✅ PR reviews (1 approval), ✅ CI/CD passing                 |
 
 -----Contre Expertise--------
-**2 approvals pour main : mathématiquement impossible** : L'équipe est composée de 2 développeurs. Si l'un crée la PR, il faut 2 *autres* personnes pour approuver. Or il n'y a qu'un seul autre développeur. Même avec 1 approval requis, cela signifie que chaque PR bloque l'autre développeur. Recommandation : **1 approval** pour main, avec une option de self-merge en cas d'urgence (hotfix) documentée dans un runbook.
+**2 approvals pour main : mathématiquement impossible** : L'équipe est composée de 2 développeurs. Si l'un crée la PR,
+il faut 2 *autres* personnes pour approuver. Or il n'y a qu'un seul autre développeur. Même avec 1 approval requis, cela
+signifie que chaque PR bloque l'autre développeur. Recommandation : **1 approval** pour main, avec une option de
+self-merge en cas d'urgence (hotfix) documentée dans un runbook.
 -----Fin Contre Expertise--------
 
 #### Branches Éphémères
@@ -1175,18 +1216,29 @@ Refs #45, #56
 **Si une vérification échoue, le commit est bloqué.**
 
 -----Contre Expertise--------
-**Jest en pre-commit : trop lent, casse le flow** : `jest --bail --findRelatedTests` en pre-commit peut prendre 10-30 secondes selon le nombre de fichiers modifiés, surtout avec des tests d'intégration qui chargent des modules NestJS. Cela casse le rythme du développeur qui commit fréquemment (TDD impose un commit après chaque cycle RED-GREEN-REFACTOR). Recommandation : pre-commit = **ESLint + Prettier uniquement** (< 2 secondes). Les tests sont exécutés en **CI** (push) où le temps est moins critique. Cela reste fiable car la PR ne peut pas être mergée sans CI verte.
+**Jest en pre-commit : trop lent, casse le flow** : `jest --bail --findRelatedTests` en pre-commit peut prendre 10-30
+secondes selon le nombre de fichiers modifiés, surtout avec des tests d'intégration qui chargent des modules NestJS.
+Cela casse le rythme du développeur qui commit fréquemment (TDD impose un commit après chaque cycle RED-GREEN-REFACTOR).
+Recommandation : pre-commit = **ESLint + Prettier uniquement** (< 2 secondes). Les tests sont exécutés en **CI** (push)
+où le temps est moins critique. Cela reste fiable car la PR ne peut pas être mergée sans CI verte.
 -----Fin Contre Expertise--------
 
 -----Contre Expertise--------
 **Éléments manquants dans les normes opérationnelles** :
 
-1. **Convention de nommage des fichiers** : Aucune convention n'est définie pour les noms de fichiers. Est-ce `loan.service.ts`, `LoanService.ts`, `loan-service.ts` ? NestJS utilise par convention `kebab-case` (loan.service.ts), mais ce n'est écrit nulle part.
+1. **Convention de nommage des fichiers** : Aucune convention n'est définie pour les noms de fichiers. Est-ce
+   `loan.service.ts`, `LoanService.ts`, `loan-service.ts` ? NestJS utilise par convention `kebab-case` (
+   loan.service.ts), mais ce n'est écrit nulle part.
 
-2. **Stratégie de code review** : Le document impose des PR reviews mais ne définit pas ce qu'on y vérifie. Checklist de review ? Qui review quoi ? Quel est le SLA de review (24h max) ? Sans cadre, les reviews deviennent soit superficielles ("LGTM") soit bloquantes (débats architecturaux en commentaire de PR).
+2. **Stratégie de code review** : Le document impose des PR reviews mais ne définit pas ce qu'on y vérifie. Checklist de
+   review ? Qui review quoi ? Quel est le SLA de review (24h max) ? Sans cadre, les reviews deviennent soit
+   superficielles ("LGTM") soit bloquantes (débats architecturaux en commentaire de PR).
 
-3. **Zod vs class-validator** : Le document 01_ARCHITECTURE_TECHNIQUE mentionne Zod pour la validation, mais les exemples de code ici utilisent des DTOs NestJS (qui s'intègrent naturellement avec class-validator via ValidationPipe). Il faut trancher : Zod (plus moderne, inférence TypeScript) ou class-validator (intégré NestJS, décorateurs) ? Les deux en même temps = confusion garantie.
------Fin Contre Expertise--------
+3. **Zod vs class-validator** : Le document 01_ARCHITECTURE_TECHNIQUE mentionne Zod pour la validation, mais les
+   exemples de code ici utilisent des DTOs NestJS (qui s'intègrent naturellement avec class-validator via
+   ValidationPipe). Il faut trancher : Zod (plus moderne, inférence TypeScript) ou class-validator (intégré NestJS,
+   décorateurs) ? Les deux en même temps = confusion garantie.
+   -----Fin Contre Expertise--------
 
 ---
 
