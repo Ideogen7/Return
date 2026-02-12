@@ -4,49 +4,52 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Projet
 
-**Return** est une application mobile de suivi de prêts d'objets personnels. Elle permet aux utilisateurs d'enregistrer
-des prêts, suivre les échéances et envoyer des rappels diplomatiques aux emprunteurs.
+**Return** est une application mobile de suivi de prêts d'objets personnels et d'argent. Elle permet aux utilisateurs
+d'enregistrer des prêts, suivre les échéances et envoyer des rappels diplomatiques aux emprunteurs.
 
 **Statut actuel** : Phase de spécifications — pas encore de code source. Le repo contient la documentation fondatrice et
 le contrat API OpenAPI.
 
 ## Stack Technique
 
-- **Backend** : NestJS (TypeScript), Monolithe Modulaire, Prisma ORM
-- **Frontend** : React Native (TypeScript), Zustand, React Navigation, React Native Paper
-- **Base de données** : PostgreSQL 16+ (principal) + Redis 7.x (cache, queues BullMQ)
+- **Backend** : NestJS 11.x (TypeScript 5.8+), Monolithe Modulaire, Prisma 6.x+ ORM
+- **Frontend** : React Native 0.78+ (TypeScript), Zustand 5.x, React Navigation 7.x, React Native Paper
+- **Base de données** : PostgreSQL 17+ (principal) + Redis 8.x (cache, queues BullMQ, blacklist JWT)
 - **Stockage photos** : Cloudflare R2 (S3-compatible)
-- **Infrastructure** : Fly.io, Docker, GitHub Actions CI/CD
-- **Auth** : JWT (access token 15min + refresh token 30j) via Passport.js
-- **Tests** : Jest, Testcontainers, Supertest (backend), Detox (frontend E2E), Pact (contract)
-- **Logs** : Winston (JSON structuré uniquement)
+- **Infrastructure** : Fly.io (Europe West), Docker, GitHub Actions CI/CD
+- **Auth** : JWT (access token 15min + refresh token 30j) via Passport.js, révocation immédiate via Redis blacklist
+- **Tests** : Jest, Testcontainers, Supertest (backend), React Native Testing Library (frontend), Detox (post-MVP E2E)
+- **Logs** : Winston (JSON structuré, console transport uniquement)
+- **Validation** : class-validator + class-transformer (NestJS ValidationPipe)
+- **i18n** : FR + EN (app + notifications push) via react-i18next
 
 ## Modules Métier
 
-Modules NestJS découplés par événements (EventBus) :
+Modules NestJS découplés par événements (EventEmitter2 + @OnEvent) :
 
-- **Loans** : Cycle de vie des prêts (PENDING_CONFIRMATION → ACTIVE → RETURNED/ABANDONED)
-- **Items** : Objets prêtés (photo + reconnaissance automatique via Google Cloud Vision)
-- **Reminders** : Rappels automatiques (BullMQ jobs) — escalade J+3, J+10, J+17 après échéance
-- **Users** : Comptes, profils, rôles (Lender, Borrower)
-- **Notifications** : Push (FCM), Email (V2+), SMS (V2+)
+- **Loans** : Cycle de vie des prêts (PENDING_CONFIRMATION → ACTIVE → RETURNED/ABANDONED). Types : Objet physique et
+  Argent.
+- **Items** : Objets prêtés (photo, nom, catégorie, valeur estimée optionnelle)
+- **Reminders** : Rappels automatiques (BullMQ jobs) — politique fixe J-3, J, J+7, J+14, J+21
+- **Users** : Comptes, profils, rôles contextuels (Lender, Borrower)
+- **Notifications** : Push (FCM) en V1. Email, SMS en V2+.
 
 ## Architecture & Patterns Obligatoires
 
-- **SOLID strict** — SRP via EventBus, DIP via interfaces pour tout accès DB
-- **Repository Pattern** : Tout accès DB passe par une interface `*Repository` (jamais Prisma directement dans les
-  services)
-- **Factory Pattern** : Création d'entités complexes (`LoanFactory.create()`)
-- **Strategy Pattern** : Politiques de rappel interchangeables
-- **Observer/Event-Driven** : Communication inter-modules via `EventBus` (`@OnEvent`)
+- **SOLID strict** — SRP via EventBus, DIP via interfaces pour services externes (storage, notifications, queue)
+- **Prisma directement dans les services** — Pas de Repository Pattern pour le MVP (décision pragmatique)
+- **Factory Pattern** : Création d'entités complexes (`LoanFactory.toCreateInput()`)
+- **Politique de rappels fixe** : J-3, J, J+7, J+14, J+21 (pas de Strategy Pattern en V1 — YAGNI)
+- **Observer/Event-Driven** : Communication inter-modules via `EventEmitter2` (`@OnEvent`)
 
 ## Standards de Développement
 
 ### TDD (Strict RED → GREEN → REFACTOR → COMMIT)
 
 - Aucun code de production sans test préalable qui échoue
+- Cycle par comportement (pas par feature entière)
 - Pattern AAA (Arrange-Act-Assert) obligatoire
-- Couverture minimale : Domain 100%, Services 90%, Repositories 80%, Controllers 70%
+- Couverture minimale : Domain 95%, Services 90%, Controllers 70%
 
 ### Erreurs API (RFC 7807)
 
@@ -58,7 +61,7 @@ Toutes les erreurs HTTP retournent un objet `ProblemDetails` :
   "title": "...",
   "status": 404,
   "detail": "...",
-  "instance": "/api/v1/...",
+  "instance": "/v1/...",
   "timestamp": "...",
   "requestId": "...",
   "errors": [
@@ -74,41 +77,46 @@ Toutes les erreurs HTTP retournent un objet `ProblemDetails` :
 ### Logs
 
 - Winston uniquement (pas de `console.log`)
+- Console transport uniquement (conteneurs Fly.io éphémères)
 - Format JSON avec `requestId`, `userId`, `timestamp`, `context`, `duration`
 
-### Git
+### Git (GitHub Flow + Conventional Commits)
 
+- **Branches** : `main` (prod) ← `feature/`, `fix/`, `hotfix/`, `refactor/`, `chore/` (pas de branche `develop`)
 - **Conventional Commits** : `<type>(<scope>): <subject>`
 - Types : `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`, `build`, `revert`
-- Scopes : `loans`, `reminders`, `auth`, `photos`, `notifications`, `users`, `db`, `api`
-- Branches : `main` (prod) ← `develop` ← `feature/`, `fix/`, `hotfix/`, `refactor/`, `chore/`
-- Pre-commit hooks : Husky + lint-staged (ESLint, Prettier, Jest related tests, commitlint)
+- Scopes : `loans`, `reminders`, `auth`, `photos`, `notifications`, `users`, `db`, `api`, `i18n`
+- Pre-commit hooks : Husky + lint-staged (ESLint + Prettier uniquement). Jest en CI.
+- PR : 1 approval, CI verte.
 
 ### Interdictions
 
-- Dépendance directe à Prisma dans les services (utiliser Repository)
 - `console.log` (utiliser Winston)
 - Erreurs HTTP sans RFC 7807
 - Logique métier dans les controllers (déplacer dans services)
 - Secrets en dur (utiliser .env)
+- Zod pour la validation (utiliser class-validator)
+- File Transport Winston (conteneurs éphémères)
+- Code de production sans test préalable (TDD)
 
 ## Domaine Métier (Ubiquitous Language)
 
-| Terme FR   | Terme EN (code) | Description                                         |
-|------------|-----------------|-----------------------------------------------------|
-| Prêt       | Loan            | Transaction de prêt temporaire                      |
-| Prêteur    | Lender          | Utilisateur propriétaire qui prête                  |
-| Emprunteur | Borrower        | Personne qui emprunte (peut ne pas avoir de compte) |
-| Objet      | Item            | Bien prêté (photo, nom, valeur optionnelle)         |
-| Rappel     | Reminder        | Notification automatique planifiée                  |
+| Terme FR   | Terme EN (code) | Description                                                |
+|------------|-----------------|-------------------------------------------------------------|
+| Prêt       | Loan            | Transaction de prêt temporaire (objet physique ou argent)  |
+| Prêteur    | Lender          | Utilisateur propriétaire qui prête                         |
+| Emprunteur | Borrower        | Utilisateur qui emprunte (compte obligatoire)              |
+| Objet      | Item            | Bien prêté (photo, nom, valeur optionnelle)                |
+| Rappel     | Reminder        | Notification automatique planifiée                         |
 
 **Termes interdits dans le code** : "Utilisateur" (trop vague → Lender/Borrower), "Transaction" (→ Loan), "Client" (→
 pas de connotation commerciale)
 
 ## Statuts de Prêt (Machine à États)
 
-`PENDING_CONFIRMATION` → `ACTIVE` (accepté ou timeout 48h) | `DISPUTED` (refusé)
-`ACTIVE` → `AWAITING_RETURN` (date dépassée) → `RETURNED` (rendu) | `ABANDONED` (3 rappels ignorés)
+`PENDING_CONFIRMATION` → `ACTIVE` (accepté) | `ACTIVE_BY_DEFAULT` (timeout 48h) | `DISPUTED` (refusé)
+`ACTIVE` / `ACTIVE_BY_DEFAULT` → `AWAITING_RETURN` (date dépassée) → `RETURNED` (rendu) | `ABANDONED` (5 rappels
+ignorés)
 
 ## Documents de Référence
 
@@ -124,5 +132,5 @@ pas de connotation commerciale)
 
 - Base URL locale : `http://localhost:3000/v1`
 - Authentification : Bearer JWT sur tous les endpoints (sauf `/auth/register` et `/auth/login`)
-- Validation : Zod (runtime + types TS)
+- Validation : class-validator + class-transformer (NestJS ValidationPipe)
 - Spécification complète dans `openapi.yaml`

@@ -15,64 +15,78 @@ Le mocking de l'API permet de :
 
 ---
 
-## 2. Outil Choisi : Prism (Stoplight)
+## 2. Outils de Mocking
 
-**Prism** est un serveur HTTP mock qui :
+### 2.1 Prism (Développement Interactif)
 
-- Génère des réponses réalistes basées sur l'OpenAPI spec
-- Valide automatiquement les requêtes entrantes
-- Supporte les exemples personnalisés
-- Simule les codes d'erreur (400, 401, 404, etc.)
+**Prism** (Stoplight) est un serveur HTTP mock qui génère des réponses réalistes basées sur l'OpenAPI spec.
 
-**Avantages vs alternatives (MirageJS, JSON Server)** :
+**Usage** : Développement interactif, exploration des endpoints, démos.
+
+**Avantages** :
 
 - Pas de code à écrire (directement depuis le YAML)
 - Validation stricte du contrat OpenAPI
-- CLI facile à intégrer en CI/CD
 - Support complet d'OpenAPI 3.1
 
------Contre Expertise--------
-**Prism : bon choix, mais attention aux limites en mode `--dynamic`** : Le mode `--dynamic` génère des données
-aléatoires, ce qui est pratique pour démarrer mais problématique pour les tests répétables. Un `POST /loans` retournera
-un `id` aléatoire différent à chaque appel, rendant impossible le chaînage `create → get by id` dans les tests
-automatisés. Recommandation : privilégier le mode **examples** (exemples définis dans l'OpenAPI spec) pour les flows de
-test, et réserver `--dynamic` pour l'exploration manuelle.
------Fin Contre Expertise--------
+### 2.2 MSW (Tests Automatisés Frontend)
+
+**MSW** (Mock Service Worker) intercepte les requêtes au niveau réseau dans Node.js/navigateur.
+
+**Usage** : Tests Jest/RNTL automatisés côté frontend.
+
+**Avantages** :
+
+- Pas besoin de serveur externe
+- Contrôle total sur les réponses (état, latence, erreurs)
+- Tests répétables et déterministes
+
+### Quand Utiliser Quoi ?
+
+| Contexte | Outil | Raison |
+|---|---|---|
+| Développement frontend quotidien | **Prism** | Réponses réalistes sans code |
+| Tests unitaires/composants (Jest/RNTL) | **MSW** | Pas de serveur, tests rapides |
+| Exploration des endpoints | **Prism** | Validation automatique des requêtes |
+| Tests d'intégration frontend | **MSW** | Contrôle du state et des erreurs |
+| Démos | **Prism** | Setup instantané |
 
 ---
 
-## 3. Installation et Lancement
+## 3. Installation et Lancement de Prism
 
-### Installation Globale (Recommandée)
+### Installation
 
 ```bash
-npm install -g @stoplight/prism-cli
+npm install --save-dev @stoplight/prism-cli
 ```
 
 ### Lancement du Serveur Mock
 
 ```bash
-# Depuis la racine du projet
-prism mock openapi.yaml \
-  --host 0.0.0.0 \
-  --port 3000 \
-  --cors \
-  --dynamic
+# Mode examples (recommandé — réponses prévisibles basées sur les exemples OpenAPI)
+prism mock openapi.yaml --host 0.0.0.0 --port 3000 --cors
+
+# Mode dynamique (données aléatoires — exploration uniquement)
+prism mock openapi.yaml --host 0.0.0.0 --port 3000 --cors --dynamic
 ```
 
-**Paramètres expliqués** :
+**Paramètres** :
 
-- `--host 0.0.0.0` : Accessible depuis le réseau (utile pour tester sur mobile physique)
+- `--host 0.0.0.0` : Accessible depuis le réseau (mobile physique)
 - `--port 3000` : Port d'écoute (correspond à l'URL de dev dans l'OpenAPI)
 - `--cors` : Active CORS pour les requêtes cross-origin
-- `--dynamic` : Génère des données aléatoires réalistes si aucun exemple n'est fourni
 
-### Alternative : Via package.json
+**Recommandation** : Privilégier le mode **examples** (sans `--dynamic`) pour le développement quotidien. Le mode
+dynamique génère des données aléatoires différentes à chaque appel, ce qui rend impossible le chaînage de requêtes (ex:
+créer un prêt puis le récupérer par ID).
+
+### Script package.json
 
 ```json
 {
   "scripts": {
-    "mock:api": "prism mock openapi.yaml --host 0.0.0.0 --port 3000 --cors --dynamic"
+    "mock:api": "prism mock openapi.yaml --host 0.0.0.0 --port 3000 --cors"
   },
   "devDependencies": {
     "@stoplight/prism-cli": "^5.5.0"
@@ -80,32 +94,24 @@ prism mock openapi.yaml \
 }
 ```
 
-Puis lancer :
-
-```bash
-npm run mock:api
-```
-
 ---
 
-## 4. Utilisation Avancée
+## 4. Utilisation Avancée de Prism
 
-### 4.1 Forcer un Code d'Erreur Spécifique
-
-Prism retourne le premier code 2xx par défaut. Pour tester une erreur :
+### 4.1 Forcer un Code d'Erreur
 
 ```bash
 # Via header Prefer
 curl -H "Prefer: code=404" http://localhost:3000/v1/loans/loan-999
 ```
 
-Ou dans le code React Native :
+Dans le code React Native :
 
 ```typescript
 const response = await fetch('http://localhost:3000/v1/loans/loan-999', {
-    headers: {
-        'Prefer': 'code=404',
-    },
+  headers: {
+    'Prefer': 'code=404',
+  },
 });
 // Retournera la réponse 404 NotFound définie dans l'OpenAPI
 ```
@@ -121,159 +127,143 @@ curl -H "Prefer: example=multipleErrors" \
   -d '{"email": "invalid"}'
 ```
 
-### 4.3 Mode Proxy (Hybrid Mock)
-
-Combiner mock + vrai backend :
-
-```bash
-prism proxy openapi.yaml https://staging-api.return.app \
-  --errors # Mock uniquement les erreurs, forward le reste au vrai backend
-```
-
-**Cas d'usage** : Tester les flows d'erreur sans casser les données de staging.
-
 ---
 
-## 5. Validation des Requêtes
+## 5. Configuration MSW (Tests Frontend)
 
-Prism valide automatiquement :
-
-- Format des données (types, regex, longueurs)
-- Headers manquants (ex: Authorization)
-- Paramètres de query invalides
-
-**Exemple de réponse de validation** :
+### Installation
 
 ```bash
-curl -X POST http://localhost:3000/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email": "invalid", "password": "123"}'
+npm install --save-dev msw
 ```
 
-Retourne :
+### Configuration des Handlers
 
-```json
-{
-  "type": "https://stoplight.io/prism/errors#UNPROCESSABLE_ENTITY",
-  "title": "Invalid request body payload",
-  "status": 422,
-  "detail": "Request body does not match the schema.",
-  "validation": [
-    {
-      "location": [
-        "body",
-        "email"
+```typescript
+// __mocks__/handlers.ts
+import { http, HttpResponse } from 'msw';
+
+export const handlers = [
+  // Auth
+  http.post('http://localhost:3000/v1/auth/login', () => {
+    return HttpResponse.json({
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+      user: { id: 'user-1', email: 'test@example.com', firstName: 'Test' },
+    });
+  }),
+
+  // Loans
+  http.get('http://localhost:3000/v1/loans', () => {
+    return HttpResponse.json({
+      data: [
+        {
+          id: 'loan-1',
+          status: 'ACTIVE',
+          item: { id: 'item-1', name: 'Perceuse Bosch' },
+          borrower: { id: 'borrower-1', firstName: 'Marie' },
+          returnDate: '2026-04-15',
+        },
       ],
-      "severity": "Error",
-      "code": "format",
-      "message": "must match format \"email\""
-    },
-    {
-      "location": [
-        "body",
-        "password"
-      ],
-      "severity": "Error",
-      "code": "minLength",
-      "message": "must NOT have fewer than 8 characters"
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
+  }),
+
+  // Erreur RFC 7807
+  http.get('http://localhost:3000/v1/loans/:id', ({ params }) => {
+    if (params.id === 'not-found') {
+      return HttpResponse.json(
+        {
+          type: 'https://api.return.app/errors/loan-not-found',
+          title: 'Loan Not Found',
+          status: 404,
+          detail: `The loan with ID '${params.id}' does not exist.`,
+          instance: `/v1/loans/${params.id}`,
+          timestamp: new Date().toISOString(),
+          requestId: 'req-mock',
+        },
+        { status: 404 },
+      );
     }
-  ]
-}
+    return HttpResponse.json({ id: params.id, status: 'ACTIVE' });
+  }),
+];
+```
+
+### Setup pour les Tests
+
+```typescript
+// __mocks__/server.ts
+import { setupServer } from 'msw/node';
+import { handlers } from './handlers';
+
+export const server = setupServer(...handlers);
+
+// jest.setup.ts
+import { server } from './__mocks__/server';
+
+beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 ```
 
 ---
 
 ## 6. Intégration avec React Native
 
-### Configuration pour le Mobile
-
-**iOS Simulator / Android Emulator** :
+### Configuration du Client API
 
 ```typescript
 // config/api.ts
+const USE_MOCK = process.env.USE_MOCK === 'true';
+
 const API_BASE_URL =
-    __DEV__ && USE_MOCK
-        ? 'http://localhost:3000/v1'
-        : 'https://api.return.app/v1';
+  __DEV__ && USE_MOCK
+    ? 'http://localhost:3000/v1' // Prism mock
+    : __DEV__
+      ? 'http://localhost:3001/v1' // Backend local
+      : 'https://api.return.app/v1'; // Production
 
 export default API_BASE_URL;
 ```
 
-**Device Physique** :
+### Basculement Progressif par Module
+
+```typescript
+// config/api-modules.ts
+const MOCK_MODULES: Record<string, boolean> = {
+  auth: false,        // Backend réel activé
+  borrowers: false,   // Backend réel activé
+  items: true,        // Mock encore actif
+  loans: true,        // Mock encore actif
+  reminders: true,    // Mock encore actif
+  notifications: true,// Mock encore actif
+  history: true,      // Mock encore actif
+};
+
+export const getBaseUrl = (endpoint: string): string => {
+  const module = endpoint.split('/')[1]; // Ex: /auth/login → 'auth'
+
+  if (MOCK_MODULES[module]) {
+    return 'http://localhost:3000/v1'; // Prism
+  }
+  return __DEV__ ? 'http://localhost:3001/v1' : 'https://api.return.app/v1';
+};
+```
+
+### Device Physique
 
 Remplacer `localhost` par l'IP de votre machine :
 
 ```typescript
 const API_BASE_URL = __DEV__
-    ? 'http://192.168.1.100:3000/v1' // IP locale
-    : 'https://api.return.app/v1';
-```
-
-### Exemple d'Appel avec Mock
-
-```typescript
-import API_BASE_URL from './config/api';
-
-async function createLoan(data: CreateLoanDto) {
-    const response = await fetch(`${API_BASE_URL}/loans`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new ApiError(error); // RFC 7807 format
-    }
-
-    return response.json();
-}
+  ? 'http://192.168.1.100:3000/v1' // IP locale
+  : 'https://api.return.app/v1';
 ```
 
 ---
 
-## 7. Tests Automatisés avec le Mock
-
-### Intégration dans Jest
-
------Contre Expertise--------
-**Confusion entre Prism et MSW** : Le code ci-dessous importe `msw/node` (Mock Service Worker), pas Prism. MSW et Prism
-sont deux outils différents avec des philosophies différentes. MSW intercepte les requêtes au niveau réseau dans
-Node.js, tandis que Prism est un serveur HTTP externe. Le document mélange les deux sans trancher. Pour les tests Jest
-frontend, **MSW est plus adapté** (pas besoin de lancer un serveur externe). Clarifier : Prism pour le développement
-interactif, MSW pour les tests automatisés.
------Fin Contre Expertise--------
-
-```typescript
-// __tests__/api/loans.test.ts
-import {setupServer} from 'msw/node';
-import {rest} from 'msw';
-
-// Alternative : utiliser Prism directement dans les tests
-describe('Loan API', () => {
-    it('should create a loan successfully', async () => {
-        const loan = await createLoan({
-            item: {name: 'Test Item', category: 'TOOLS'},
-            borrower: {firstName: 'John', lastName: 'Doe'},
-            returnDate: '2026-03-15',
-        });
-
-        expect(loan.status).toBe('PENDING_CONFIRMATION');
-    });
-
-    it('should fail with 401 if not authenticated', async () => {
-        // Prism retourne automatiquement 401 si header Authorization manquant
-        await expect(createLoanWithoutAuth()).rejects.toThrow('Unauthorized');
-    });
-});
-```
-
----
-
-## 8. Limites du Mock
+## 7. Limites du Mock Prism
 
 **Ce que Prism NE fait PAS** :
 
@@ -282,27 +272,31 @@ describe('Loan API', () => {
 - ❌ **Authentification réelle** : N'importe quel token JWT est accepté
 - ❌ **Side effects** : Pas de notifications push réelles
 
+**Conséquence** : Un flow complet (register → login → create loan → list loans) ne peut pas être validé avec Prism seul
+car il n'y a pas de persistence. Ce flow ne peut être testé qu'avec le vrai backend ou MSW avec state.
+
 **Solutions** :
 
-- Pour tests E2E complexes : utiliser un backend de test (Testcontainers + vraie BDD)
-- Pour démos : pré-remplir des données fictives via scripts
+- Pour les tests avec chaînage : utiliser **MSW** avec gestion d'état
+- Pour les tests E2E backend : utiliser **Testcontainers** (vraie BDD)
+- Pour les démos : pré-remplir des exemples dans l'OpenAPI spec
 
 ---
 
-## 9. Workflow de Développement Recommandé
+## 8. Workflow de Développement Recommandé
 
 ```
 1. Design de l'API (openapi.yaml)
    ↓
-2. Lancer Prism Mock
+2. Validation du spec (Spectral lint)
    ↓
-3. Développement Frontend (consomme le mock)
+3. Lancer Prism Mock (développement frontend interactif)
    ↓
-4. Développement Backend (en parallèle)
+4. Développement Backend en parallèle (tests Supertest)
    ↓
-5. Tests de Contrat (Pact) pour valider l'alignement
+5. Basculement progressif mock → backend réel (par module)
    ↓
-6. Remplacement progressif du mock par le vrai backend
+6. Smoke tests d'intégration à chaque basculement
 ```
 
 **Commandes quotidiennes** :
@@ -312,7 +306,7 @@ describe('Loan API', () => {
 npm run mock:api
 
 # Terminal 2 : Frontend mobile
-npm run ios
+npm run ios    # ou: npm run android
 
 # Terminal 3 : Backend (développement parallèle)
 npm run start:dev
@@ -320,41 +314,19 @@ npm run start:dev
 
 ---
 
-## 10. Checklist de Validation
+## 9. Checklist de Validation
 
 Avant de considérer le mock comme source de vérité :
 
-- [ ] Tous les endpoints de l'OpenAPI ont au moins un exemple
-- [ ] Les codes d'erreur (400, 401, 403, 404, 409, 429, 500) sont documentés
+- [ ] OpenAPI spec validée par Spectral (0 erreur)
+- [ ] Tous les endpoints ont au moins un exemple réaliste
+- [ ] Les codes d'erreur (400, 401, 403, 404, 409, 429, 500) sont documentés avec exemples RFC 7807
 - [ ] Prism démarre sans erreur de parsing YAML
-- [ ] Les requêtes invalides retournent bien des erreurs de validation
-- [ ] Le frontend peut effectuer un flow complet (register → login → create loan → list loans)
-
------Contre Expertise--------
-**Checklist de validation : difficile à satisfaire avec Prism seul** : Le dernier point "flow complet (register →
-login → create loan → list loans)" est impossible avec Prism car il n'a **pas de persistence** (comme mentionné en
-section 8). Le loan créé par `POST /loans` ne sera pas retourné par `GET /loans`. Ce flow ne peut être validé qu'avec le
-vrai backend ou un mock plus avancé (MSW avec state, ou un fake server custom). Ajuster la checklist pour refléter les
-limites de Prism.
------Fin Contre Expertise--------
+- [ ] Les requêtes invalides retournent des erreurs de validation Prism
+- [ ] Handlers MSW définis pour les tests unitaires critiques (auth, loans)
 
 ---
 
-**Commande Finale pour Lancer le Mock** :
-
-```bash
-prism mock openapi.yaml --host 0.0.0.0 --port 3000 --cors --dynamic
-```
-
-Le serveur mock écoute sur : **http://localhost:3000/v1**
-
----
-
-**Auteur** : Return Team
-**Version** : 1.0
-**Date** : 8 février 2026
-
----
-
-**Contre-expertise par :** Ismael AÏHOU
-**Date :** 10 février 2026
+**Co-validé par** : Esdras GBEDOZIN & Ismael AÏHOU
+**Date de dernière mise à jour** : 12 février 2026
+**Version** : 1.1 — MVP Baseline (post contre-expertise)

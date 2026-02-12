@@ -1,6 +1,10 @@
 # 02_NORMES_OPERATIONNELLES.md
 
-**Return ↺ - Standards de Développement & Qualité**
+**Return ↺ — Standards de Développement & Qualité**
+
+**Version** : 1.1 — MVP Baseline (post contre-expertise)
+**Co-validé par** : Esdras GBEDOZIN & Ismael AÏHOU
+**Date** : 12 février 2026
 
 ---
 
@@ -9,69 +13,66 @@
 ### 1.1 Application des Principes SOLID
 
 L'architecture **Monolithe Modulaire avec NestJS** impose le respect strict des principes SOLID. Voici leur application
-concrète dans le contexte du projet Return :
+concrète dans le contexte du projet Return.
 
 ---
 
-#### **S - Single Responsibility Principle (SRP)**
+#### **S — Single Responsibility Principle (SRP)**
 
 **Définition** : Une classe ne doit avoir qu'une seule raison de changer.
 
-**Application dans Return :**  
+**Application dans Return :**
 Dans le module **Loans**, chaque service a une responsabilité unique :
 
 ```typescript
 // ❌ MAUVAIS : Service God-Object avec multiples responsabilités
 @Injectable()
 export class LoanService {
-    createLoan(data: CreateLoanDto) { /* ... */
-    }
-
-    sendReminderEmail(loanId: string) { /* ... */
-    }
-
-    uploadPhoto(file: File) { /* ... */
-    }
-
-    calculateStatistics() { /* ... */
-    }
+  createLoan(data: CreateLoanDto) { /* ... */ }
+  sendReminderEmail(loanId: string) { /* ... */ }
+  uploadPhoto(file: File) { /* ... */ }
+  calculateStatistics() { /* ... */ }
 }
 
 // ✅ BON : Responsabilités isolées
 @Injectable()
 export class LoanService {
-    constructor(
-        private readonly loanRepository: LoanRepository,
-        private readonly eventBus: EventBus,
-    ) {
-    }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
-    async createLoan(data: CreateLoanDto): Promise<Loan> {
-        const loan = Loan.create(data); // Domain logic
-        await this.loanRepository.save(loan);
+  async createLoan(data: CreateLoanDto): Promise<Loan> {
+    const loan = await this.prisma.loan.create({
+      data: LoanFactory.toCreateInput(data),
+    });
 
-        // Publier un événement au lieu de gérer directement le rappel
-        this.eventBus.publish(new LoanCreatedEvent(loan.id));
+    // Publier un événement au lieu de gérer directement le rappel
+    this.eventEmitter.emit('loan.created', new LoanCreatedEvent(loan.id));
 
-        return loan;
-    }
+    return loan;
+  }
 }
 
 // Service dédié aux rappels (séparation)
 @Injectable()
 export class ReminderService {
-    @OnEvent('loan.created')
-    async handleLoanCreated(event: LoanCreatedEvent) {
-        await this.scheduleReminder(event.loanId);
-    }
+  @OnEvent('loan.created')
+  async handleLoanCreated(event: LoanCreatedEvent) {
+    await this.scheduleReminders(event.loanId);
+  }
 }
 
 // Service dédié au stockage (séparation)
 @Injectable()
 export class PhotoStorageService {
-    async uploadPhoto(file: File, loanId: string): Promise<string> {
-        return this.s3Client.upload(file, `loans/${loanId}/photo.jpg`);
-    }
+  constructor(
+    @Inject('PHOTO_STORAGE') private readonly storage: PhotoStorage,
+  ) {}
+
+  async uploadPhoto(file: Buffer, itemId: string): Promise<string> {
+    return this.storage.upload(file, `items/${itemId}/${Date.now()}.jpg`);
+  }
 }
 ```
 
@@ -81,430 +82,384 @@ export class PhotoStorageService {
 - Changement dans la logique de rappel n'impacte pas la création de prêt
 - Remplacement du stockage (S3 → Cloudflare R2) sans toucher au domaine
 
------Contre Expertise--------
-**PhotoStorageService** : Ce service est montré ici comme exemple SRP, mais il n'apparaît nulle part dans la roadmap
-backend (04_ROADMAP_BACKEND.md). Le sprint 2 ne prévoit que la gestion photo via l'endpoint de création de prêt (upload
-multipart). Il faut clarifier si ce service est implémenté dès le sprint 2 ou s'il reste un exemple théorique.
------Fin Contre Expertise--------
-
 ---
 
-#### **O - Open/Closed Principle (OCP)**
+#### **O — Open/Closed Principle (OCP)**
 
 **Définition** : Ouvert à l'extension, fermé à la modification.
 
-**Application dans Return :**  
-Le système de **notifications** doit supporter plusieurs canaux (push, email, SMS) sans modifier le code existant :
+**Application dans Return :**
+Le système de **notifications** doit supporter plusieurs canaux (push en V1, email/SMS en V2+) sans modifier le code
+existant :
 
 ```typescript
 // Interface abstraite (fermée à la modification)
 export interface NotificationChannel {
-    send(recipient: string, message: NotificationMessage): Promise<void>;
-
-    supports(channelType: ChannelType): boolean;
+  send(recipient: string, message: NotificationMessage): Promise<void>;
+  supports(channelType: ChannelType): boolean;
 }
 
-// Implémentation initiale (V1)
+// Implémentation V1
 @Injectable()
 export class PushNotificationChannel implements NotificationChannel {
-    constructor(private readonly fcm: FirebaseMessaging) {
-    }
+  constructor(private readonly fcm: FirebaseMessaging) {}
 
-    async send(recipient: string, message: NotificationMessage): Promise<void> {
-        await this.fcm.send({
-            token: recipient,
-            notification: {title: message.title, body: message.body},
-        });
-    }
+  async send(recipient: string, message: NotificationMessage): Promise<void> {
+    await this.fcm.send({
+      token: recipient,
+      notification: { title: message.title, body: message.body },
+    });
+  }
 
-    supports(channelType: ChannelType): boolean {
-        return channelType === ChannelType.PUSH;
-    }
+  supports(channelType: ChannelType): boolean {
+    return channelType === ChannelType.PUSH;
+  }
 }
 
-// Extension pour V2 (nouveau canal) sans modifier l'existant
+// Extension V2+ (nouveau canal) sans modifier l'existant
 @Injectable()
 export class EmailNotificationChannel implements NotificationChannel {
-    constructor(private readonly mailService: MailService) {
-    }
+  constructor(private readonly mailService: MailService) {}
 
-    async send(recipient: string, message: NotificationMessage): Promise<void> {
-        await this.mailService.sendEmail({
-            to: recipient,
-            subject: message.title,
-            html: message.body,
-        });
-    }
+  async send(recipient: string, message: NotificationMessage): Promise<void> {
+    await this.mailService.sendEmail({
+      to: recipient,
+      subject: message.title,
+      html: message.body,
+    });
+  }
 
-    supports(channelType: ChannelType): boolean {
-        return channelType === ChannelType.EMAIL;
-    }
+  supports(channelType: ChannelType): boolean {
+    return channelType === ChannelType.EMAIL;
+  }
 }
 
-// Orchestrateur (Strategy Pattern)
+// Orchestrateur
 @Injectable()
 export class NotificationService {
-    constructor(
-        @Inject('NOTIFICATION_CHANNELS')
-        private readonly channels: NotificationChannel[],
-    ) {
-    }
+  constructor(
+    @Inject('NOTIFICATION_CHANNELS')
+    private readonly channels: NotificationChannel[],
+  ) {}
 
-    async notify(recipient: string, channelType: ChannelType, message: NotificationMessage) {
-        const channel = this.channels.find(c => c.supports(channelType));
-        if (!channel) throw new UnsupportedChannelException(channelType);
+  async notify(recipient: string, channelType: ChannelType, message: NotificationMessage) {
+    const channel = this.channels.find(c => c.supports(channelType));
+    if (!channel) throw new UnsupportedChannelException(channelType);
 
-        await channel.send(recipient, message);
-    }
+    await channel.send(recipient, message);
+  }
 }
 ```
 
 **Bénéfices :**
 
-- Ajout de SMS (Twilio) en créant `SmsNotificationChannel` sans toucher au code existant
+- Ajout de SMS (Twilio) en V2+ en créant `SmsNotificationChannel` sans toucher au code existant
 - Tests unitaires isolés par canal
 - Possibilité de désactiver un canal en production sans code change (injection de dépendances)
 
 ---
 
-#### **L - Liskov Substitution Principle (LSP)**
+#### **L — Liskov Substitution Principle (LSP)**
 
 **Définition** : Les sous-types doivent être substituables à leurs types de base sans altérer le comportement.
 
-**Application dans Return :**  
+**Application dans Return :**
 Le système de **stockage de photos** doit permettre de changer de provider (S3 → R2) sans casser l'application :
 
 ```typescript
 // Interface abstraite garantissant le contrat
 export interface PhotoStorage {
-    upload(file: Buffer, key: string): Promise<string>; // Retourne l'URL
-    delete(key: string): Promise<void>;
-
-    getUrl(key: string): Promise<string>;
+  upload(file: Buffer, key: string): Promise<string>; // Retourne l'URL
+  delete(key: string): Promise<void>;
+  getUrl(key: string): Promise<string>;
 }
 
-// Implémentation S3
+// Implémentation S3 (dev/tests)
 @Injectable()
 export class S3PhotoStorage implements PhotoStorage {
-    async upload(file: Buffer, key: string): Promise<string> {
-        await this.s3.putObject({Bucket: 'return-photos', Key: key, Body: file});
-        return `https://s3.amazonaws.com/return-photos/${key}`;
-    }
-
-    // ...
+  async upload(file: Buffer, key: string): Promise<string> {
+    await this.s3.putObject({ Bucket: 'return-photos', Key: key, Body: file });
+    return `https://s3.amazonaws.com/return-photos/${key}`;
+  }
+  // ...
 }
 
-// Implémentation Cloudflare R2 (substituable)
+// Implémentation Cloudflare R2 (production — substituable)
 @Injectable()
 export class R2PhotoStorage implements PhotoStorage {
-    async upload(file: Buffer, key: string): Promise<string> {
-        // Même signature, comportement équivalent
-        await this.r2.put(key, file);
-        return `https://photos.return.app/${key}`;
-    }
-
-    // ...
+  async upload(file: Buffer, key: string): Promise<string> {
+    // Même signature, comportement équivalent
+    await this.r2.put(key, file);
+    return `https://photos.return.app/${key}`;
+  }
+  // ...
 }
 
 // Service métier ne connaît que l'interface
 @Injectable()
-export class LoanPhotoService {
-    constructor(
-        @Inject('PHOTO_STORAGE') private readonly storage: PhotoStorage,
-    ) {
-    }
+export class ItemPhotoService {
+  constructor(
+    @Inject('PHOTO_STORAGE') private readonly storage: PhotoStorage,
+  ) {}
 
-    async attachPhoto(loanId: string, file: Buffer): Promise<string> {
-        const key = `loans/${loanId}/${Date.now()}.jpg`;
-        const url = await this.storage.upload(file, key);
-        // Peu importe l'implémentation (S3 ou R2), le contrat est respecté
-        return url;
-    }
+  async attachPhoto(itemId: string, file: Buffer): Promise<string> {
+    const key = `items/${itemId}/${Date.now()}.jpg`;
+    // Peu importe l'implémentation (S3 ou R2), le contrat est respecté
+    return this.storage.upload(file, key);
+  }
 }
 ```
 
 ---
 
-#### **I - Interface Segregation Principle (ISP)**
+#### **I — Interface Segregation Principle (ISP)**
 
 **Définition** : Aucun client ne doit dépendre de méthodes qu'il n'utilise pas.
 
-**Application dans Return :**  
+**Application dans Return :**
 Le module **Reminders** expose différentes interfaces selon les besoins :
 
 ```typescript
 // ❌ MAUVAIS : Interface fourre-tout
 interface ReminderManager {
-    scheduleReminder(loanId: string, date: Date): Promise<void>;
-
-    cancelReminder(reminderId: string): Promise<void>;
-
-    getUpcomingReminders(): Promise<Reminder[]>;
-
-    sendManualReminder(loanId: string, message: string): Promise<void>;
-
-    retryFailedReminders(): Promise<void>; // Seul le worker en a besoin
+  scheduleReminder(loanId: string, date: Date): Promise<void>;
+  cancelReminder(reminderId: string): Promise<void>;
+  getUpcomingReminders(): Promise<Reminder[]>;
+  retryFailedReminders(): Promise<void>; // Seul le worker en a besoin
 }
 
 // ✅ BON : Interfaces ségrégées
 interface ReminderScheduler {
-    schedule(loanId: string, date: Date): Promise<void>;
-
-    cancel(reminderId: string): Promise<void>;
+  schedule(loanId: string, dates: Date[]): Promise<void>;
+  cancel(reminderId: string): Promise<void>;
 }
 
 interface ReminderQuery {
-    getUpcomingReminders(userId: string): Promise<Reminder[]>;
+  getUpcomingReminders(userId: string): Promise<Reminder[]>;
 }
 
-interface ManualReminderSender {
-    sendNow(loanId: string, message: string): Promise<void>;
+interface ReminderFailureHandler {
+  retryFailed(): Promise<void>;
 }
 
 // Le LoanService n'a besoin que de la planification
 @Injectable()
 export class LoanService {
-    constructor(private readonly scheduler: ReminderScheduler) {
-    }
+  constructor(private readonly scheduler: ReminderScheduler) {}
 
-    async createLoan(data: CreateLoanDto) {
-        const loan = await this.repository.save(data);
-        await this.scheduler.schedule(loan.id, loan.returnDate);
-    }
+  async createLoan(data: CreateLoanDto) {
+    const loan = await this.prisma.loan.create({ data: LoanFactory.toCreateInput(data) });
+    const dates = ReminderPolicy.calculateDates(loan.returnDate);
+    await this.scheduler.schedule(loan.id, dates);
+  }
 }
 
 // Le worker a besoin de la logique de retry
 @Injectable()
 export class ReminderWorker {
-    constructor(
-        private readonly scheduler: ReminderScheduler,
-        private readonly failureHandler: ReminderFailureHandler, // Interface dédiée
-    ) {
-    }
+  constructor(
+    private readonly failureHandler: ReminderFailureHandler,
+  ) {}
 
-    @Cron('0 * * * *')
-    async processFailedReminders() {
-        await this.failureHandler.retryFailed();
-    }
+  @Cron('0 * * * *')
+  async processFailedReminders() {
+    await this.failureHandler.retryFailed();
+  }
 }
 ```
 
 ---
 
-#### **D - Dependency Inversion Principle (DIP)**
+#### **D — Dependency Inversion Principle (DIP)**
 
 **Définition** : Dépendre d'abstractions, pas d'implémentations concrètes.
 
-**Application dans Return :**  
-Le module **Loans** ne doit jamais dépendre directement de Prisma ou PostgreSQL :
+**Application dans Return :**
+Le DIP s'applique aux **services externes** (stockage, notifications, messaging) mais **pas à l'accès base de données**.
+Pour le MVP, Prisma est utilisé directement dans les services (pas de Repository Pattern — voir décision en 1.2).
 
 ```typescript
-// ❌ MAUVAIS : Dépendance directe à Prisma
+// ❌ MAUVAIS : Dépendance directe à un SDK de stockage
 @Injectable()
-export class LoanService {
-    constructor(private readonly prisma: PrismaService) {
-    } // Couplage fort
-
-    async findLoanById(id: string): Promise<Loan> {
-        const loanData = await this.prisma.loan.findUnique({where: {id}});
-        return loanData; // Retourne un type Prisma, pas un domain object
-    }
+export class ItemPhotoService {
+  async uploadPhoto(file: Buffer, itemId: string): Promise<string> {
+    // Couplage fort avec Cloudflare R2
+    const r2 = new S3Client({ endpoint: 'https://r2.cloudflarestorage.com' });
+    await r2.send(new PutObjectCommand({ Bucket: 'photos', Key: `${itemId}.jpg`, Body: file }));
+    return `https://photos.return.app/${itemId}.jpg`;
+  }
 }
 
-// ✅ BON : Dépendance à une abstraction
-export interface LoanRepository {
-    findById(id: string): Promise<Loan | null>;
-
-    save(loan: Loan): Promise<Loan>;
-
-    findActiveLoansByLender(lenderId: string): Promise<Loan[]>;
+// ✅ BON : Dépendance à une abstraction (interface)
+export interface PhotoStorage {
+  upload(file: Buffer, key: string): Promise<string>;
+  delete(key: string): Promise<void>;
 }
 
-// Le service métier dépend de l'interface (abstraction)
 @Injectable()
-export class LoanService {
-    constructor(
-        private readonly loanRepository: LoanRepository, // Inversion de dépendance
-    ) {
-    }
+export class ItemPhotoService {
+  constructor(
+    @Inject('PHOTO_STORAGE') private readonly storage: PhotoStorage, // Abstraction
+    private readonly prisma: PrismaService, // Prisma = OK directement (décision MVP)
+  ) {}
 
-    async findLoanById(id: string): Promise<Loan> {
-        const loan = await this.loanRepository.findById(id);
-        if (!loan) throw new LoanNotFoundException(id);
-        return loan; // Retourne un objet du domaine
-    }
-}
-
-// Implémentation concrète dans la couche infrastructure
-@Injectable()
-export class PrismaLoanRepository implements LoanRepository {
-    constructor(private readonly prisma: PrismaService) {
-    }
-
-    async findById(id: string): Promise<Loan | null> {
-        const data = await this.prisma.loan.findUnique({
-            where: {id},
-            include: {item: true, borrower: true},
-        });
-        return data ? LoanMapper.toDomain(data) : null;
-    }
-
-    async save(loan: Loan): Promise<Loan> {
-        const data = LoanMapper.toPersistence(loan);
-        const saved = await this.prisma.loan.create({data});
-        return LoanMapper.toDomain(saved);
-    }
+  async uploadPhoto(file: Buffer, itemId: string): Promise<string> {
+    const url = await this.storage.upload(file, `items/${itemId}/${Date.now()}.jpg`);
+    await this.prisma.item.update({
+      where: { id: itemId },
+      data: { photoUrl: url },
+    });
+    return url;
+  }
 }
 ```
 
-**Bénéfices :**
+**Quand appliquer le DIP dans Return :**
 
-- Tests unitaires avec un `InMemoryLoanRepository` sans base de données
-- Migration Prisma → TypeORM en changeant uniquement l'implémentation
-- Le domaine métier reste pur (pas de dépendance à Prisma)
+| Composant | DIP (interface) | Direct | Raison |
+|---|---|---|---|
+| Base de données (Prisma) | ❌ | ✅ | MVP — Prisma fournit déjà un bon niveau d'abstraction |
+| Stockage photos (R2) | ✅ | ❌ | Provider interchangeable (S3 en dev, R2 en prod) |
+| Notifications (FCM) | ✅ | ❌ | Canal extensible (push V1, email V2+) |
+| Queue (BullMQ) | ✅ | ❌ | Pourrait migrer vers un autre système de queue |
 
------Contre Expertise--------
-**DIP + Prisma = boilerplate massif** : Ce pattern impose la création d'une interface Repository + une implémentation
-Prisma + un Mapper (toDomain/toPersistence) pour **chaque** agrégat. Pour le MVP (Loan, Item, User, Reminder,
-Notification), cela représente ~30-45 classes de plomberie avant d'écrire une seule ligne de logique métier. C'est un
-coût d'entrée élevé pour un MVP à 2 développeurs. Suggestion : commencer avec Prisma directement dans les services pour
-les modules simples (User, Item) et réserver le pattern Repository+Mapper aux modules à logique riche (Loan, Reminder).
-Refactorer ensuite.
------Fin Contre Expertise--------
+**Note importante** : L'utilisation directe de Prisma dans les services est un choix pragmatique pour le MVP.
+Si un changement d'ORM devient nécessaire (ex: migration vers Drizzle), le refactoring vers un Repository Pattern sera
+localisé aux services concernés.
 
 ---
 
-### 1.2 Design Patterns Imposés
+### 1.2 Design Patterns
 
-#### **Repository Pattern** (Accès aux données)
+#### **Factory Pattern** (Objets complexes) — Obligatoire
 
-**Obligatoire** pour toute interaction avec la base de données. Chaque agrégat du domaine a son repository :
-
-```typescript
-// Contrat du repository
-export interface LoanRepository {
-    findById(id: string): Promise<Loan | null>;
-
-    save(loan: Loan): Promise<Loan>;
-
-    delete(id: string): Promise<void>;
-}
-
-// Le service métier ne connaît que le contrat
-@Injectable()
-export class LoanService {
-    constructor(private readonly loanRepository: LoanRepository) {
-    }
-}
-```
-
-#### **Factory Pattern** (Objets complexes)
-
-**Obligatoire** pour la création d'entités avec logique de validation :
+Pour la création d'entités avec logique de validation :
 
 ```typescript
-// Factory pour créer un prêt avec ses règles métier
 export class LoanFactory {
-    static create(data: CreateLoanDto): Loan {
-        // Validation métier
-        if (data.returnDate && data.returnDate < new Date()) {
-            throw new InvalidReturnDateException('Return date must be in the future');
-        }
-
-        return new Loan({
-            id: uuidv4(),
-            item: ItemFactory.create(data.item),
-            borrower: data.borrower,
-            lender: data.lender,
-            returnDate: data.returnDate,
-            status: LoanStatus.PENDING_CONFIRMATION,
-            createdAt: new Date(),
-        });
+  static toCreateInput(data: CreateLoanDto): Prisma.LoanCreateInput {
+    if (data.returnDate && data.returnDate < new Date()) {
+      throw new InvalidReturnDateException('Return date must be in the future');
     }
+
+    return {
+      id: uuidv4(),
+      item: { connect: { id: data.itemId } },
+      lender: { connect: { id: data.lenderId } },
+      borrower: { connect: { id: data.borrowerId } },
+      returnDate: data.returnDate,
+      status: LoanStatus.PENDING_CONFIRMATION,
+    };
+  }
 }
 ```
 
-#### **Strategy Pattern** (Algorithmes interchangeables)
+#### **Observer / Event-Driven** (Couplage faible) — Obligatoire
 
-**Recommandé** pour les rappels (politiques de relance) :
-
-```typescript
-interface ReminderStrategy {
-    calculateReminderDates(loan: Loan): Date[];
-}
-
-class StandardReminderStrategy implements ReminderStrategy {
-    calculateReminderDates(loan: Loan): Date[] {
-        const returnDate = loan.returnDate;
-        return [
-            subDays(returnDate, 3),  // J-3
-            addDays(returnDate, 3),  // J+3
-            addDays(returnDate, 10), // J+10
-            addDays(returnDate, 17), // J+17
-        ];
-    }
-}
-
-class UrgentReminderStrategy implements ReminderStrategy {
-    calculateReminderDates(loan: Loan): Date[] {
-        return [
-            subDays(loan.returnDate, 1), // J-1
-            loan.returnDate,             // J-day
-            addDays(loan.returnDate, 1), // J+1
-        ];
-    }
-}
-```
-
------Contre Expertise--------
-**Strategy Pattern sur-ingénieré pour V1** : La bible projet (00_BIBLE_PROJET.md) décrit une politique de rappel *
-*unique et fixe** (J-3, J+3, J+10, J+17). Il n'est nulle part prévu en V1 que l'utilisateur puisse choisir entre "
-Standard" et "Urgent". Implémenter le Strategy Pattern pour un seul algorithme, c'est ajouter une couche d'abstraction
-sans valeur immédiate. Recommandation : implémenter la politique fixe dans un simple service, et refactorer en Strategy
-Pattern **quand** un deuxième algorithme sera réellement nécessaire (YAGNI).
------Fin Contre Expertise--------
-
-#### **Observer Pattern / Event-Driven** (Couplage faible)
-
-**Obligatoire** pour la communication inter-modules :
+Communication inter-modules via `EventEmitter2` (@nestjs/event-emitter) :
 
 ```typescript
 // Événement domaine
 export class LoanCreatedEvent {
-    constructor(public readonly loanId: string, public readonly lenderId: string) {
-    }
+  constructor(
+    public readonly loanId: string,
+    public readonly lenderId: string,
+    public readonly borrowerId: string,
+    public readonly returnDate: Date | null,
+  ) {}
 }
 
-// Émetteur
+// Émetteur (module Loans)
 @Injectable()
 export class LoanService {
-    constructor(private readonly eventBus: EventBus) {
-    }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
-    async createLoan(data: CreateLoanDto): Promise<Loan> {
-        const loan = await this.repository.save(LoanFactory.create(data));
-        this.eventBus.publish(new LoanCreatedEvent(loan.id, loan.lenderId));
-        return loan;
-    }
+  async createLoan(data: CreateLoanDto): Promise<Loan> {
+    const loan = await this.prisma.loan.create({
+      data: LoanFactory.toCreateInput(data),
+    });
+
+    this.eventEmitter.emit('loan.created', new LoanCreatedEvent(
+      loan.id, loan.lenderId, loan.borrowerId, loan.returnDate,
+    ));
+
+    return loan;
+  }
 }
 
-// Listeners découplés
+// Listener découplé (module Reminders)
 @Injectable()
-export class ReminderService {
-    @OnEvent('loan.created')
-    async handleLoanCreated(event: LoanCreatedEvent) {
-        await this.scheduleReminders(event.loanId);
+export class ReminderListener {
+  @OnEvent('loan.created')
+  async handleLoanCreated(event: LoanCreatedEvent) {
+    if (event.returnDate) {
+      const dates = ReminderPolicy.calculateDates(event.returnDate);
+      await this.scheduleReminders(event.loanId, dates);
     }
+  }
 }
 
+// Listener découplé (module Notifications)
 @Injectable()
-export class AnalyticsService {
-    @OnEvent('loan.created')
-    async trackLoanCreation(event: LoanCreatedEvent) {
-        await this.analytics.track('loan_created', {userId: event.lenderId});
-    }
+export class NotificationListener {
+  @OnEvent('loan.created')
+  async handleLoanCreated(event: LoanCreatedEvent) {
+    await this.notifyBorrower(event.borrowerId, event.loanId);
+  }
 }
 ```
+
+#### **Politique de rappels fixe** (pas de Strategy Pattern en V1)
+
+La politique de rappel est **unique et fixe** — il n'y a pas de politique alternative en V1 :
+
+```typescript
+// Service simple avec politique fixe (pas de Strategy Pattern)
+export class ReminderPolicy {
+  /**
+   * Calcule les 5 dates de rappel automatiques pour un prêt.
+   * Politique fixe : J-3, J, J+7, J+14, J+21
+   */
+  static calculateDates(returnDate: Date): Date[] {
+    return [
+      subDays(returnDate, 3),   // J-3 : PREVENTIVE
+      returnDate,                // J   : ON_DUE_DATE
+      addDays(returnDate, 7),   // J+7 : FIRST_OVERDUE
+      addDays(returnDate, 14),  // J+14 : SECOND_OVERDUE
+      addDays(returnDate, 21),  // J+21 : FINAL_OVERDUE
+    ];
+  }
+}
+
+// Utilisé dans le service
+@Injectable()
+export class ReminderService {
+  async scheduleReminders(loanId: string, returnDate: Date): Promise<void> {
+    const dates = ReminderPolicy.calculateDates(returnDate);
+    const types = [
+      ReminderType.PREVENTIVE,
+      ReminderType.ON_DUE_DATE,
+      ReminderType.FIRST_OVERDUE,
+      ReminderType.SECOND_OVERDUE,
+      ReminderType.FINAL_OVERDUE,
+    ];
+
+    for (let i = 0; i < dates.length; i++) {
+      await this.reminderQueue.add('send-reminder', {
+        loanId,
+        type: types[i],
+        scheduledFor: dates[i],
+      }, { delay: dates[i].getTime() - Date.now() });
+    }
+  }
+}
+```
+
+> **Note** : Si une politique alternative devient nécessaire (ex: rappels urgents, rappels personnalisés), on refactore
+> vers un Strategy Pattern à ce moment-là (YAGNI).
 
 ---
 
@@ -512,151 +467,149 @@ export class AnalyticsService {
 
 ### 2.1 Stack de Test
 
-| Couche                          | Framework                           | Usage                                               |
-|---------------------------------|-------------------------------------|-----------------------------------------------------|
-| **Backend - Unit Tests**        | Jest                                | Tests isolés des services, factories, value objects |
-| **Backend - Integration Tests** | Jest + Testcontainers               | Tests avec PostgreSQL et Redis réels                |
-| **Backend - E2E Tests**         | Jest + Supertest                    | Tests des endpoints API                             |
-| **Frontend - Unit Tests**       | Jest + React Native Testing Library | Tests des composants React                          |
-| **Frontend - E2E Tests**        | Detox                               | Tests de navigation et workflows complets           |
-| **API Contract Tests**          | Pact                                | Tests de contrats entre mobile et API               |
+| Couche | Framework | Usage |
+|---|---|---|
+| **Backend — Unit Tests** | Jest | Tests isolés des services, factories, value objects |
+| **Backend — Integration Tests** | Jest + Testcontainers | Tests avec PostgreSQL et Redis réels |
+| **Backend — E2E Tests** | Jest + Supertest | Tests des endpoints API |
+| **Frontend — Unit/Component Tests** | Jest + React Native Testing Library | Tests des composants et interactions |
+| **Frontend — E2E Tests** | Detox (post-MVP) | Smoke tests de navigation critiques |
 
------Contre Expertise--------
-**Pact (Contract Testing) : overkill pour l'équipe** : Pact est conçu pour des équipes **séparées** (ex : équipe
-frontend ≠ équipe backend) qui doivent garantir la compatibilité de leurs contrats API de façon asynchrone. Ici, c'est
-la **même équipe de 2 développeurs** qui fait le front et le back. L'OpenAPI spec + Prism mock + tests d'intégration
-Supertest couvrent déjà ce besoin. Pact ajoute un broker à maintenir, des tests côté consumer ET provider, et une CI
-plus complexe. Recommandation : supprimer Pact du MVP, l'OpenAPI-first approach suffit.
+**Décisions :**
 
-**Detox (E2E Frontend) : fragile et coûteux** : Detox est notoirement instable (timeouts, synchronisation), lent à
-exécuter, et nécessite des builds natifs complets. Pour un MVP, **React Native Testing Library (RNTL)** couvre 80% des
-besoins avec 20% de l'effort : tests de composants, navigation, interactions utilisateur. Recommandation : RNTL pour les
-tests frontend, réserver Detox pour un éventuel smoke test E2E critique post-MVP.
------Fin Contre Expertise--------
+- **Pas de Pact (Contract Testing)** : L'approche OpenAPI-first + Prism mock + tests Supertest couvre le besoin pour une
+  équipe de 2 développeurs. Pact serait pertinent si les équipes front/back étaient séparées.
+- **Detox réservé au post-MVP** : RNTL couvre 80% des besoins frontend avec 20% de l'effort. Detox (E2E natif) est
+  fragile et coûteux — à réserver pour des smoke tests critiques une fois le MVP stabilisé.
 
-### 2.2 Cycle TDD Strict
+### 2.2 Cycle TDD Strict (RED → GREEN → REFACTOR)
 
 **RÈGLE D'OR** : Aucun code de production ne doit être écrit sans test préalable qui échoue.
 
 ```
-┌─────────────────────────────────────────────┐
-│  RED → GREEN → REFACTOR → COMMIT           │
-└─────────────────────────────────────────────┘
-
-1. RED (30s-2min)   : Écrire le test qui échoue (compilation ou assertion)
-2. GREEN (2-5min)   : Écrire le code MINIMAL pour passer le test
-3. REFACTOR (3-10min) : Améliorer le code sans changer le comportement
-4. COMMIT           : git commit avec message conventionnel
+┌────────────────────────────────────────────────────────────────┐
+│  Pour CHAQUE fonctionnalité/comportement :                     │
+│                                                                │
+│  1. RED    (30s-2min)  → Écrire LE test qui échoue            │
+│  2. GREEN  (2-5min)    → Code MINIMAL pour passer le test      │
+│  3. REFACTOR (3-10min) → Améliorer sans casser les tests       │
+│  4. COMMIT             → git commit avec message conventionnel │
+│                                                                │
+│  Puis passer au comportement suivant.                          │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-#### Exemple Concret : Création d'un Prêt
+**Important** : Le cycle est **par comportement**, pas par feature complète. Une feature (ex: création de prêt) se
+décompose en plusieurs cycles RED-GREEN-REFACTOR enchaînés :
 
-**STEP 1 : RED (Test qui échoue)**
+#### Exemple : Implémentation de la création d'un prêt
+
+**Cycle 1 — Créer un prêt avec statut PENDING_CONFIRMATION**
 
 ```typescript
-// loan.service.spec.ts
-describe('LoanService', () => {
-    describe('createLoan', () => {
-        it('should create a loan with PENDING_CONFIRMATION status', async () => {
-            // Arrange
-            const mockRepository = {
-                save: jest.fn().mockResolvedValue(mockLoan),
-            };
-            const service = new LoanService(mockRepository as any);
-            const dto: CreateLoanDto = {
-                itemName: 'Perceuse Bosch',
-                borrowerId: 'user-123',
-                lenderId: 'user-456',
-                returnDate: new Date('2026-03-01'),
-            };
+// RED : loan.service.spec.ts
+it('should create a loan with PENDING_CONFIRMATION status', async () => {
+  // Arrange
+  const prisma = mockDeep<PrismaService>();
+  prisma.loan.create.mockResolvedValue(mockLoan);
+  const service = new LoanService(prisma, mockEventEmitter);
 
-            // Act
-            const result = await service.createLoan(dto);
+  // Act
+  const result = await service.createLoan(validDto);
 
-            // Assert
-            expect(result.status).toBe(LoanStatus.PENDING_CONFIRMATION);
-            expect(mockRepository.save).toHaveBeenCalledTimes(1);
-        });
-    });
+  // Assert
+  expect(result.status).toBe(LoanStatus.PENDING_CONFIRMATION);
+  expect(prisma.loan.create).toHaveBeenCalledTimes(1);
 });
-
 // ❌ Test échoue : LoanService.createLoan() n'existe pas encore
 ```
 
-**STEP 2 : GREEN (Code minimal)**
-
 ```typescript
-// loan.service.ts
+// GREEN : loan.service.ts
 @Injectable()
 export class LoanService {
-    constructor(private readonly repository: LoanRepository) {
-    }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
-    async createLoan(dto: CreateLoanDto): Promise<Loan> {
-        const loan = {
-            id: uuidv4(),
-            itemName: dto.itemName,
-            borrowerId: dto.borrowerId,
-            lenderId: dto.lenderId,
-            returnDate: dto.returnDate,
-            status: LoanStatus.PENDING_CONFIRMATION, // Hard-codé pour passer le test
-            createdAt: new Date(),
-        };
-        return this.repository.save(loan);
-    }
+  async createLoan(dto: CreateLoanDto): Promise<Loan> {
+    return this.prisma.loan.create({
+      data: {
+        ...dto,
+        status: LoanStatus.PENDING_CONFIRMATION,
+      },
+    });
+  }
 }
-
-// ✅ Test passe maintenant
+// ✅ Test passe
 ```
 
-**STEP 3 : REFACTOR (Amélioration)**
+```bash
+# COMMIT
+git commit -m "feat(loans): create loan with pending confirmation status"
+```
+
+**Cycle 2 — Émettre un événement après création**
 
 ```typescript
-// loan.service.ts (après refactoring)
-@Injectable()
-export class LoanService {
-    constructor(
-        private readonly repository: LoanRepository,
-        private readonly factory: LoanFactory, // Extraction de la logique de création
-    ) {
-    }
+// RED
+it('should emit LoanCreatedEvent after creation', async () => {
+  const prisma = mockDeep<PrismaService>();
+  prisma.loan.create.mockResolvedValue(mockLoan);
+  const eventEmitter = { emit: jest.fn() };
+  const service = new LoanService(prisma, eventEmitter as any);
 
-    async createLoan(dto: CreateLoanDto): Promise<Loan> {
-        const loan = this.factory.create(dto); // Logique métier déplacée
-        return this.repository.save(loan);
-    }
+  await service.createLoan(validDto);
+
+  expect(eventEmitter.emit).toHaveBeenCalledWith(
+    'loan.created',
+    expect.objectContaining({ loanId: mockLoan.id }),
+  );
+});
+// ❌ Échoue : emit n'est pas appelé
+```
+
+```typescript
+// GREEN : ajouter l'émission dans createLoan
+async createLoan(dto: CreateLoanDto): Promise<Loan> {
+  const loan = await this.prisma.loan.create({
+    data: { ...dto, status: LoanStatus.PENDING_CONFIRMATION },
+  });
+  this.eventEmitter.emit('loan.created', new LoanCreatedEvent(loan.id, loan.lenderId));
+  return loan;
 }
+// ✅ Test passe
+```
 
-// loan.factory.ts (nouvelle classe)
-export class LoanFactory {
-    static create(dto: CreateLoanDto): Loan {
-        return {
-            id: uuidv4(),
-            itemName: dto.itemName,
-            borrowerId: dto.borrowerId,
-            lenderId: dto.lenderId,
-            returnDate: dto.returnDate,
-            status: LoanStatus.PENDING_CONFIRMATION,
-            createdAt: new Date(),
-        };
-    }
+```bash
+# COMMIT
+git commit -m "feat(loans): emit event on loan creation"
+```
+
+**Cycle 3 — REFACTOR : Extraire la factory**
+
+```typescript
+// REFACTOR : loan.service.ts
+async createLoan(dto: CreateLoanDto): Promise<Loan> {
+  const loan = await this.prisma.loan.create({
+    data: LoanFactory.toCreateInput(dto),
+  });
+  this.eventEmitter.emit('loan.created', new LoanCreatedEvent(
+    loan.id, loan.lenderId, loan.borrowerId, loan.returnDate,
+  ));
+  return loan;
 }
-
 // ✅ Tests passent toujours (comportement identique)
 ```
 
-**STEP 4 : COMMIT**
-
 ```bash
-git add loan.service.ts loan.service.spec.ts loan.factory.ts
-git commit -m "feat(loans): add loan creation with pending confirmation status
-
-- Implement LoanService.createLoan() with factory pattern
-- Extract creation logic to LoanFactory for testability
-- Tests: 1 passing (loan.service.spec.ts)
-
-Refs: #12"
+# COMMIT
+git commit -m "refactor(loans): extract LoanFactory for creation logic"
 ```
+
+**Ce cycle se répète** pour chaque nouveau comportement : validation de la date de retour, refus de prêt si borrower
+inexistant, etc.
 
 ---
 
@@ -666,35 +619,30 @@ Refs: #12"
 
 ```typescript
 describe('ReminderService', () => {
-    describe('scheduleReminder', () => {
-        it('should schedule 4 reminders for a standard loan', async () => {
-            // ========== ARRANGE ==========
-            // Configuration de l'environnement de test
-            const mockQueue = {
-                add: jest.fn().mockResolvedValue({}),
-            };
-            const service = new ReminderService(mockQueue as any);
-            const loan: Loan = {
-                id: 'loan-123',
-                returnDate: new Date('2026-03-15'),
-                status: LoanStatus.ACTIVE,
-                // ...
-            };
+  describe('scheduleReminders', () => {
+    it('should schedule 5 reminders for a standard loan', async () => {
+      // ========== ARRANGE ==========
+      const mockQueue = { add: jest.fn().mockResolvedValue({}) };
+      const service = new ReminderService(mockQueue as any);
+      const returnDate = new Date('2026-03-15');
 
-            // ========== ACT ==========
-            // Exécution de l'action testée
-            await service.scheduleReminder(loan);
+      // ========== ACT ==========
+      await service.scheduleReminders('loan-123', returnDate);
 
-            // ========== ASSERT ==========
-            // Vérification des résultats attendus
-            expect(mockQueue.add).toHaveBeenCalledTimes(4);
-            expect(mockQueue.add).toHaveBeenNthCalledWith(1, 'send-reminder', {
-                loanId: 'loan-123',
-                scheduledFor: new Date('2026-03-12'), // J-3
-            });
-            // ...
-        });
+      // ========== ASSERT ==========
+      expect(mockQueue.add).toHaveBeenCalledTimes(5);
+      expect(mockQueue.add).toHaveBeenNthCalledWith(1, 'send-reminder', expect.objectContaining({
+        loanId: 'loan-123',
+        type: ReminderType.PREVENTIVE,
+        scheduledFor: new Date('2026-03-12'), // J-3
+      }), expect.any(Object));
+      expect(mockQueue.add).toHaveBeenNthCalledWith(2, 'send-reminder', expect.objectContaining({
+        type: ReminderType.ON_DUE_DATE,
+        scheduledFor: new Date('2026-03-15'), // J
+      }), expect.any(Object));
+      // J+7, J+14, J+21...
     });
+  });
 });
 ```
 
@@ -709,25 +657,19 @@ describe('ReminderService', () => {
 
 ### 2.4 Couverture de Code Minimale
 
-| Couche                                     | Couverture Minimale | Seuil CI/CD                 |
-|--------------------------------------------|---------------------|-----------------------------|
-| **Domain Logic** (Entities, Value Objects) | 100%                | ❌ Bloque le merge si < 100% |
-| **Services** (Use Cases)                   | 90%                 | ❌ Bloque si < 85%           |
-| **Repositories** (Implémentations)         | 80%                 | ⚠️ Warning si < 75%         |
-| **Controllers** (Endpoints)                | 70%                 | ⚠️ Warning si < 60%         |
-| **DTOs / Mappers**                         | 60%                 | ℹ️ Info seulement           |
+| Couche | Couverture Minimale | Seuil CI/CD |
+|---|---|---|
+| **Domain Logic** (Entities, Value Objects, Factories) | 95% | ❌ Bloque le merge si < 95% |
+| **Services** (Use Cases) | 90% | ❌ Bloque si < 85% |
+| **Controllers** (Endpoints) | 70% | ⚠️ Warning si < 60% |
+| **DTOs / Validation** | 60% | ℹ️ Info seulement |
 
------Contre Expertise--------
-**100% couverture Domain : bloque le merge, bloque la vélocité** : Exiger 100% de couverture sur le domaine signifie
-qu'un getter trivial non testé bloque toute la PR. En pratique, cela pousse à écrire des tests sans valeur (tester que
-`getName()` retourne `name`). Un seuil de **95%** avec review manuelle des lignes non couvertes est plus pragmatique et
-tout aussi rigoureux.
------Fin Contre Expertise--------
+> **Note** : Pas de ligne "Repositories" — Prisma est utilisé directement dans les services (pas de Repository Pattern).
+> Les tests d'intégration avec Testcontainers couvrent l'accès aux données.
 
 **Configuration Jest** :
 
 ```json
-// package.json
 {
   "jest": {
     "coverageThreshold": {
@@ -738,22 +680,21 @@ tout aussi rigoureux.
         "statements": 85
       },
       "./src/domain/**/*.ts": {
-        "branches": 100,
-        "functions": 100,
-        "lines": 100,
-        "statements": 100
+        "branches": 95,
+        "functions": 95,
+        "lines": 95,
+        "statements": 95
+      },
+      "./src/**/**.service.ts": {
+        "branches": 85,
+        "functions": 90,
+        "lines": 90,
+        "statements": 90
       }
     }
   }
 }
 ```
-
------Contre Expertise--------
-**Incohérence entre le tableau et la config Jest** : Le tableau indique "Services 90%, seuil CI 85%" mais la config Jest
-globale montre `functions: 85, lines: 85`. Ces seuils globaux ne correspondent pas aux seuils par couche du tableau. Il
-faudrait soit configurer des seuils par dossier (`./src/services/**/*.ts`), soit clarifier que les seuils globaux sont
-un compromis. Tel quel, le lecteur ne sait pas quel seuil fait foi.
------Fin Contre Expertise--------
 
 ---
 
@@ -789,78 +730,69 @@ un compromis. Tel quel, le lecteur ne sait pas quel seuil fait foi.
 ```typescript
 // common/exceptions/problem-details.exception.ts
 export class ProblemDetailsException extends HttpException {
-    constructor(
-        status: HttpStatus,
-        type: string,
-        title: string,
-        detail: string,
-        instance: string,
-        errors?: ErrorDetail[],
-    ) {
-        const problemDetails = {
-            type: `https://api.return.app/errors/${type}`,
-            title,
-            status,
-            detail,
-            instance,
-            timestamp: new Date().toISOString(),
-            requestId: RequestContext.getCurrentRequestId(), // Thread-local context
-            errors,
-        };
-        super(problemDetails, status);
-    }
+  constructor(
+    status: HttpStatus,
+    type: string,
+    title: string,
+    detail: string,
+    instance: string,
+    errors?: ErrorDetail[],
+  ) {
+    const problemDetails = {
+      type: `https://api.return.app/errors/${type}`,
+      title,
+      status,
+      detail,
+      instance,
+      timestamp: new Date().toISOString(),
+      requestId: RequestContext.getCurrentRequestId(),
+      errors,
+    };
+    super(problemDetails, status);
+  }
 }
 ```
 
------Contre Expertise--------
-**RequestContext.getCurrentRequestId() sous-estimé** : Ce pattern repose sur `AsyncLocalStorage` (Node.js) pour propager
-le requestId à travers toute la call stack sans le passer en paramètre. C'est un pattern avancé qui nécessite un
-middleware dédié pour l'initialiser à chaque requête. Or, ce middleware n'est documenté nulle part dans les roadmaps ni
-dans ce document. Il faut explicitement prévoir : 1) Un `RequestContextMiddleware` NestJS, 2) L'initialisation de
-`AsyncLocalStorage`, 3) Des tests pour vérifier la propagation. Sans cela, `getCurrentRequestId()` retournera
-`undefined` partout.
------Fin Contre Expertise--------
+> **Prérequis** : `RequestContext` repose sur `AsyncLocalStorage` (Node.js) pour propager le `requestId` à travers
+> toute la call stack. Un `RequestContextMiddleware` NestJS doit être implémenté dès le Sprint 0 pour initialiser
+> l'`AsyncLocalStorage` à chaque requête. Sans cela, `getCurrentRequestId()` retournera `undefined`.
 
 ```typescript
-// Exemple d'usage
+// Exceptions métier spécifiques
 export class LoanNotFoundException extends ProblemDetailsException {
-    constructor(loanId: string, path: string) {
-        super(
-            HttpStatus.NOT_FOUND,
-            'loan-not-found',
-            'Loan Not Found',
-            `The loan with ID '${loanId}' does not exist or you don't have access to it.`,
-            path,
-            [{field: 'loanId', code: 'NOT_FOUND', message: 'Loan does not exist'}],
-        );
-    }
+  constructor(loanId: string, path: string) {
+    super(
+      HttpStatus.NOT_FOUND, 'loan-not-found', 'Loan Not Found',
+      `The loan with ID '${loanId}' does not exist or you don't have access to it.`,
+      path,
+      [{ field: 'loanId', code: 'NOT_FOUND', message: 'Loan does not exist' }],
+    );
+  }
 }
 
 // Filter global pour capturer toutes les exceptions
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-    catch(exception: any, host: ArgumentsHost) {
-        const ctx = host.switchToHttp();
-        const response = ctx.getResponse();
-        const request = ctx.getRequest();
+  catch(exception: any, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const request = ctx.getRequest();
 
-        // Si c'est une ProblemDetailsException, retourner tel quel
-        if (exception instanceof ProblemDetailsException) {
-            return response.status(exception.getStatus()).json(exception.getResponse());
-        }
-
-        // Sinon, wrapper dans un format RFC 7807 générique
-        const status = exception.status || HttpStatus.INTERNAL_SERVER_ERROR;
-        response.status(status).json({
-            type: 'https://api.return.app/errors/internal-server-error',
-            title: 'Internal Server Error',
-            status,
-            detail: exception.message || 'An unexpected error occurred',
-            instance: request.url,
-            timestamp: new Date().toISOString(),
-            requestId: request.id,
-        });
+    if (exception instanceof ProblemDetailsException) {
+      return response.status(exception.getStatus()).json(exception.getResponse());
     }
+
+    const status = exception.status || HttpStatus.INTERNAL_SERVER_ERROR;
+    response.status(status).json({
+      type: 'https://api.return.app/errors/internal-server-error',
+      title: 'Internal Server Error',
+      status,
+      detail: exception.message || 'An unexpected error occurred',
+      instance: request.url,
+      timestamp: new Date().toISOString(),
+      requestId: request.id,
+    });
+  }
 }
 ```
 
@@ -869,21 +801,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
 ```typescript
 // Validation Error (400)
 throw new ValidationException([
-    {field: 'returnDate', code: 'INVALID_DATE', message: 'Return date must be in the future'},
-    {field: 'itemName', code: 'TOO_SHORT', message: 'Item name must be at least 3 characters'},
+  { field: 'returnDate', code: 'INVALID_DATE', message: 'Return date must be in the future' },
+  { field: 'itemName', code: 'TOO_SHORT', message: 'Item name must be at least 3 characters' },
 ], request.url);
 
 // Unauthorized (401)
-throw new UnauthorizedException('invalid-token', 'Your session has expired. Please log in again.', request.url);
+throw new UnauthorizedException('invalid-token', 'Your session has expired.', request.url);
 
 // Forbidden (403)
 throw new ForbiddenException('not-owner', 'You can only modify loans you created.', request.url);
 
 // Conflict (409)
-throw new ConflictException('loan-already-confirmed', 'This loan has already been confirmed by the borrower.', request.url);
+throw new ConflictException('loan-already-confirmed', 'This loan has already been confirmed.', request.url);
 
 // Rate Limit (429)
-throw new RateLimitException('too-many-requests', 'You have exceeded the limit of 50 loans per day.', request.url);
+throw new RateLimitException('too-many-requests', 'You have exceeded the limit of 15 loans per day.', request.url);
 ```
 
 ---
@@ -892,17 +824,14 @@ throw new RateLimitException('too-many-requests', 'You have exceeded the limit o
 
 #### Niveaux de Log (OBLIGATOIRES)
 
-| Niveau    | Usage                                                   | Exemple                                                                     |
-|-----------|---------------------------------------------------------|-----------------------------------------------------------------------------|
-| **ERROR** | Erreurs techniques nécessitant intervention             | Exception non gérée, DB connexion failed, API tier timeout                  |
-| **WARN**  | Situations anormales mais non-bloquantes                | Rappel échoué (retry prévu), Photo trop lourde (compressée automatiquement) |
-| **INFO**  | Événements métier importants                            | Loan created, Reminder sent, User logged in                                 |
-| **DEBUG** | Détails techniques pour investigation                   | SQL queries, Redis cache hit/miss, Event published                          |
-| **TRACE** | Informations ultra-détaillées (désactivé en production) | Function entry/exit, Variable values                                        |
+| Niveau | Usage | Exemple |
+|---|---|---|
+| **ERROR** | Erreurs techniques nécessitant intervention | Exception non gérée, DB connexion failed, FCM timeout |
+| **WARN** | Situations anormales mais non-bloquantes | Rappel échoué (retry prévu), photo trop lourde |
+| **INFO** | Événements métier importants | Loan created, Reminder sent, User logged in |
+| **DEBUG** | Détails techniques pour investigation | SQL queries, Redis cache hit/miss, Event published |
 
 #### Format JSON Structuré (OBLIGATOIRE)
-
-Tous les logs doivent être au format JSON pour faciliter le parsing (Datadog, Kibana, Loki) :
 
 ```json
 {
@@ -915,8 +844,7 @@ Tous les logs doivent être au format JSON pour faciliter le parsing (Datadog, K
   "context": {
     "loanId": "loan-123",
     "borrowerId": "user-789",
-    "itemName": "Perceuse Bosch",
-    "returnDate": "2026-03-15"
+    "itemName": "Perceuse Bosch"
   },
   "duration": 142,
   "environment": "production"
@@ -926,76 +854,28 @@ Tous les logs doivent être au format JSON pour faciliter le parsing (Datadog, K
 #### Configuration Winston (Backend)
 
 ```typescript
-// common/logging/logger.config.ts
-import {WinstonModule} from 'nest-winston';
+import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 
 export const loggerConfig = WinstonModule.createLogger({
-    level: process.env.LOG_LEVEL || 'info',
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.errors({stack: true}),
-        winston.format.json(), // Format JSON obligatoire
-    ),
-    defaultMeta: {
-        service: 'return-api',
-        environment: process.env.NODE_ENV,
-    },
-    transports: [
-        new winston.transports.Console(),
-        new winston.transports.File({filename: 'logs/error.log', level: 'error'}),
-        new winston.transports.File({filename: 'logs/combined.log'}),
-    ],
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json(),
+  ),
+  defaultMeta: {
+    service: 'return-api',
+    environment: process.env.NODE_ENV,
+  },
+  transports: [
+    // Console uniquement — les conteneurs Fly.io sont éphémères,
+    // les File transports sont inutiles (logs perdus au redéploiement).
+    // Les logs stdout sont captés par `fly logs` et routables vers
+    // un service externe (Logtail, Better Stack) si nécessaire.
+    new winston.transports.Console(),
+  ],
 });
-```
-
------Contre Expertise--------
-**Winston File Transport inutile sur Fly.io** : Les conteneurs Fly.io sont **éphémères** — les fichiers `logs/error.log`
-et `logs/combined.log` disparaissent à chaque redéploiement ou crash. Ce transport est donc inutile en production. En
-V1, `Console` transport suffit : les logs stdout sont captés par `fly logs` et peuvent être routés vers un service
-externe (Logtail, Better Stack) si nécessaire. Supprimer les File transports pour éviter de remplir le disque du
-conteneur inutilement.
------Fin Contre Expertise--------
-
-```typescript
-// Exemple d'usage dans un service
-@Injectable()
-export class LoanService {
-    private readonly logger = new Logger(LoanService.name);
-
-    async createLoan(dto: CreateLoanDto, userId: string): Promise<Loan> {
-        const startTime = Date.now();
-
-        this.logger.log({
-            message: 'Creating loan',
-            userId,
-            itemName: dto.itemName,
-            requestId: RequestContext.getCurrentRequestId(),
-        });
-
-        try {
-            const loan = await this.repository.save(LoanFactory.create(dto));
-
-            this.logger.log({
-                message: 'Loan created successfully',
-                userId,
-                loanId: loan.id,
-                duration: Date.now() - startTime,
-            });
-
-            return loan;
-        } catch (error) {
-            this.logger.error({
-                message: 'Failed to create loan',
-                userId,
-                error: error.message,
-                stack: error.stack,
-                duration: Date.now() - startTime,
-            });
-            throw error;
-        }
-    }
-}
 ```
 
 #### Règles de Logging
@@ -1018,75 +898,61 @@ export class LoanService {
 
 ## 4. Git Flow & Conventional Commits
 
-### 4.1 Stratégie de Branches
+### 4.1 Stratégie de Branches (GitHub Flow)
+
+Pour une équipe de 2 développeurs, **GitHub Flow** est plus adapté que Git Flow :
+pas de branche `develop`, les features sont mergées directement dans `main`.
 
 ```
-main (production)
-  ↓
-develop (pré-production)
+main (production — déploiement continu)
   ↓
 feature/loan-creation
 feature/reminder-system
-feature/photo-upload
-  ↓
-hotfix/critical-bug-fix
+fix/timezone-bug
+hotfix/critical-auth-fix
 ```
 
------Contre Expertise--------
-**Branche `develop` inutile pour 2 développeurs** : Git Flow (main + develop + feature branches) a été conçu pour des
-équipes de 10+ développeurs avec des cycles de release complexes. Pour une équipe de 2 personnes, c'est de la friction
-inutile : chaque feature doit être mergée dans develop, puis develop dans main — deux PR reviews au lieu d'une. **GitHub
-Flow** (main + feature branches directement) est bien plus adapté : les features sont mergées directement dans main, un
-seul point de review, déploiement continu simplifié. Si un staging est nécessaire, utiliser un environnement de preview
-par PR (Fly.io le supporte nativement).
------Fin Contre Expertise--------
+#### Branche Principale
 
-#### Branches Principales
+| Branche | Rôle | Protection |
+|---|---|---|
+| **main** | Code en production. Déploiement automatique via Fly.io. | ✅ PR review (1 approval), ✅ CI passing, ❌ Direct push |
 
-| Branche     | Rôle                                            | Protection                                                 |
-|-------------|-------------------------------------------------|------------------------------------------------------------|
-| **main**    | Code en production. Déploiements automatiques.  | ✅ PR reviews (2 approvals), ✅ CI/CD passing, ❌ Direct push |
-| **develop** | Branche d'intégration pour la prochaine release | ✅ PR reviews (1 approval), ✅ CI/CD passing                 |
-
------Contre Expertise--------
-**2 approvals pour main : mathématiquement impossible** : L'équipe est composée de 2 développeurs. Si l'un crée la PR,
-il faut 2 *autres* personnes pour approuver. Or il n'y a qu'un seul autre développeur. Même avec 1 approval requis, cela
-signifie que chaque PR bloque l'autre développeur. Recommandation : **1 approval** pour main, avec une option de
-self-merge en cas d'urgence (hotfix) documentée dans un runbook.
------Fin Contre Expertise--------
+> **1 approval** suffit pour une équipe de 2. Self-merge autorisé en cas de hotfix critique (documenté dans un runbook).
 
 #### Branches Éphémères
 
-| Préfixe       | Usage                                       | Exemple                     | Merge vers     |
-|---------------|---------------------------------------------|-----------------------------|----------------|
-| **feature/**  | Nouvelle fonctionnalité                     | `feature/loan-creation`     | develop        |
-| **fix/**      | Correction de bug non-critique              | `fix/reminder-timezone`     | develop        |
-| **hotfix/**   | Correction critique en production           | `hotfix/auth-bypass`        | main + develop |
-| **refactor/** | Refactoring sans changement de comportement | `refactor/loan-service`     | develop        |
-| **chore/**    | Tâches techniques (deps, config)            | `chore/update-dependencies` | develop        |
+| Préfixe | Usage | Exemple | Merge vers |
+|---|---|---|---|
+| **feature/** | Nouvelle fonctionnalité | `feature/loan-creation` | main |
+| **fix/** | Correction de bug non-critique | `fix/reminder-timezone` | main |
+| **hotfix/** | Correction critique en production | `hotfix/auth-bypass` | main |
+| **refactor/** | Refactoring sans changement de comportement | `refactor/loan-service` | main |
+| **chore/** | Tâches techniques (deps, config) | `chore/update-dependencies` | main |
 
 #### Workflow Complet
 
 ```bash
-# 1. Créer une feature branch depuis develop
-git checkout develop
-git pull origin develop
+# 1. Créer une feature branch depuis main
+git checkout main
+git pull origin main
 git checkout -b feature/loan-confirmation
 
-# 2. Développer avec TDD (commits réguliers)
-# ... (écrire tests, code, refactoring)
-git add .
-git commit -m "feat(loans): add borrower confirmation workflow"
+# 2. Développer avec TDD (commits réguliers à chaque cycle RED-GREEN-REFACTOR)
+git commit -m "test(loans): add failing test for borrower confirmation"
+git commit -m "feat(loans): implement borrower confirmation"
+git commit -m "refactor(loans): extract confirmation logic to dedicated method"
 
 # 3. Push et créer une Pull Request
 git push origin feature/loan-confirmation
-# → Créer PR sur GitHub : feature/loan-confirmation → develop
+# → Créer PR sur GitHub : feature/loan-confirmation → main
 
-# 4. Après review et merge, supprimer la branche
-git checkout develop
-git pull origin develop
+# 4. Review (1 approval), CI verte, puis merge (squash ou merge commit)
+
+# 5. Supprimer la branche après merge
+git checkout main
+git pull origin main
 git branch -d feature/loan-confirmation
-git push origin --delete feature/loan-confirmation
 ```
 
 ---
@@ -1097,58 +963,31 @@ git push origin --delete feature/loan-confirmation
 
 #### Types Autorisés
 
-| Type         | Description                                 | Exemples                                                 |
-|--------------|---------------------------------------------|----------------------------------------------------------|
-| **feat**     | Nouvelle fonctionnalité                     | `feat(loans): add loan creation endpoint`                |
-| **fix**      | Correction de bug                           | `fix(reminders): handle timezone conversion error`       |
-| **refactor** | Refactoring sans changement de comportement | `refactor(auth): extract JWT validation to middleware`   |
-| **test**     | Ajout ou modification de tests              | `test(loans): add integration tests for loan repository` |
-| **docs**     | Documentation uniquement                    | `docs(api): update OpenAPI spec for loan endpoints`      |
-| **chore**    | Tâches techniques (deps, CI/CD)             | `chore(deps): upgrade NestJS to v10.3.0`                 |
-| **style**    | Formatage (pas de changement logique)       | `style(loans): fix linting errors`                       |
-| **perf**     | Amélioration de performance                 | `perf(db): add index on loans.lender_id`                 |
-| **ci**       | Changements CI/CD                           | `ci(github): add code coverage reporting`                |
-| **build**    | Changements build (webpack, docker)         | `build(docker): optimize image size`                     |
-| **revert**   | Annulation d'un commit précédent            | `revert: feat(loans): add loan creation endpoint`        |
+| Type | Description | Exemples |
+|---|---|---|
+| **feat** | Nouvelle fonctionnalité | `feat(loans): add loan creation endpoint` |
+| **fix** | Correction de bug | `fix(reminders): handle timezone conversion error` |
+| **refactor** | Refactoring sans changement de comportement | `refactor(auth): extract JWT validation to middleware` |
+| **test** | Ajout ou modification de tests | `test(loans): add integration tests for loan creation` |
+| **docs** | Documentation uniquement | `docs(api): update OpenAPI spec for loan endpoints` |
+| **chore** | Tâches techniques (deps, CI/CD) | `chore(deps): upgrade NestJS to v11.0.0` |
+| **style** | Formatage (pas de changement logique) | `style(loans): fix linting errors` |
+| **perf** | Amélioration de performance | `perf(db): add index on loans.lender_id` |
+| **ci** | Changements CI/CD | `ci(github): add code coverage reporting` |
+| **build** | Changements build (docker) | `build(docker): optimize image size` |
+| **revert** | Annulation d'un commit précédent | `revert: feat(loans): add loan creation endpoint` |
 
 #### Scopes Principaux
 
 - **loans** : Module de gestion des prêts
-- **reminders** : Système de rappels
-- **auth** : Authentification/Autorisation
-- **photos** : Gestion des photos d'objets
-- **notifications** : Envoi de notifications
-- **users** : Gestion des utilisateurs
-- **db** : Base de données
-- **api** : Endpoints API
-
-#### Règles de Format
-
-**✅ BON :**
-
-```bash
-feat(loans): add loan confirmation by borrower
-
-- Implement PENDING_CONFIRMATION status
-- Add confirmation/refusal endpoints
-- Send notification to borrower on creation
-
-Closes #42
-```
-
-**❌ MAUVAIS :**
-
-```bash
-Added some stuff for loans
-```
-
-```bash
-fix: bug
-```
-
-```bash
-FEAT(LOANS): THIS IS A VERY IMPORTANT FEATURE!!!
-```
+- **reminders** : Système de rappels automatiques
+- **auth** : Authentification/Autorisation (JWT, Passport)
+- **photos** : Gestion des photos d'objets (Cloudflare R2)
+- **notifications** : Envoi de notifications push (FCM)
+- **users** : Gestion des utilisateurs/profils
+- **db** : Base de données (migrations, seeds)
+- **api** : Endpoints API (controllers, DTOs)
+- **i18n** : Internationalisation (FR/EN)
 
 #### Message de Commit Idéal
 
@@ -1160,30 +999,25 @@ FEAT(LOANS): THIS IS A VERY IMPORTANT FEATURE!!!
 <footer (refs, breaking changes)>
 ```
 
-**Exemple Complet :**
+**Exemple :**
 
 ```
-feat(reminders): implement retry mechanism for failed notifications
+feat(reminders): implement automatic reminder scheduling
 
-Add exponential backoff retry logic for notifications that fail to send.
-Notifications are retried up to 3 times with delays of 5min, 15min, and 60min.
-Failed notifications are marked as 'failed' after all retries exhausted.
-
-BREAKING CHANGE: ReminderService.send() now returns a Promise<ReminderStatus>
-instead of void. Update all callers accordingly.
+Schedule 5 reminders (J-3, J, J+7, J+14, J+21) via BullMQ when a loan
+is created with a return date. Each reminder uses a random template
+from the appropriate tier pool.
 
 Closes #87
-Refs #45, #56
 ```
 
 ---
 
 ### 4.3 Pre-Commit Hooks (Husky + lint-staged)
 
-**Configuration automatique** pour garantir la qualité avant chaque commit :
+**Configuration** pour garantir la qualité avant chaque commit :
 
 ```json
-// package.json
 {
   "husky": {
     "hooks": {
@@ -1194,14 +1028,11 @@ Refs #45, #56
   "lint-staged": {
     "*.ts": [
       "eslint --fix",
-      "prettier --write",
-      "jest --bail --findRelatedTests"
+      "prettier --write"
     ]
   },
   "commitlint": {
-    "extends": [
-      "@commitlint/config-conventional"
-    ]
+    "extends": ["@commitlint/config-conventional"]
   }
 }
 ```
@@ -1210,162 +1041,193 @@ Refs #45, #56
 
 - ✅ Formatage du code (Prettier)
 - ✅ Linting (ESLint)
-- ✅ Tests des fichiers modifiés (Jest)
 - ✅ Format du message de commit (Conventional Commits)
 
-**Si une vérification échoue, le commit est bloqué.**
+**Ce qui n'est PAS en pre-commit** (exécuté en CI uniquement) :
 
------Contre Expertise--------
-**Jest en pre-commit : trop lent, casse le flow** : `jest --bail --findRelatedTests` en pre-commit peut prendre 10-30
-secondes selon le nombre de fichiers modifiés, surtout avec des tests d'intégration qui chargent des modules NestJS.
-Cela casse le rythme du développeur qui commit fréquemment (TDD impose un commit après chaque cycle RED-GREEN-REFACTOR).
-Recommandation : pre-commit = **ESLint + Prettier uniquement** (< 2 secondes). Les tests sont exécutés en **CI** (push)
-où le temps est moins critique. Cela reste fiable car la PR ne peut pas être mergée sans CI verte.
------Fin Contre Expertise--------
+- ❌ Tests Jest — trop lent en pre-commit (10-30s), casse le rythme TDD qui impose des commits fréquents
+- ❌ Type-checking — `tsc --noEmit` est lent, réservé à la CI
 
------Contre Expertise--------
-**Éléments manquants dans les normes opérationnelles** :
-
-1. **Convention de nommage des fichiers** : Aucune convention n'est définie pour les noms de fichiers. Est-ce
-   `loan.service.ts`, `LoanService.ts`, `loan-service.ts` ? NestJS utilise par convention `kebab-case` (
-   loan.service.ts), mais ce n'est écrit nulle part.
-
-2. **Stratégie de code review** : Le document impose des PR reviews mais ne définit pas ce qu'on y vérifie. Checklist de
-   review ? Qui review quoi ? Quel est le SLA de review (24h max) ? Sans cadre, les reviews deviennent soit
-   superficielles ("LGTM") soit bloquantes (débats architecturaux en commentaire de PR).
-
-3. **Zod vs class-validator** : Le document 01_ARCHITECTURE_TECHNIQUE mentionne Zod pour la validation, mais les
-   exemples de code ici utilisent des DTOs NestJS (qui s'intègrent naturellement avec class-validator via
-   ValidationPipe). Il faut trancher : Zod (plus moderne, inférence TypeScript) ou class-validator (intégré NestJS,
-   décorateurs) ? Les deux en même temps = confusion garantie.
-   -----Fin Contre Expertise--------
+> Les tests sont exécutés en **CI** (push/PR) où le temps est moins critique.
+> La PR ne peut pas être mergée sans CI verte.
 
 ---
 
-## 5. BONUS : Fichier de Contexte pour IDE AI (.github/copilot-instructions.md)
+## 5. Conventions Additionnelles
 
-**Copier ce bloc dans `.github/copilot-instructions.md` pour que GitHub Copilot applique automatiquement ces règles :**
+### 5.1 Convention de Nommage des Fichiers
 
-```markdown
-# Return ↺ - Règles de Développement pour IA
+NestJS utilise par convention le **kebab-case** avec suffixe de type :
 
-## Architecture & Stack
+| Type | Convention | Exemple |
+|---|---|---|
+| Service | `<name>.service.ts` | `loan.service.ts` |
+| Controller | `<name>.controller.ts` | `loan.controller.ts` |
+| Module | `<name>.module.ts` | `loan.module.ts` |
+| DTO | `<name>.dto.ts` | `create-loan.dto.ts` |
+| Entity/Model | `<name>.entity.ts` | `loan.entity.ts` |
+| Factory | `<name>.factory.ts` | `loan.factory.ts` |
+| Event | `<name>.event.ts` | `loan-created.event.ts` |
+| Guard | `<name>.guard.ts` | `loan-owner.guard.ts` |
+| Spec (test) | `<name>.spec.ts` | `loan.service.spec.ts` |
+| Interface | `<name>.interface.ts` | `photo-storage.interface.ts` |
 
-- **Backend** : NestJS (TypeScript), Monolithe Modulaire, PostgreSQL + Redis
-- **Frontend** : React Native (TypeScript), Zustand, React Navigation
-- **Infrastructure** : Fly.io, Cloudflare R2, Docker
-- **Modules** : Loans, Reminders, Items, Users, Notifications (découplés par événements)
+### 5.2 Validation (class-validator + class-transformer)
 
-## Principes SOLID (OBLIGATOIRES)
+**Décision** : `class-validator` avec décorateurs est le choix pour Return, car il s'intègre nativement avec le
+`ValidationPipe` de NestJS.
 
-1. **SRP** : 1 classe = 1 responsabilité. Utiliser EventBus pour découpler les actions secondaires.
-2. **OCP** : Créer des interfaces pour tout comportement extensible (notifications, storage).
-3. **LSP** : Toute interface doit être substituable sans altérer le contrat.
-4. **ISP** : Séparer les interfaces (ex: ReminderScheduler ≠ ReminderQuery).
-5. **DIP** : Services dépendent d'abstractions (interfaces), jamais d'implémentations (Prisma).
+```typescript
+// create-loan.dto.ts
+import { IsUUID, IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
 
-## Design Patterns Imposés
+export class CreateLoanDto {
+  @IsUUID()
+  itemId: string;
 
-- **Repository Pattern** : Tout accès DB passe par une interface `*Repository`.
-- **Factory Pattern** : Création d'entités complexes (ex: `LoanFactory.create()`).
-- **Strategy Pattern** : Algorithmes interchangeables (ex: politiques de rappel).
-- **Observer Pattern** : Communication inter-modules via `EventBus`.
+  @IsUUID()
+  borrowerId: string;
 
-## TDD Workflow (STRICT)
+  @IsOptional()
+  @IsDateString()
+  returnDate?: string;
 
-1. **RED** : Écrire le test qui échoue (AAA : Arrange-Act-Assert).
-2. **GREEN** : Code minimal pour passer le test.
-3. **REFACTOR** : Améliorer sans casser les tests.
-4. **COMMIT** : Message conventionnel (voir ci-dessous).
-
-**Couverture minimale** : Domain 100%, Services 90%, Repositories 80%, Controllers 70%.
-
-## Gestion d'Erreurs (RFC 7807)
-
-Toutes les erreurs API doivent retourner :
-
-```json
-{
-  "type": "https://api.return.app/errors/loan-not-found",
-  "title": "Loan Not Found",
-  "status": 404,
-  "detail": "...",
-  "instance": "/api/v1/loans/loan-123",
-  "timestamp": "2026-02-08T14:32:00Z",
-  "requestId": "req-...",
-  "errors": [{"field": "loanId", "code": "NOT_FOUND", "message": "..."}]
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  notes?: string;
 }
+
+// main.ts — Activation globale
+app.useGlobalPipes(new ValidationPipe({
+  whitelist: true,           // Supprime les propriétés non décorées
+  forbidNonWhitelisted: true, // Erreur si propriétés inconnues
+  transform: true,            // Transformation automatique des types
+}));
 ```
 
-## Logs (JSON Structuré Uniquement)
+### 5.3 Checklist de Code Review
 
-- **ERROR** : Erreurs techniques nécessitant intervention.
-- **WARN** : Situations anormales mais non-bloquantes.
-- **INFO** : Événements métier importants.
-- **DEBUG** : Détails techniques (désactivé en production).
-
-**Format obligatoire** : JSON avec `requestId`, `userId`, `timestamp`, `context`, `duration`.
-
-## Git Commits (Conventional Commits)
-
-Format : `<type>(<scope>): <subject>`
-
-**Types** : `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`, `build`, `revert`.
-**Scopes** : `loans`, `reminders`, `auth`, `photos`, `notifications`, `users`, `db`, `api`.
-
-**Exemple** :
-
-```
-feat(loans): add borrower confirmation workflow
-
-- Implement PENDING_CONFIRMATION status
-- Add confirmation/refusal endpoints
-- Tests: 12 passing
-
-Closes #42
-```
-
-## Checklist Avant Merge
+Avant d'approuver une PR, vérifier :
 
 - [ ] Tous les tests passent (unit + integration)
 - [ ] Couverture de code respectée (voir seuils par couche)
-- [ ] Code review approuvé (2 approvals pour main, 1 pour develop)
 - [ ] Message de commit respecte Conventional Commits
 - [ ] Aucune donnée sensible loguée (passwords, tokens)
 - [ ] RFC 7807 respecté pour toutes les erreurs API
-- [ ] Documentation API mise à jour (OpenAPI spec)
+- [ ] Pas de `console.log` (Winston uniquement)
+- [ ] Pas de logique métier dans les controllers
+- [ ] Documentation API mise à jour (openapi.yaml) si endpoints modifiés
+- [ ] i18n : textes utilisateur disponibles en FR et EN
+
+---
+
+## 6. BONUS : Fichier de Contexte pour IDE AI (.github/copilot-instructions.md)
+
+**Copier ce bloc dans `.github/copilot-instructions.md`** pour que les assistants AI appliquent ces règles :
+
+```markdown
+# Return ↺ — Règles de Développement pour IA
+
+## Architecture & Stack
+
+- **Backend** : NestJS 11.x (TypeScript 5.8+), Monolithe Modulaire, PostgreSQL 17+ (Prisma 6.x+), Redis 8.x
+- **Frontend** : React Native 0.78+ (TypeScript), Zustand 5.x, React Navigation 7.x, React Native Paper
+- **Infrastructure** : Fly.io (Europe West), Cloudflare R2, Docker, GitHub Actions CI/CD
+- **Auth** : JWT (access 15min + refresh 30j) via Passport.js, révocation immédiate via Redis blacklist
+- **Modules** : Loans, Reminders, Items, Users, Notifications (découplés par événements)
+
+## Principes SOLID
+
+1. **SRP** : 1 classe = 1 responsabilité. EventEmitter2 pour découpler les actions secondaires.
+2. **OCP** : Interfaces pour tout comportement extensible (notifications, storage).
+3. **LSP** : Toute interface substituable sans altérer le contrat.
+4. **ISP** : Interfaces ségrégées (ReminderScheduler ≠ ReminderQuery).
+5. **DIP** : Abstractions pour services externes (storage, notifications). Prisma directement dans les services (pas de Repository Pattern pour le MVP).
+
+## Design Patterns
+
+- **Factory Pattern** : Création d'entités complexes (`LoanFactory.toCreateInput()`).
+- **Observer/Event-Driven** : Communication inter-modules via `EventEmitter2` + `@OnEvent`.
+- **Politique fixe de rappels** : J-3, J, J+7, J+14, J+21 (pas de Strategy Pattern en V1).
+
+## TDD Workflow (STRICT)
+
+1. **RED** : Écrire LE test qui échoue (AAA : Arrange-Act-Assert).
+2. **GREEN** : Code minimal pour passer le test.
+3. **REFACTOR** : Améliorer sans casser les tests.
+4. **COMMIT** : Message conventionnel.
+
+Cycle par comportement, pas par feature entière.
+
+**Couverture** : Domain 95%, Services 90%, Controllers 70%.
+
+## Validation
+
+- **class-validator** + **class-transformer** avec NestJS ValidationPipe.
+- whitelist: true, forbidNonWhitelisted: true, transform: true.
+
+## Gestion d'Erreurs (RFC 7807)
+
+Toutes les erreurs API retournent un objet ProblemDetails :
+```json
+{
+  "type": "https://api.return.app/errors/<error-type>",
+  "title": "...",
+  "status": 404,
+  "detail": "...",
+  "instance": "/v1/...",
+  "timestamp": "...",
+  "requestId": "..."
+}
+```
+
+## Logs (JSON Structuré — Winston)
+
+- Console transport uniquement (conteneurs Fly.io éphémères).
+- Format JSON avec `requestId`, `userId`, `timestamp`, `context`, `duration`.
+- Niveaux : ERROR, WARN, INFO, DEBUG.
+
+## Git (GitHub Flow + Conventional Commits)
+
+- **Branches** : `main` ← `feature/`, `fix/`, `hotfix/`, `refactor/`, `chore/`
+- **Pas de branche develop** (GitHub Flow pour 2 développeurs).
+- **Commits** : `<type>(<scope>): <subject>`
+- **Scopes** : `loans`, `reminders`, `auth`, `photos`, `notifications`, `users`, `db`, `api`, `i18n`
+- **Pre-commit** : ESLint + Prettier (pas de Jest en pre-commit).
+- **PR** : 1 approval, CI verte.
 
 ## Interdictions Strictes
 
-❌ Dépendance directe à Prisma dans les services (utiliser Repository)
-❌ `console.log` au lieu de Winston
+❌ `console.log` (utiliser Winston)
 ❌ Erreurs HTTP sans RFC 7807
 ❌ Commits sans type conventionnel
 ❌ Code de production sans test préalable (TDD)
-❌ Logique métier dans les controllers (déplacer dans services)
-❌ Secrets en dur dans le code (utiliser .env)
+❌ Logique métier dans les controllers
+❌ Secrets en dur (utiliser .env)
+❌ Zod pour la validation (utiliser class-validator)
+❌ File Transport Winston (conteneurs éphémères)
 
-## Priorités de Développement
+## Rappels Automatiques (100% automatiques, pas de rappels manuels)
 
-1. **Sécurité** : Validation des inputs, Rate Limiting, RBAC strict.
-2. **Testabilité** : TDD, Mocks, Testcontainers.
-3. **Maintenabilité** : SOLID, Design Patterns, Documentation.
-4. **Performance** : Après validation fonctionnelle (pas d'optimisation prématurée).
+- Politique fixe : J-3, J, J+7, J+14, J+21
+- Templates prédéfinis avec pool aléatoire par tier
+- Push notifications uniquement en V1 (FCM)
+- Après le 5e rappel ignoré → statut NOT_RETURNED
+
+## i18n
+
+- FR + EN en V1 (app + notifications push)
+- Textes utilisateur toujours disponibles dans les deux langues
 
 ---
-**Version** : 1.0 (8 février 2026)
-**Prochaine révision** : Post-sprint 1
-
+**Version** : 1.1 (12 février 2026)
+**Prochaine révision** : Post-Sprint 1
 ```
 
 ---
 
-**Document validé par :** Esdras GBEDOZIN
-**Date de dernière mise à jour :** 8 février 2026
-**Version :** 1.0 - MVP Baseline
-**Prochaine révision** : Après validation par l'équipe de développement
-
----
-
-**Contre-expertise par :** Ismael AÏHOU
-**Date :** 10 février 2026
+**Co-validé par** : Esdras GBEDOZIN & Ismael AÏHOU
+**Date de dernière mise à jour** : 12 février 2026
+**Version** : 1.1 — MVP Baseline (post contre-expertise)
+**Prochaine révision** : Post-Sprint 1

@@ -1,6 +1,10 @@
 # 04_ROADMAP_BACKEND.md
 
-**Return ↺ - Roadmap de Développement Backend (NestJS)**
+**Return - Roadmap de Développement Backend (NestJS)**
+
+**Version** : 1.1 -- MVP Baseline (post contre-expertise)
+**Co-validé par** : Esdras GBEDOZIN & Ismael AIHOU
+**Date** : 12 février 2026
 
 ---
 
@@ -10,58 +14,50 @@
 
 **Principe** :
 
-1. Chaque Sprint livre un module **end-to-end** (DB → Services → API → Tests).
+1. Chaque Sprint livre un module **end-to-end** (DB -> Services -> API -> Tests).
 2. Le Frontend peut se connecter au Backend dès la fin du Sprint 1 (Auth).
 3. Pas de "Big Bang" final : Les modules sont intégrés progressivement.
+4. **TDD strict** : Chaque comportement suit le cycle RED -> GREEN -> REFACTOR -> COMMIT (pas de batch de tests).
 
-**Durée estimée** : 6 Sprints de 5 jours (30 jours calendaires).
+**Durée estimée** : 6 Sprints -- **35 à 40 jours calendaires** (incluant un buffer pour blockers techniques, courbe
+d'apprentissage et imprévus).
 
 ---
 
 ## Sprint 0 : Setup Projet (3-4 jours)
 
-### 🎯 Objectif
+### Objectif
 
-Mettre en place l'infrastructure Backend avant tout développement fonctionnel.
+Mettre en place l'infrastructuré Backend avant tout développement fonctionnel. Installer uniquement les dépendances
+nécessaires immédiatement -- les services tiers (Redis, R2, FCM) seront configurés dans les sprints ou ils sont
+utilisés.
 
-### Tâches
+### Taches
 
-| ID            | Titre                                            | Dépendance | Critère de Fin                              | Temps |
-|---------------|--------------------------------------------------|------------|---------------------------------------------|-------|
-| **SETUP-001** | Initialiser le repository NestJS                 | -          | `npm run start` fonctionne                  | 30min |
-| **SETUP-002** | Configurer TypeScript strict + ESLint + Prettier | SETUP-001  | `npm run lint` passe sans erreur            | 30min |
-| **SETUP-003** | Installer Prisma + PostgreSQL (Docker Compose)   | SETUP-001  | `npx prisma db push` fonctionne             | 1h    |
-| **SETUP-004** | Configurer Winston (logs JSON structurés)        | SETUP-001  | Logs écrits en JSON avec requestId          | 1h    |
-| **SETUP-005** | Implémenter RFC 7807 Exception Filter global     | SETUP-004  | Erreur 404 retourne format RFC 7807         | 1h30  |
-| **SETUP-006** | Configurer JWT Module (access + refresh tokens)  | SETUP-001  | JWT signé et vérifié avec `@nestjs/jwt`     | 1h    |
-| **SETUP-007** | Créer le Guard d'authentification (JwtAuthGuard) | SETUP-006  | Route protégée retourne 401 si pas de token | 1h    |
-| **SETUP-008** | Installer Redis (BullMQ pour jobs asynchrones)   | SETUP-003  | Redis connecté, queue créée                 | 1h    |
-| **SETUP-009** | Configurer Cloudflare R2 SDK (stockage photos)   | SETUP-001  | Upload de test fonctionne                   | 1h    |
-| **SETUP-010** | Setup CI/CD GitHub Actions (lint + tests)        | SETUP-002  | Pipeline passe sur `main` et `develop`      | 1h30  |
+| ID            | Titre                                                     | Dépendance | Critère de Fin                              | Temps |
+|---------------|-----------------------------------------------------------|------------|---------------------------------------------|-------|
+| **SETUP-001** | Initialiser le repository NestJS                          | -          | `npm run start` fonctionne                  | 30min |
+| **SETUP-002** | Configurer TypeScript strict + ESLint + Prettier          | SETUP-001  | `npm run lint` passe sans erreur            | 30min |
+| **SETUP-003** | Installer Prisma + PostgreSQL (Docker Compose)            | SETUP-001  | `npx prisma db push` fonctionne             | 1h    |
+| **SETUP-004** | Configurer Winston (logs JSON structurés)                 | SETUP-001  | Logs écrits en JSON avec requestId          | 1h    |
+| **SETUP-005** | Implémenter RFC 7807 Exception Filter global              | SETUP-004  | Erreur 404 retourné format RFC 7807         | 1h30  |
+| **SETUP-006** | Configurer JWT Module (access + refresh tokens)           | SETUP-001  | JWT signe et vérifié avec `@nestjs/jwt`     | 1h    |
+| **SETUP-007** | Créer le Guard d'authentification (JwtAuthGuard)          | SETUP-006  | Route protégée retourné 401 si pas de token | 1h    |
+| **SETUP-008** | Implémenter endpoints `/health` et `/ready`               | SETUP-001  | Fly.io liveness/readiness probes opérationnelles | 45min |
+| **SETUP-009** | Configurer gestion des environnements (.env, ConfigModule) | SETUP-001 | ConfigModule NestJS charge les variables par env (dev/prod), secrets documentes | 1h |
+| **SETUP-010** | Setup CI/CD GitHub Actions (lint + tests)                 | SETUP-002  | Pipeline passe sur `main`                   | 1h30  |
 
------Contre Expertise--------
-**Setup prématuré de R2 et Redis** : SETUP-008 (Redis/BullMQ) n'est utilisé qu'au Sprint 4 (CRON timeout 48h) et
-SETUP-009 (Cloudflare R2) qu'au Sprint 3 (photos). Configurer des services 2-3 sprints à l'avance = maintenance de
-configuration inutilisée, risque de drift de config. Mieux vaut installer au moment du besoin réel (just-in-time
-setup) : R2 au Sprint 3 et Redis au Sprint 4.
+> **Note sur SETUP-009** : Deux environnements en V1 : dev et production. Pas de staging.
 
-**Éléments manquants au Sprint 0** :
+> **Note sur SETUP-010** : GitHub Flow -- la CI/CD tourne sur `main` uniquement (pas de branche `develop`).
 
-- **Health check endpoint** : Aucun `/health` prévu pour le monitoring Fly.io (readiness/liveness probes). Indispensable
-  pour le déploiement.
-- **Gestion des environnements** : Pas de tâche pour `.env`, secrets management, configurations par environnement (
-  dev/staging/prod).
-- **FCM (Firebase)** : Le SDK Firebase pour les push notifications (Sprint 5) n'est configuré nulle part. FCM nécessite
-  un projet Firebase, un service account, et un `google-services.json`. À prévoir ici ou au Sprint 5.
-  -----Fin Contre Expertise--------
-
-**Livrable Sprint 0** : 🚀 Backend démarrable avec auth JWT fonctionnel (pas de BDD métier encore).
+**Livrable Sprint 0** : 🚀 Backend démarrable avec auth JWT fonctionnel, health checks opérationnels et CI/CD en place (pas de BDD métier encore).
 
 ---
 
 ## Sprint 1 : Module Auth + Users (5 jours)
 
-### 🎯 Objectif
+### Objectif
 
 Authentification complète + Gestion de profil. **Le Frontend peut s'y connecter dès la fin du Sprint.**
 
@@ -69,482 +65,481 @@ Authentification complète + Gestion de profil. **Le Frontend peut s'y connecter
 
 | ID           | Titre                                                                      | Dépendance | Critère de Fin                                | Temps |
 |--------------|----------------------------------------------------------------------------|------------|-----------------------------------------------|-------|
-| **AUTH-001** | Créer le schema Prisma `User` (email, password, role, firstName, lastName) | SETUP-003  | Migration appliquée, table `users` créée      | 30min |
+| **AUTH-001** | Créer le schema Prisma `User` (email, password, rôle, firstName, lastName) | SETUP-003  | Migration appliquée, table `users` créée      | 30min |
 | **AUTH-002** | Créer le schema Prisma `RefreshToken` (token, userId, expiresAt)           | AUTH-001   | Migration appliquée, relation 1-N avec `User` | 30min |
 | **AUTH-003** | Ajouter index sur `users.email` (unique) et `refreshTokens.token`          | AUTH-002   | `EXPLAIN` montre index utilisé                | 15min |
 
-### Phase 1.2 : Tests (TDD) (Jour 2)
+### Phase 1.2 : TDD -- Auth Service (Jours 2-4)
 
-| ID           | Titre                                                                                 | Dépendance | Critère de Fin                      | Temps |
-|--------------|---------------------------------------------------------------------------------------|------------|-------------------------------------|-------|
-| **AUTH-004** | TEST : Écrire le test de `POST /auth/register` (success 201)                          | AUTH-003   | Test écrit (échoue car pas de code) | 30min |
-| **AUTH-005** | TEST : Écrire le test de `POST /auth/register` (erreur 400 si email déjà utilisé)     | AUTH-004   | Test écrit (échoue)                 | 20min |
-| **AUTH-006** | TEST : Écrire le test de `POST /auth/login` (success 200 avec tokens)                 | AUTH-004   | Test écrit (échoue)                 | 30min |
-| **AUTH-007** | TEST : Écrire le test de `POST /auth/login` (erreur 401 si mot de passe invalide)     | AUTH-006   | Test écrit (échoue)                 | 20min |
-| **AUTH-008** | TEST : Écrire le test de `POST /auth/refresh` (success 200 avec nouveau access token) | AUTH-006   | Test écrit (échoue)                 | 30min |
-| **AUTH-009** | TEST : Écrire le test de `POST /auth/logout` (success 204, refresh token invalidé)    | AUTH-006   | Test écrit (échoue)                 | 20min |
-| **AUTH-010** | TEST : Écrire le test de `GET /auth/me` (success 200 avec infos utilisateur)          | AUTH-006   | Test écrit (échoue)                 | 20min |
+Chaque comportement suit le cyclé complet RED -> GREEN -> REFACTOR -> COMMIT avant de passer au suivant.
 
------Contre Expertise--------
-**Faux TDD : tous les tests d'un coup** : La Phase 1.2 écrit les 7 tests en une seule journée (Jour 2), puis
-l'implémentation en Jour 3-4. Ce n'est **pas du TDD**, c'est du "test-first waterfall". Le vrai cycle TDD (
-RED-GREEN-REFACTOR-COMMIT tel que décrit en 02_NORMES) impose d'écrire UN test → le code minimal → refactorer →
-commiter, **avant** de passer au test suivant. Écrire 7 tests qui échouent tous simultanément ne donne aucun feedback
-incrémental et complique le debugging. Ce problème se répète dans **tous les sprints** de cette roadmap (Phases x.2
-systématiquement groupées). Restructurer le plan pour entremêler tests et implémentation par fonctionnalité.
------Fin Contre Expertise--------
+**Comportement 1 : Register**
 
-### Phase 1.3 : Logique Métier (Jour 3)
+| ID           | Titre                                                                | Dépendance | Critère de Fin                                     | Temps |
+|--------------|----------------------------------------------------------------------|------------|----------------------------------------------------|-------|
+| **AUTH-004** | RED : Test `POST /auth/register` (success 201)                      | AUTH-003   | Test écrit, échoue                                 | 30min |
+| **AUTH-005** | GREEN : Implémenter `AuthService.register()` (hash bcrypt, créer user via Prisma) | AUTH-004 | Test AUTH-004 passe                       | 1h    |
+| **AUTH-006** | RED : Test `POST /auth/register` (erreur 400 si email déjà utilisé) | AUTH-005   | Test écrit, échoue                                 | 20min |
+| **AUTH-007** | GREEN : Ajouter vérification d'unicite email dans `register()`      | AUTH-006   | Tests AUTH-004 et AUTH-006 passent                 | 30min |
 
-| ID           | Titre                                                                                           | Dépendance | Critère de Fin                                        | Temps |
-|--------------|-------------------------------------------------------------------------------------------------|------------|-------------------------------------------------------|-------|
-| **AUTH-011** | Implémenter `UserRepository` (interface + implémentation Prisma)                                | AUTH-003   | Principe DIP respecté (service dépend de l'interface) | 1h    |
-| **AUTH-012** | Implémenter `AuthService.register()` (hash password avec bcrypt, créer user)                    | AUTH-011   | Test AUTH-004 passe ✅                                 | 1h    |
-| **AUTH-013** | Implémenter `AuthService.login()` (vérifier credentials, générer JWT)                           | AUTH-012   | Tests AUTH-006 et AUTH-007 passent ✅                  | 1h30  |
-| **AUTH-014** | Implémenter `AuthService.refreshToken()` (vérifier refresh token, générer nouveau access token) | AUTH-013   | Test AUTH-008 passe ✅                                 | 1h    |
-| **AUTH-015** | Implémenter `AuthService.logout()` (invalider refresh token en Redis)                           | AUTH-014   | Test AUTH-009 passe ✅                                 | 45min |
+**Comportement 2 : Login**
 
------Contre Expertise--------
-**AUTH-015 : Logout via Redis contradictoire avec l'ADR-004** : Cette tâche prévoit "invalider refresh token en Redis",
-mais l'ADR-004 (01_ARCHITECTURE_TECHNIQUE) classe la révocation Redis comme **dette technique**, pas V1. Soit on
-l'implémente dès le Sprint 1 (et l'ADR est faux), soit on fait un logout simple (suppression du refresh token en base de
-données PostgreSQL) et Redis viendra plus tard. Incohérence à trancher.
------Fin Contre Expertise--------
+| ID           | Titre                                                                     | Dépendance | Critère de Fin                              | Temps |
+|--------------|---------------------------------------------------------------------------|------------|---------------------------------------------|-------|
+| **AUTH-008** | RED : Test `POST /auth/login` (success 200 avec tokens)                   | AUTH-007   | Test écrit, échoue                          | 30min |
+| **AUTH-009** | GREEN : Implémenter `AuthService.login()` (vérifiér credentials, générér JWT) | AUTH-008 | Test AUTH-008 passe                        | 1h30  |
+| **AUTH-010** | RED : Test `POST /auth/login` (erreur 401 si mot de passe invalide)       | AUTH-009   | Test écrit, échoue                          | 20min |
+| **AUTH-011** | GREEN : Ajouter gestion d'erreur credentials invalides                    | AUTH-010   | Tests AUTH-008 et AUTH-010 passent          | 30min |
 
-### Phase 1.4 : Endpoints API (Jour 4)
+**Comportement 3 : Refresh Token**
 
-| ID           | Titre                                                        | Dépendance          | Critère de Fin                       | Temps |
-|--------------|--------------------------------------------------------------|---------------------|--------------------------------------|-------|
-| **AUTH-016** | Créer `AuthController.register()` (POST /auth/register)      | AUTH-012            | Test AUTH-004 et AUTH-005 passent ✅  | 45min |
-| **AUTH-017** | Créer `AuthController.login()` (POST /auth/login)            | AUTH-013            | Tests AUTH-006 et AUTH-007 passent ✅ | 45min |
-| **AUTH-018** | Créer `AuthController.refresh()` (POST /auth/refresh)        | AUTH-014            | Test AUTH-008 passe ✅                | 30min |
-| **AUTH-019** | Créer `AuthController.logout()` (POST /auth/logout)          | AUTH-015            | Test AUTH-009 passe ✅                | 30min |
-| **AUTH-020** | Créer `AuthController.me()` (GET /auth/me) avec JwtAuthGuard | SETUP-007, AUTH-013 | Test AUTH-010 passe ✅                | 30min |
+| ID           | Titre                                                                                  | Dépendance | Critère de Fin     | Temps |
+|--------------|----------------------------------------------------------------------------------------|------------|--------------------|-------|
+| **AUTH-012** | RED : Test `POST /auth/refresh` (success 200 avec nouveau access token)                | AUTH-011   | Test écrit, échoue | 30min |
+| **AUTH-013** | GREEN : Implémenter `AuthService.refreshToken()` (vérifiér refresh, générér nouveau access) | AUTH-012 | Test AUTH-012 passe | 1h |
 
-### Phase 1.5 : Module Users (Profil) (Jour 5)
+**Comportement 4 : Logout (via Redis blacklist)**
 
-| ID           | Titre                                                                     | Dépendance | Critère de Fin        | Temps |
-|--------------|---------------------------------------------------------------------------|------------|-----------------------|-------|
-| **USER-001** | TEST : Écrire le test de `PATCH /users/me` (update firstName/lastName)    | AUTH-020   | Test écrit (échoue)   | 20min |
-| **USER-002** | TEST : Écrire le test de `PATCH /users/me/password` (change password)     | AUTH-020   | Test écrit (échoue)   | 20min |
-| **USER-003** | Implémenter `UserService.updateProfile()`                                 | AUTH-011   | Test USER-001 passe ✅ | 1h    |
-| **USER-004** | Implémenter `UserService.changePassword()` (vérifier ancien mot de passe) | USER-003   | Test USER-002 passe ✅ | 1h    |
-| **USER-005** | Créer `UsersController.updateMe()` (PATCH /users/me)                      | USER-003   | Test USER-001 passe ✅ | 30min |
-| **USER-006** | Créer `UsersController.changePassword()` (PATCH /users/me/password)       | USER-004   | Test USER-002 passe ✅ | 30min |
+> **Note** : La révocation JWT via Redis blacklist est confirmée pour la V1 (voir ADR-004 dans 01_ARCHITECTURE_TECHNIQUE). Redis est configuré ici pour le JWT blacklist. Il sera reutilisé au Sprint 4 pour BullMQ.
 
-**Livrable Sprint 1** : 🎉 **Frontend peut s'authentifier + gérer profil** (5 endpoints Auth + 2 endpoints Users).
+| ID           | Titre                                                                              | Dépendance | Critère de Fin     | Temps |
+|--------------|------------------------------------------------------------------------------------|------------|--------------------|-------|
+| **AUTH-014** | Configurer Redis (connexion + module NestJS) pour JWT blacklist                    | AUTH-013   | Redis connecté     | 45min |
+| **AUTH-015** | RED : Test `POST /auth/logout` (success 204, token blackliste)                     | AUTH-014   | Test écrit, échoue | 20min |
+| **AUTH-016** | GREEN : Implémenter `AuthService.logout()` (ajouter token à la blacklist Redis)    | AUTH-015   | Test AUTH-015 passe | 45min |
+
+### Phase 1.3 : Endpoints Auth (Jour 4)
+
+| ID           | Titre                                                        | Dépendance | Critère de Fin                              | Temps |
+|--------------|--------------------------------------------------------------|------------|---------------------------------------------|-------|
+| **AUTH-017** | Créer `AuthController.register()` (POST /auth/register)      | AUTH-007   | Tests AUTH-004 et AUTH-006 passent en E2E   | 45min |
+| **AUTH-018** | Créer `AuthController.login()` (POST /auth/login)            | AUTH-011   | Tests AUTH-008 et AUTH-010 passent en E2E   | 45min |
+| **AUTH-019** | Créer `AuthController.refresh()` (POST /auth/refresh)        | AUTH-013   | Test AUTH-012 passe en E2E                  | 30min |
+| **AUTH-020** | Créer `AuthController.logout()` (POST /auth/logout)          | AUTH-016   | Test AUTH-015 passe en E2E                  | 30min |
+
+### Phase 1.4 : Module Users -- Profil (Jour 5)
+
+Cyclé TDD par comportement pour chaque endpoint utilisateur.
+
+| ID           | Titre                                                                                           | Dépendance | Critère de Fin          | Temps |
+|--------------|-------------------------------------------------------------------------------------------------|------------|-------------------------|-------|
+| **USER-001** | RED : Test `GET /users/me` (success 200 avec infos utilisateur)                                 | AUTH-020   | Test écrit, échoue      | 20min |
+| **USER-002** | GREEN : Implémenter `UserService.getProfile()` + `UsersController.getMe()`                     | USER-001   | Test USER-001 passe     | 45min |
+| **USER-003** | RED : Test `PATCH /users/me` (update firstName/lastName)                                        | USER-002   | Test écrit, échoue      | 20min |
+| **USER-004** | GREEN : Implémenter `UserService.updateProfile()` + `UsersController.updateMe()`               | USER-003   | Test USER-003 passe     | 1h    |
+| **USER-005** | RED : Test `PATCH /users/me/password` (change password)                                         | USER-004   | Test écrit, échoue      | 20min |
+| **USER-006** | GREEN : Implémenter `UserService.changePassword()` + `UsersController.changePassword()`        | USER-005   | Test USER-005 passe     | 1h    |
+| **USER-007** | RED : Test `DELETE /users/me` (success 204, suppression compte)                                 | USER-006   | Test écrit, échoue      | 20min |
+| **USER-008** | RED : Test `DELETE /users/me` (erreur 409 si prêts actifs)                                      | USER-007   | Test écrit, échoue      | 15min |
+| **USER-009** | GREEN : Implémenter `UserService.deleteAccount()` + `UsersController.deleteMe()` (RGPD)        | USER-008   | Tests USER-007/008 passent | 1h30 |
+
+🏁 **Livrable Sprint 1** : **Frontend peut s'authentifier + gérer profil** (4 endpoints Auth + 5 endpoints Users).
 
 ---
 
 ## Sprint 2 : Module Borrowers (3 jours)
 
-### 🎯 Objectif
+### Objectif
 
-Gérer les contacts (emprunteurs). **Simple CRUD, pas de logique complexe.**
+Gerer les emprunteurs. Un emprunteur est un **utilisateur disposant d'un compte Return** (pas un simple contact).
+L'emprunteur doit avoir un compte pour recevoir les notifications push et interagir avec les prêts
+(confirmation/contestation).
 
 ### Phase 2.1 : Base de Données
 
 | ID           | Titre                                                                                  | Dépendance | Critère de Fin      | Temps |
 |--------------|----------------------------------------------------------------------------------------|------------|---------------------|-------|
 | **BORR-001** | Créer le schema Prisma `Borrower` (firstName, lastName, email, phoneNumber, userId FK) | AUTH-001   | Migration appliquée | 30min |
-| **BORR-002** | Ajouter index sur `borrowers.email` (unique) et `borrowers.userId`                     | BORR-001   | Index créés         | 15min |
+| **BORR-002** | Ajouter index unique sur le couple `(userId, email)` et index sur `borrowers.userId`   | BORR-001   | Index créés         | 15min |
 
------Contre Expertise--------
-**Borrower.email unique : problème de modèle** : BORR-002 impose un index unique sur `borrowers.email`. Mais un
-emprunteur est un **contact** du prêteur, pas un utilisateur de l'app. Si Alice et Bob prêtent tous deux à Charlie (même
-email), chacun crée un contact "Charlie" → conflit d'unicité. L'unicité devrait être sur le couple `(userId, email)` (
-unique par prêteur), pas sur `email` seul. De même, BORR-004 teste "erreur 409 si email existe déjà" : cela devrait
-être "si email existe déjà **pour ce prêteur**".
------Fin Contre Expertise--------
+> **Note** : L'unicite est sur le couple `(userId, email)` -- un même email peut exister comme emprunteur chez
+> plusieurs prêteurs différénts.
 
-### Phase 2.2 : Tests (TDD)
+### Phase 2.2 : TDD -- Borrower Service
 
-| ID           | Titre                                                        | Dépendance | Critère de Fin      | Temps |
-|--------------|--------------------------------------------------------------|------------|---------------------|-------|
-| **BORR-003** | TEST : `POST /borrowers` (success 201)                       | BORR-002   | Test écrit (échoue) | 20min |
-| **BORR-004** | TEST : `POST /borrowers` (erreur 409 si email existe déjà)   | BORR-003   | Test écrit (échoue) | 15min |
-| **BORR-005** | TEST : `GET /borrowers` (liste paginée)                      | BORR-003   | Test écrit (échoue) | 20min |
-| **BORR-006** | TEST : `GET /borrowers/{id}` (success 200)                   | BORR-003   | Test écrit (échoue) | 15min |
-| **BORR-007** | TEST : `PATCH /borrowers/{id}` (update success)              | BORR-003   | Test écrit (échoue) | 15min |
-| **BORR-008** | TEST : `DELETE /borrowers/{id}` (success 204)                | BORR-003   | Test écrit (échoue) | 15min |
-| **BORR-009** | TEST : `DELETE /borrowers/{id}` (erreur 409 si prêts actifs) | BORR-008   | Test écrit (échoue) | 15min |
+Cyclé TDD par comportement (RED -> GREEN -> REFACTOR -> COMMIT).
 
-### Phase 2.3 : Logique Métier
+**Comportement 1 : Création**
 
-| ID           | Titre                                                                     | Dépendance | Critère de Fin                       | Temps |
-|--------------|---------------------------------------------------------------------------|------------|--------------------------------------|-------|
-| **BORR-010** | Implémenter `BorrowerRepository` (interface + Prisma)                     | BORR-002   | Interface créée                      | 45min |
-| **BORR-011** | Implémenter `BorrowerService.create()` (vérifier unicité email)           | BORR-010   | Tests BORR-003 et BORR-004 passent ✅ | 1h    |
-| **BORR-012** | Implémenter `BorrowerService.findAll()` (pagination)                      | BORR-010   | Test BORR-005 passe ✅                | 45min |
-| **BORR-013** | Implémenter `BorrowerService.findById()`                                  | BORR-010   | Test BORR-006 passe ✅                | 30min |
-| **BORR-014** | Implémenter `BorrowerService.update()`                                    | BORR-010   | Test BORR-007 passe ✅                | 45min |
-| **BORR-015** | Implémenter `BorrowerService.delete()` (vérifier absence de prêts actifs) | BORR-010   | Tests BORR-008 et BORR-009 passent ✅ | 1h    |
+| ID           | Titre                                                                       | Dépendance | Critère de Fin              | Temps |
+|--------------|-----------------------------------------------------------------------------|------------|-----------------------------|-------|
+| **BORR-003** | RED : Test `POST /borrowers` (success 201)                                  | BORR-002   | Test écrit, échoue          | 20min |
+| **BORR-004** | RED : Test `POST /borrowers` (erreur 409 si email existe déjà pour ce prêteur) | BORR-003 | Test écrit, échoue          | 15min |
+| **BORR-005** | GREEN : Implémenter `BorrowerService.create()` (vérification unicite `(userId, email)` via Prisma) | BORR-004 | Tests BORR-003 et BORR-004 passent | 1h |
 
-### Phase 2.4 : Endpoints API
+**Comportement 2 : Lecture**
+
+| ID           | Titre                                                                      | Dépendance | Critère de Fin         | Temps |
+|--------------|----------------------------------------------------------------------------|------------|------------------------|-------|
+| **BORR-006** | RED : Test `GET /borrowers` (liste paginée)                                | BORR-005   | Test écrit, échoue     | 20min |
+| **BORR-007** | GREEN : Implémenter `BorrowerService.findAll()` (pagination via Prisma)    | BORR-006   | Test BORR-006 passe    | 45min |
+| **BORR-008** | RED : Test `GET /borrowers/{id}` (success 200)                             | BORR-007   | Test écrit, échoue     | 15min |
+| **BORR-009** | GREEN : Implémenter `BorrowerService.findById()` (via Prisma)              | BORR-008   | Test BORR-008 passe    | 30min |
+
+**Comportement 3 : Modification et suppression**
+
+| ID           | Titre                                                                            | Dépendance | Critère de Fin               | Temps |
+|--------------|----------------------------------------------------------------------------------|------------|------------------------------|-------|
+| **BORR-010** | RED : Test `PATCH /borrowers/{id}` (update success)                              | BORR-009   | Test écrit, échoue           | 15min |
+| **BORR-011** | GREEN : Implémenter `BorrowerService.update()` (via Prisma)                      | BORR-010   | Test BORR-010 passe          | 45min |
+| **BORR-012** | RED : Test `DELETE /borrowers/{id}` (success 204)                                | BORR-011   | Test écrit, échoue           | 15min |
+| **BORR-013** | RED : Test `DELETE /borrowers/{id}` (erreur 409 si prêts actifs)                 | BORR-012   | Test écrit, échoue           | 15min |
+| **BORR-014** | GREEN : Implémenter `BorrowerService.delete()` (vérifiér absence de prêts actifs via Prisma) | BORR-013 | Tests BORR-012 et BORR-013 passent | 1h |
+
+### Phase 2.3 : Endpoints API
 
 | ID           | Titre                                          | Dépendance | Critère de Fin                               | Temps |
-|--------------|------------------------------------------------|------------|----------------------------------------------|-------|
-| **BORR-016** | Créer `BorrowersController` (6 endpoints CRUD) | BORR-015   | Tous les tests BORR-003 à BORR-009 passent ✅ | 1h30  |
+|--------------|-------------------------------------------------|------------|----------------------------------------------|-------|
+| **BORR-015** | Créer `BorrowersController` (6 endpoints CRUD) | BORR-014   | Tous les tests BORR-003 à BORR-013 passent   | 1h30  |
 
-**Livrable Sprint 2** : 🎉 **Frontend peut gérer les emprunteurs** (6 endpoints Borrowers).
+🏁 **Livrable Sprint 2** : **Frontend peut gérer les emprunteurs** (6 endpoints Borrowers).
 
 ---
 
 ## Sprint 3 : Module Items (4 jours)
 
-### 🎯 Objectif
+### Objectif
 
-Gérer les objets prêtables + Reconnaissance OCR + Upload photos.
+Gerer les objets pretables + Upload photos vers Cloudflare R2. **Pas d'OCR en V1** -- la reconnaissance automatique
+d'objets via Google Cloud Vision est reportee à la V2+ (hors scope MVP).
 
-### Phase 3.1 : Base de Données
+### Phase 3.1 : Base de Données + Setup R2
 
-| ID           | Titre                                                                                  | Dépendance | Critère de Fin           | Temps |
-|--------------|----------------------------------------------------------------------------------------|------------|--------------------------|-------|
-| **ITEM-001** | Créer le schema Prisma `Item` (name, description, category, estimatedValue, userId FK) | AUTH-001   | Migration appliquée      | 30min |
-| **ITEM-002** | Créer le schema Prisma `Photo` (url, thumbnailUrl, itemId FK)                          | ITEM-001   | Relation 1-N avec `Item` | 30min |
-| **ITEM-003** | Ajouter index sur `items.userId` et `items.category`                                   | ITEM-002   | Index créés              | 15min |
+| ID           | Titre                                                                                  | Dépendance | Critère de Fin               | Temps |
+|--------------|----------------------------------------------------------------------------------------|------------|------------------------------|-------|
+| **ITEM-001** | Créer le schema Prisma `Item` (name, description, category, estimatedValue, userId FK) | AUTH-001   | Migration appliquée          | 30min |
+| **ITEM-002** | Créer le schema Prisma `Photo` (url, thumbnailUrl, itemId FK)                          | ITEM-001   | Relation 1-N avec `Item`     | 30min |
+| **ITEM-003** | Ajouter index sur `items.userId` et `items.category`                                   | ITEM-002   | Index créés                  | 15min |
+| **ITEM-004** | Configurer Cloudflare R2 SDK (stockage photos)                                         | SETUP-001  | Upload de test fonctionne    | 1h    |
 
------Contre Expertise--------
-**OCR Google Vision : coût et ROI douteux en V1** : ITEM-013 prévoit 2h pour implémenter `GoogleVisionService` avec
-retry. C'est très optimiste : il faut un compte GCP, une clé API, la gestion de billing/quotas, le parsing de la réponse
-Vision API, et la transformation en suggestions d'items. On a déjà soulevé dans la contre-expertise de la bible (00) que
-l'OCR est un scope creep pour V1. La saisie manuelle + photo descriptive suffit amplement. Si maintenu malgré tout,
-prévoir au minimum 4-6h et un fallback propre en cas de dépassement de quota ou d'indisponibilité de l'API.
------Fin Contre Expertise--------
+> **Note** : R2 est configuré ici (just-in-time) plutot qu'au Sprint 0, car c'est le premier sprint qui en à besoin.
 
-### Phase 3.2 : Tests (TDD)
+### Phase 3.2 : TDD -- Item Service
 
-| ID           | Titre                                                                   | Dépendance | Critère de Fin      | Temps |
-|--------------|-------------------------------------------------------------------------|------------|---------------------|-------|
-| **ITEM-004** | TEST : `POST /items` (création manuelle success 201)                    | ITEM-003   | Test écrit (échoue) | 20min |
-| **ITEM-005** | TEST : `POST /items` (erreur 400 si category=MONEY sans estimatedValue) | ITEM-004   | Test écrit (échoue) | 15min |
-| **ITEM-006** | TEST : `GET /items` (liste paginée avec filtres category/available)     | ITEM-004   | Test écrit (échoue) | 25min |
-| **ITEM-007** | TEST : `POST /items/recognize` (OCR success 200 avec suggestions)       | ITEM-004   | Test écrit (échoue) | 30min |
-| **ITEM-008** | TEST : `POST /items/recognize` (erreur 503 si Google Vision down)       | ITEM-007   | Test écrit (échoue) | 15min |
-| **ITEM-009** | TEST : `POST /items/{id}/photos` (upload success 201)                   | ITEM-004   | Test écrit (échoue) | 25min |
-| **ITEM-010** | TEST : `DELETE /items/{id}` (erreur 409 si prêt en cours)               | ITEM-004   | Test écrit (échoue) | 15min |
+Cyclé TDD par comportement.
 
-### Phase 3.3 : Logique Métier
+**Comportement 1 : Création d'item**
 
-| ID           | Titre                                                                | Dépendance | Critère de Fin                        | Temps |
-|--------------|----------------------------------------------------------------------|------------|---------------------------------------|-------|
-| **ITEM-011** | Implémenter `ItemRepository` (interface + Prisma)                    | ITEM-003   | Interface créée                       | 45min |
-| **ITEM-012** | Implémenter `PhotoStorageService` (interface + R2 implementation)    | SETUP-009  | Upload/delete fonctionnel sur R2      | 2h    |
-| **ITEM-013** | Implémenter `GoogleVisionService` (reconnaissance d'objets via API)  | ITEM-003   | Appel API fonctionnel, retry si échec | 2h    |
-| **ITEM-014** | Implémenter `ItemService.create()` (validation category+value)       | ITEM-011   | Tests ITEM-004 et ITEM-005 passent ✅  | 1h    |
-| **ITEM-015** | Implémenter `ItemService.recognizeFromPhoto()` (appel Google Vision) | ITEM-013   | Tests ITEM-007 et ITEM-008 passent ✅  | 1h30  |
-| **ITEM-016** | Implémenter `ItemService.addPhotos()` (max 5 photos, upload R2)      | ITEM-012   | Test ITEM-009 passe ✅                 | 1h30  |
-| **ITEM-017** | Implémenter `ItemService.delete()` (vérifier absence de prêt actif)  | ITEM-011   | Test ITEM-010 passe ✅                 | 1h    |
+| ID           | Titre                                                                         | Dépendance | Critère de Fin                          | Temps |
+|--------------|-------------------------------------------------------------------------------|------------|-----------------------------------------|-------|
+| **ITEM-005** | RED : Test `POST /items` (création manuelle success 201)                      | ITEM-003   | Test écrit, échoue                      | 20min |
+| **ITEM-006** | RED : Test `POST /items` (erreur 400 si category=MONEY sans estimatedValue)   | ITEM-005   | Test écrit, échoue                      | 15min |
+| **ITEM-007** | GREEN : Implémenter `ItemService.create()` (validation category+value via Prisma) | ITEM-006 | Tests ITEM-005 et ITEM-006 passent     | 1h    |
 
-### Phase 3.4 : Endpoints API
+**Comportement 2 : Liste et consultation**
 
-| ID           | Titre                                               | Dépendance | Critère de Fin                               | Temps |
-|--------------|-----------------------------------------------------|------------|----------------------------------------------|-------|
-| **ITEM-018** | Créer `ItemsController` (CRUD + recognize + photos) | ITEM-017   | Tous les tests ITEM-004 à ITEM-010 passent ✅ | 2h    |
+| ID           | Titre                                                                           | Dépendance | Critère de Fin       | Temps |
+|--------------|---------------------------------------------------------------------------------|------------|----------------------|-------|
+| **ITEM-008** | RED : Test `GET /items` (liste paginée avec filtres category/available)          | ITEM-007   | Test écrit, échoue   | 25min |
+| **ITEM-009** | GREEN : Implémenter `ItemService.findAll()` (filtres + pagination via Prisma)   | ITEM-008   | Test ITEM-008 passe  | 1h    |
 
-**Livrable Sprint 3** : 🎉 **Frontend peut gérer les objets avec OCR et photos** (6 endpoints Items).
+**Comportement 3 : Upload photos**
+
+| ID           | Titre                                                                          | Dépendance | Critère de Fin       | Temps |
+|--------------|--------------------------------------------------------------------------------|------------|----------------------|-------|
+| **ITEM-010** | RED : Test `POST /items/{id}/photos` (upload success 201)                      | ITEM-009   | Test écrit, échoue   | 25min |
+| **ITEM-011** | GREEN : Implémenter `PhotoStorageService` (interface + R2 implémentation)      | ITEM-004   | Upload/delete fonctionnel sur R2 | 2h |
+| **ITEM-012** | GREEN : Implémenter `ItemService.addPhotos()` (max 5 photos, upload R2)       | ITEM-011   | Test ITEM-010 passe  | 1h30  |
+
+**Comportement 4 : Suppression**
+
+| ID           | Titre                                                                           | Dépendance | Critère de Fin       | Temps |
+|--------------|---------------------------------------------------------------------------------|------------|----------------------|-------|
+| **ITEM-013** | RED : Test `DELETE /items/{id}` (erreur 409 si prêt en cours)                   | ITEM-012   | Test écrit, échoue   | 15min |
+| **ITEM-014** | GREEN : Implémenter `ItemService.delete()` (vérifiér absence de prêt actif via Prisma) | ITEM-013 | Test ITEM-013 passe | 1h |
+
+### Phase 3.3 : Endpoints API
+
+| ID           | Titre                                        | Dépendance | Critère de Fin                               | Temps |
+|--------------|----------------------------------------------|------------|----------------------------------------------|-------|
+| **ITEM-015** | Créer `ItemsController` (CRUD + photos)      | ITEM-014   | Tous les tests ITEM-005 à ITEM-013 passent   | 2h    |
+
+🏁 **Livrable Sprint 3** : **Frontend peut gérer les objets avec photos** (5 endpoints Items).
 
 ---
 
-## Sprint 4 : Module Loans (Cœur Métier) (7 jours)
+## Sprint 4 : Module Loans (Coeur Métier) (7 jours)
 
-### 🎯 Objectif
+### Objectif
 
-Gestion complète du cycle de vie des prêts (7 statuts, workflow de confirmation, clôture).
+Gestion complète du cyclé de vie des prêts (7 statuts, workflow de confirmation, clôture).
+
+### Phase 4.0 : Setup BullMQ
+
+| ID           | Titre                                                                    | Dépendance | Critère de Fin                           | Temps |
+|--------------|--------------------------------------------------------------------------|------------|------------------------------------------|-------|
+| **LOAN-001** | Configurer BullMQ (file de jobs asynchrones sur Redis existant)          | AUTH-014   | Redis connecte, queue créée, job de test exécuté | 1h |
+
+> **Note** : Redis est déjà installe depuis le Sprint 1 (AUTH-014) pour le JWT blacklist. Ici on ajouté BullMQ pour les
+> jobs asynchrones (CRON timeout 48h, futur scheduling de rappels).
 
 ### Phase 4.1 : Base de Données
 
 | ID           | Titre                                                                                                                                 | Dépendance                   | Critère de Fin                | Temps |
 |--------------|---------------------------------------------------------------------------------------------------------------------------------------|------------------------------|-------------------------------|-------|
-| **LOAN-001** | Créer le schema Prisma `Loan` (itemId FK, lenderId FK, borrowerId FK, status enum, returnDate, confirmationDate, returnedDate, notes) | ITEM-001, AUTH-001, BORR-001 | Migration appliquée           | 1h    |
-| **LOAN-002** | Ajouter index composé `loans(userId, status)` pour filtrage rapide                                                                    | LOAN-001                     | Index créé                    | 15min |
-| **LOAN-003** | Ajouter contrainte CHECK `returnDate > createdAt`                                                                                     | LOAN-001                     | Contrainte PostgreSQL ajoutée | 20min |
+| **LOAN-002** | Créer le schema Prisma `Loan` (itemId FK, lenderId FK, borrowerId FK, status enum, returnDate, confirmationDate, returnedDate, notes) | ITEM-001, AUTH-001, BORR-001 | Migration appliquée           | 1h    |
+| **LOAN-003** | Ajouter index compose `loans(userId, status)` pour filtrage rapide                                                                    | LOAN-002                     | Index créé                    | 15min |
+| **LOAN-004** | Ajouter contrainte CHECK `returnDate > createdAt`                                                                                     | LOAN-002                     | Contrainte PostgreSQL ajoutée | 20min |
 
-### Phase 4.2 : Tests (TDD) - Création
+### Phase 4.2 : TDD -- Création de pret
 
-| ID           | Titre                                                                | Dépendance | Critère de Fin      | Temps |
-|--------------|----------------------------------------------------------------------|------------|---------------------|-------|
-| **LOAN-004** | TEST : `POST /loans` (success 201, status=PENDING_CONFIRMATION)      | LOAN-003   | Test écrit (échoue) | 30min |
-| **LOAN-005** | TEST : `POST /loans` (erreur 400 si returnDate < today)              | LOAN-004   | Test écrit (échoue) | 15min |
-| **LOAN-006** | TEST : `POST /loans` (créer item+borrower inline si UUID non fourni) | LOAN-004   | Test écrit (échoue) | 25min |
+Cyclé TDD par comportement.
 
------Contre Expertise--------
-**LOAN-006 : création inline item+borrower = God-endpoint** : Cet endpoint créerait potentiellement 3 entités (Loan +
-Item + Borrower) dans une seule requête. Cela viole le SRP prôné en 02_NORMES, complexifie la gestion d'erreur (que
-faire si l'item est créé mais le loan échoue ? Rollback ?), et crée une transaction lourde. Recommandation : le frontend
-crée l'item et le borrower d'abord via les endpoints dédiés (Sprint 2-3), puis passe les UUIDs au `POST /loans`. Un
-endpoint = une responsabilité.
------Fin Contre Expertise--------
-| **LOAN-007** | TEST : `GET /loans` (liste paginée avec filtres status/borrowerId) | LOAN-004 | Test écrit (échoue) |
-25min |
-| **LOAN-008** | TEST : `GET /loans/{id}` (success 200 avec relations item+borrower) | LOAN-004 | Test écrit (échoue) |
-20min |
+**Comportement 1 : Créer un pret**
 
-### Phase 4.3 : Tests (TDD) - Workflow de Statut
+| ID           | Titre                                                                                        | Dépendance | Critère de Fin                          | Temps |
+|--------------|----------------------------------------------------------------------------------------------|------------|-----------------------------------------|-------|
+| **LOAN-005** | RED : Test `POST /loans` (success 201, status=PENDING_CONFIRMATION)                          | LOAN-004   | Test écrit, échoue                      | 30min |
+| **LOAN-006** | RED : Test `POST /loans` (erreur 400 si returnDate < today)                                  | LOAN-005   | Test écrit, échoue                      | 15min |
+| **LOAN-007** | GREEN : Implémenter `LoanFactory.toCreateInput()` (validation business rules)                | LOAN-004   | Pattern Factory appliqué                | 1h30  |
+| **LOAN-008** | GREEN : Implémenter `LoanService.create()` (appel Factory + EventBus LOAN_CREATED via Prisma) | LOAN-007  | Tests LOAN-005 et LOAN-006 passent      | 2h    |
 
-| ID           | Titre                                                                               | Dépendance | Critère de Fin      | Temps |
-|--------------|-------------------------------------------------------------------------------------|------------|---------------------|-------|
-| **LOAN-009** | TEST : `POST /loans/{id}/confirm` (PENDING_CONFIRMATION → ACTIVE)                   | LOAN-004   | Test écrit (échoue) | 20min |
-| **LOAN-010** | TEST : `POST /loans/{id}/contest` (PENDING_CONFIRMATION → CONTESTED)                | LOAN-004   | Test écrit (échoue) | 20min |
-| **LOAN-011** | TEST : Timeout auto 48h (PENDING_CONFIRMATION → ACTIVE_BY_DEFAULT via CRON)         | LOAN-004   | Test écrit (échoue) | 30min |
-| **LOAN-012** | TEST : `PATCH /loans/{id}/status` (ACTIVE → AWAITING_RETURN si returnDate dépassée) | LOAN-004   | Test écrit (échoue) | 20min |
-| **LOAN-013** | TEST : `PATCH /loans/{id}/status` (AWAITING_RETURN → RETURNED)                      | LOAN-004   | Test écrit (échoue) | 20min |
-| **LOAN-014** | TEST : `PATCH /loans/{id}/status` (AWAITING_RETURN → NOT_RETURNED après 3 rappels)  | LOAN-004   | Test écrit (échoue) | 25min |
-| **LOAN-015** | TEST : Transition invalide retourne 400 (ex: CONTESTED → ACTIVE)                    | LOAN-004   | Test écrit (échoue) | 20min |
+> **Note** : Le frontend créé l'item et le borrower d'abord via les endpoints dédiés (Sprint 2-3), puis passe les UUIDs
+> au `POST /loans`. Un endpoint = une responsabilite (SRP).
 
------Contre Expertise--------
-**LOAN-014 : transition dépendante des rappels = couplage inter-modules** : La transition "AWAITING_RETURN →
-NOT_RETURNED après 3 rappels" signifie que le module Loan doit **connaître** le nombre de rappels envoyés pour décider
-d'une transition. C'est un couplage fort entre Loan et Reminder, en contradiction directe avec le pattern
-Observer/EventBus qui prône le découplage inter-modules. La transition devrait être déclenchée par un événement du
-module Reminder (`AllRemindersExhaustedEvent`) que le module Loan écoute, sans que Loan sache combien de rappels il y a
-eu.
+**Comportement 2 : Lister et consulter**
 
-**LOAN-011 : timeout 48h d'auto-confirmation** : On a déjà signalé dans la contre-expertise de la bible (00) que le
-consentement implicite après 48h est juridiquement questionnable. La roadmap l'implémente sans réserve. À minima,
-prévoir un flag de configuration pour activer/désactiver ce comportement.
------Fin Contre Expertise--------
+| ID           | Titre                                                                            | Dépendance | Critère de Fin         | Temps |
+|--------------|----------------------------------------------------------------------------------|------------|------------------------|-------|
+| **LOAN-009** | RED : Test `GET /loans` (liste paginée avec filtres status/borrowerId)            | LOAN-008   | Test écrit, échoue     | 25min |
+| **LOAN-010** | GREEN : Implémenter `LoanService.findAll()` (filtres + pagination via Prisma)    | LOAN-009   | Test LOAN-009 passe    | 1h    |
+| **LOAN-011** | RED : Test `GET /loans/{id}` (success 200 avec relations item+borrower)           | LOAN-010   | Test écrit, échoue     | 20min |
+| **LOAN-012** | GREEN : Implémenter `LoanService.findById()` (avec relations via Prisma)         | LOAN-011   | Test LOAN-011 passe    | 45min |
 
-### Phase 4.4 : Logique Métier - Factory + Service
+### Phase 4.3 : TDD -- Workflow de Statut
 
-| ID           | Titre                                                                      | Dépendance | Critère de Fin                      | Temps |
-|--------------|----------------------------------------------------------------------------|------------|-------------------------------------|-------|
-| **LOAN-016** | Implémenter `LoanRepository` (interface + Prisma)                          | LOAN-003   | Interface créée                     | 45min |
-| **LOAN-017** | Implémenter `LoanFactory.create()` (validation business rules)             | LOAN-016   | Pattern Factory appliqué            | 1h30  |
-| **LOAN-018** | Implémenter `LoanService.create()` (appel Factory + EventBus LOAN_CREATED) | LOAN-017   | Tests LOAN-004 à LOAN-006 passent ✅ | 2h    |
-| **LOAN-019** | Implémenter `LoanService.findAll()` (filtres + pagination)                 | LOAN-016   | Test LOAN-007 passe ✅               | 1h    |
-| **LOAN-020** | Implémenter `LoanService.findById()` (avec relations)                      | LOAN-016   | Test LOAN-008 passe ✅               | 45min |
+**Comportement 3 : Confirmation / Contestation**
 
-### Phase 4.5 : Logique Métier - Workflow de Statut
+| ID           | Titre                                                                                     | Dépendance | Critère de Fin          | Temps |
+|--------------|-------------------------------------------------------------------------------------------|------------|-------------------------|-------|
+| **LOAN-013** | RED : Test `POST /loans/{id}/confirm` (PENDING_CONFIRMATION -> ACTIVE)                    | LOAN-012   | Test écrit, échoue      | 20min |
+| **LOAN-014** | RED : Test `POST /loans/{id}/contest` (PENDING_CONFIRMATION -> DISPUTED)                  | LOAN-013   | Test écrit, échoue      | 20min |
+| **LOAN-015** | GREEN : Implémenter `LoanStatusMachine` (validateur de transitions)                       | LOAN-004   | Machine à états créée   | 2h    |
+| **LOAN-016** | GREEN : Implémenter `LoanService.confirm()` et `LoanService.contest()`                   | LOAN-015   | Tests LOAN-013 et LOAN-014 passent | 1h30 |
 
-| ID           | Titre                                                                     | Dépendance          | Critère de Fin                      | Temps |
-|--------------|---------------------------------------------------------------------------|---------------------|-------------------------------------|-------|
-| **LOAN-021** | Implémenter `LoanStatusMachine` (validateur de transitions)               | LOAN-016            | Machine à états créée               | 2h    |
-| **LOAN-022** | Implémenter `LoanService.confirm()` (changement PENDING → ACTIVE)         | LOAN-021            | Test LOAN-009 passe ✅               | 1h    |
-| **LOAN-023** | Implémenter `LoanService.contest()` (changement PENDING → CONTESTED)      | LOAN-021            | Test LOAN-010 passe ✅               | 1h    |
-| **LOAN-024** | Implémenter `LoanService.updateStatus()` (validation via StatusMachine)   | LOAN-021            | Tests LOAN-012 à LOAN-015 passent ✅ | 2h    |
-| **LOAN-025** | Implémenter CRON Job timeout 48h (PENDING → ACTIVE_BY_DEFAULT via BullMQ) | LOAN-021, SETUP-008 | Test LOAN-011 passe ✅               | 2h    |
+**Comportement 4 : Transitions de statut**
 
-### Phase 4.6 : Endpoints API
+| ID           | Titre                                                                                         | Dépendance | Critère de Fin          | Temps |
+|--------------|-----------------------------------------------------------------------------------------------|------------|-------------------------|-------|
+| **LOAN-017** | RED : Test ACTIVE -> AWAITING_RETURN si returnDate dépassée                                   | LOAN-016   | Test écrit, échoue      | 20min |
+| **LOAN-018** | RED : Test AWAITING_RETURN -> RETURNED                                                        | LOAN-017   | Test écrit, échoue      | 20min |
+| **LOAN-019** | RED : Test AWAITING_RETURN -> ABANDONED après 5 rappels (via AllRemindersExhaustedEvent)       | LOAN-018   | Test écrit, échoue      | 25min |
+| **LOAN-020** | RED : Test transition invalidé retourné 400 (ex: DISPUTED -> ACTIVE)                          | LOAN-019   | Test écrit, échoue      | 20min |
+| **LOAN-021** | GREEN : Implémenter `LoanService.updateStatus()` (validation via StatusMachine)               | LOAN-020   | Tests LOAN-017 à LOAN-020 passent | 2h |
 
-| ID           | Titre                                                             | Dépendance | Critère de Fin                      | Temps |
-|--------------|-------------------------------------------------------------------|------------|-------------------------------------|-------|
-| **LOAN-026** | Créer `LoansController.create()` (POST /loans)                    | LOAN-018   | Tests LOAN-004 à LOAN-006 passent ✅ | 1h    |
-| **LOAN-027** | Créer `LoansController.findAll()` (GET /loans)                    | LOAN-019   | Test LOAN-007 passe ✅               | 45min |
-| **LOAN-028** | Créer `LoansController.findOne()` (GET /loans/{id})               | LOAN-020   | Test LOAN-008 passe ✅               | 30min |
-| **LOAN-029** | Créer `LoansController.confirm()` (POST /loans/{id}/confirm)      | LOAN-022   | Test LOAN-009 passe ✅               | 30min |
-| **LOAN-030** | Créer `LoansController.contest()` (POST /loans/{id}/contest)      | LOAN-023   | Test LOAN-010 passe ✅               | 30min |
-| **LOAN-031** | Créer `LoansController.updateStatus()` (PATCH /loans/{id}/status) | LOAN-024   | Tests LOAN-012 à LOAN-015 passent ✅ | 1h    |
+> **Note sur LOAN-019** : La transition AWAITING_RETURN -> ABANDONED est déclenchée par un événement
+> `AllRemindersExhaustedEvent` emis par le module Reminder (Sprint 5). Le module Loan écoute cet événement via
+> `@OnEvent` -- il ne connait pas le nombre de rappels (découplage inter-modules). Le test mocke cet événement.
 
-**Livrable Sprint 4** : 🎉 **Frontend peut créer et suivre des prêts (workflow complet)** (7 endpoints Loans).
+**Comportement 5 : Timeout 48h auto-confirmation**
+
+| ID           | Titre                                                                                         | Dépendance        | Critère de Fin     | Temps |
+|--------------|-----------------------------------------------------------------------------------------------|-------------------|--------------------|-------|
+| **LOAN-022** | RED : Test timeout auto 48h (PENDING_CONFIRMATION -> ACTIVE_BY_DEFAULT via CRON)              | LOAN-021          | Test écrit, échoue | 30min |
+| **LOAN-023** | GREEN : Implémenter CRON Job timeout 48h (PENDING -> ACTIVE_BY_DEFAULT via BullMQ)            | LOAN-022, LOAN-001 | Test LOAN-022 passe | 2h   |
+
+### Phase 4.4 : Endpoints API
+
+| ID           | Titre                                                             | Dépendance | Critère de Fin                          | Temps |
+|--------------|-------------------------------------------------------------------|------------|-----------------------------------------|-------|
+| **LOAN-024** | Créer `LoansController.create()` (POST /loans)                    | LOAN-008   | Tests LOAN-005 et LOAN-006 passent      | 1h    |
+| **LOAN-025** | Créer `LoansController.findAll()` (GET /loans)                    | LOAN-010   | Test LOAN-009 passe                     | 45min |
+| **LOAN-026** | Créer `LoansController.findOne()` (GET /loans/{id})               | LOAN-012   | Test LOAN-011 passe                     | 30min |
+| **LOAN-027** | Créer `LoansController.confirm()` (POST /loans/{id}/confirm)      | LOAN-016   | Test LOAN-013 passe                     | 30min |
+| **LOAN-028** | Créer `LoansController.contest()` (POST /loans/{id}/contest)      | LOAN-016   | Test LOAN-014 passe                     | 30min |
+| **LOAN-029** | Créer `LoansController.updateStatus()` (PATCH /loans/{id}/status) | LOAN-021   | Tests LOAN-017 à LOAN-020 passent       | 1h    |
+
+🏁 **Livrable Sprint 4** : **Frontend peut créer et suivre des prêts (workflow complet)** (6 endpoints Loans).
 
 ---
 
 ## Sprint 5 : Module Reminders + Notifications (5 jours)
 
-### 🎯 Objectif
+### Objectif
 
-Système de rappels automatiques + Notifications push.
+Système de rappels 100% automatiques + Notifications push. **Pas de rappels manuels** -- les rappels sont
+exclusivement geres par le système selon la politique fixe.
+
+### Phase 5.0 : Setup FCM
+
+| ID          | Titre                                                                                      | Dépendance | Critère de Fin                              | Temps |
+|-------------|--------------------------------------------------------------------------------------------|------------|---------------------------------------------|-------|
+| **REM-001** | Configurer Firebasé SDK (projet Firebase, service account, google-services.json, test push) | SETUP-001  | Notification push de test reçue sur device   | 2h    |
 
 ### Phase 5.1 : Base de Données
 
 | ID          | Titre                                                                                                              | Dépendance | Critère de Fin      | Temps |
 |-------------|--------------------------------------------------------------------------------------------------------------------|------------|---------------------|-------|
-| **REM-001** | Créer le schema Prisma `Reminder` (loanId FK, type enum, status enum, scheduledFor, sentAt, message, channel enum) | LOAN-001   | Migration appliquée | 45min |
-| **REM-002** | Créer le schema Prisma `Notification` (userId FK, type enum, title, body, isRead, relatedLoanId FK)                | AUTH-001   | Migration appliquée | 30min |
-| **REM-003** | Ajouter index sur `reminders(loanId, status)` et `notifications(userId, isRead)`                                   | REM-002    | Index créés         | 15min |
+| **REM-002** | Créer le schema Prisma `Reminder` (loanId FK, type enum, status enum, scheduledFor, sentAt, message, channel enum) | LOAN-002   | Migration appliquée | 45min |
+| **REM-003** | Créer le schema Prisma `Notification` (userId FK, type enum, title, body, isRead, relatedLoanId FK)                | AUTH-001   | Migration appliquée | 30min |
+| **REM-004** | Ajouter index sur `reminders(loanId, status)` et `notifications(userId, isRead)`                                   | REM-003    | Index créés         | 15min |
 
-### Phase 5.2 : Tests (TDD)
+### Phase 5.2 : TDD -- Reminder Service
 
-| ID          | Titre                                                                                          | Dépendance | Critère de Fin      | Temps |
-|-------------|------------------------------------------------------------------------------------------------|------------|---------------------|-------|
-| **REM-004** | TEST : Création automatique de 5 rappels (PREVENTIVE, ON_DUE_DATE, 3x OVERDUE) quand prêt créé | REM-003    | Test écrit (échoue) | 30min |
+Cyclé TDD par comportement.
 
------Contre Expertise--------
-**Nombre de rappels incohérent entre les documents** : REM-004 mentionne "5 rappels (PREVENTIVE, ON_DUE_DATE, 3x
-OVERDUE)", mais la bible projet (00) décrit 4 rappels (J-3, J+3, J+10, J+17) sans "ON_DUE_DATE" le jour J. L'OpenAPI
-spec (`openapi.yaml`) peut encore avoir un schéma différent. Il faut aligner **toutes** les sources sur un nombre et un
-calendrier unique de rappels. C'est une donnée métier fondamentale qui ne peut pas varier d'un document à l'autre.
------Fin Contre Expertise--------
-| **REM-005** | TEST : `POST /loans/{id}/reminders/manual` (envoi manuel success 201) | REM-003 | Test écrit (échoue) |
-20min |
-| **REM-006** | TEST : `POST /loans/{id}/reminders/manual` (erreur 429 si > 10/heure) | REM-005 | Test écrit (échoue) |
-20min |
-| **REM-007** | TEST : `POST /reminders/{id}/cancel` (annulation success 204) | REM-005 | Test écrit (échoue) | 15min |
-| **REM-008** | TEST : Envoi automatique de rappel via CRON (status SCHEDULED → SENT) | REM-003 | Test écrit (échoue) |
-30min |
-| **REM-009** | TEST : `GET /notifications` (liste paginée avec filtre unreadOnly) | REM-003 | Test écrit (échoue) |
-20min |
-| **REM-010** | TEST : `PATCH /notifications/{id}/read` (marquer comme lu success 200) | REM-009 | Test écrit (échoue) |
-15min |
+**Comportement 1 : Planification automatique des rappels**
 
-### Phase 5.3 : Logique Métier
+| ID          | Titre                                                                                                                | Dépendance        | Critère de Fin                     | Temps |
+|-------------|----------------------------------------------------------------------------------------------------------------------|-------------------|------------------------------------|-------|
+| **REM-005** | RED : Test création automatique de 5 rappels (PREVENTIVE J-3, ON_DUE_DATE J, FIRST_OVERDUE J+7, SECOND_OVERDUE J+14, FINAL_OVERDUE J+21) quand prêt créé | REM-004 | Test écrit, échoue | 30min |
+| **REM-006** | GREEN : Implémenter `ReminderPolicy.calculateDates()` (politique fixe : J-3, J, J+7, J+14, J+21) | REM-005 | Politique de calcul fonctionnelle | 1h |
+| **REM-007** | GREEN : Implémenter `ReminderService.scheduleReminders()` (création automatique via Prisma + BullMQ) | REM-006 | Test REM-005 passe | 2h |
+| **REM-008** | GREEN : Écouter événement `LOAN_CREATED` (EventBus) pour déclenchér `scheduleReminders()` | REM-007, LOAN-008 | Pattern Observer appliqué | 1h |
 
-| ID          | Titre                                                                             | Dépendance        | Critère de Fin                     | Temps |
-|-------------|-----------------------------------------------------------------------------------|-------------------|------------------------------------|-------|
-| **REM-011** | Implémenter `ReminderRepository` (interface + Prisma)                             | REM-003           | Interface créée                    | 45min |
-| **REM-012** | Implémenter `NotificationRepository` (interface + Prisma)                         | REM-003           | Interface créée                    | 30min |
-| **REM-013** | Implémenter `ReminderStrategy` (calcul dates de rappel selon type)                | REM-011           | Pattern Strategy appliqué          | 2h    |
-| **REM-014** | Implémenter `ReminderService.scheduleReminders()` (création automatique)          | REM-013           | Test REM-004 passe ✅               | 2h    |
-| **REM-015** | Écouter événement `LOAN_CREATED` (EventBus) pour déclencher `scheduleReminders()` | REM-014, LOAN-018 | Pattern Observer appliqué          | 1h    |
-| **REM-016** | Implémenter `ReminderService.sendManual()` (rate limiting 10/heure)               | REM-011           | Tests REM-005 et REM-006 passent ✅ | 1h30  |
-| **REM-017** | Implémenter `ReminderService.cancel()`                                            | REM-011           | Test REM-007 passe ✅               | 45min |
-| **REM-018** | Implémenter CRON Job `sendScheduledReminders()` (BullMQ chaque heure)             | REM-011           | Test REM-008 passe ✅               | 2h    |
-| **REM-019** | Implémenter `NotificationService.send()` (push FCM + création en DB)              | REM-012           | Notification créée en DB           | 2h    |
+**Comportement 2 : Envoi automatique des rappels**
 
------Contre Expertise--------
-**FCM (Firebase) : absent du Sprint 0** : REM-019 implémente les push notifications via FCM, mais le SDK Firebase, le
-service account, et les credentials ne sont configurés nulle part dans le Sprint 0 (ni ailleurs). FCM nécessite un
-projet Firebase, un fichier `google-services.json`, la configuration côté mobile, et un test d'envoi. Ajouter une tâche
-SETUP dédiée, soit au Sprint 0 soit en début de Sprint 5.
+| ID          | Titre                                                                                      | Dépendance | Critère de Fin       | Temps |
+|-------------|--------------------------------------------------------------------------------------------|------------|----------------------|-------|
+| **REM-009** | RED : Test envoi automatique de rappel via CRON (status SCHEDULED -> SENT)                 | REM-008    | Test écrit, échoue   | 30min |
+| **REM-010** | GREEN : Implémenter CRON Job `sendScheduledReminders()` (BullMQ chaque heure)              | REM-009    | Test REM-009 passe   | 2h    |
+| **REM-011** | GREEN : Implémenter `NotificationService.send()` (push FCM + création en DB via Prisma)    | REM-001    | Notification créée en DB + push envoye | 2h |
 
-**REM-013 : ReminderStrategy** : On a déjà soulevé en 02_NORMES que le Strategy Pattern est sur-ingénieré pour V1 (une
-seule politique de rappel fixe). Ici, 2h sont allouées à l'implémenter. Un simple service avec la logique en dur suffit,
-refactorer en Strategy quand un deuxième algorithme sera nécessaire.
------Fin Contre Expertise--------
+**Comportement 3 : Epuisement des rappels et abandon**
 
-### Phase 5.4 : Endpoints API
+| ID          | Titre                                                                                      | Dépendance | Critère de Fin       | Temps |
+|-------------|--------------------------------------------------------------------------------------------|------------|----------------------|-------|
+| **REM-012** | RED : Test emission `AllRemindersExhaustedEvent` après le 5e rappel envoye (FINAL_OVERDUE) | REM-010    | Test écrit, échoue   | 25min |
+| **REM-013** | GREEN : Implémenter emission `AllRemindersExhaustedEvent` dans le CRON d'envoi             | REM-012    | Test REM-012 passe   | 1h    |
 
-| ID          | Titre                                                                         | Dépendance | Critère de Fin                     | Temps |
-|-------------|-------------------------------------------------------------------------------|------------|------------------------------------|-------|
-| **REM-020** | Créer `RemindersController.sendManual()` (POST /loans/{id}/reminders/manual)  | REM-016    | Tests REM-005 et REM-006 passent ✅ | 45min |
-| **REM-021** | Créer `RemindersController.cancel()` (POST /reminders/{id}/cancel)            | REM-017    | Test REM-007 passe ✅               | 30min |
-| **REM-022** | Créer `NotificationsController.findAll()` (GET /notifications)                | REM-019    | Test REM-009 passe ✅               | 45min |
-| **REM-023** | Créer `NotificationsController.markAsRead()` (PATCH /notifications/{id}/read) | REM-019    | Test REM-010 passe ✅               | 30min |
+> **Note** : L'événement `AllRemindersExhaustedEvent` est emis par le module Reminder après l'envoi du 5e rappel
+> (FINAL_OVERDUE). Le module Loan écoute cet événement (via `@OnEvent`) pour passer le prêt en statut ABANDONED.
+> Le module Reminder ne connait pas les statuts de prêt -- découplage strict.
 
-**Livrable Sprint 5** : 🎉 **Frontend reçoit des notifications et peut envoyer des rappels manuels** (4 endpoints
-Reminders + 2 endpoints Notifications).
+**Comportement 4 : Consultation des notifications**
+
+| ID          | Titre                                                                        | Dépendance | Critère de Fin       | Temps |
+|-------------|------------------------------------------------------------------------------|------------|----------------------|-------|
+| **REM-014** | RED : Test `GET /notifications` (liste paginée avec filtre unreadOnly)       | REM-011    | Test écrit, échoue   | 20min |
+| **REM-015** | GREEN : Implémenter `NotificationService.findAll()` (pagination via Prisma)  | REM-014    | Test REM-014 passe   | 1h    |
+| **REM-016** | RED : Test `PATCH /notifications/{id}/read` (marquer comme lu success 200)   | REM-015    | Test écrit, échoue   | 15min |
+| **REM-017** | GREEN : Implémenter `NotificationService.markAsRead()` (via Prisma)          | REM-016    | Test REM-016 passe   | 30min |
+
+### Phase 5.3 : Endpoints API
+
+| ID          | Titre                                                                         | Dépendance | Critère de Fin          | Temps |
+|-------------|-------------------------------------------------------------------------------|------------|-------------------------|-------|
+| **REM-018** | Créer `NotificationsController.findAll()` (GET /notifications)                | REM-015    | Test REM-014 passe      | 45min |
+| **REM-019** | Créer `NotificationsController.markAsRead()` (PATCH /notifications/{id}/read) | REM-017    | Test REM-016 passe      | 30min |
+
+🏁 **Livrable Sprint 5** : **Frontend reçoit des notifications push automatiques** (2 endpoints Notifications + système de rappels automatique en arriere-plan).
 
 ---
 
-## Sprint 6 : Module History + Finalisation (3 jours)
+## Sprint 6 : Module History + Finalisation (3-4 jours)
 
-### 🎯 Objectif
+### Objectif
 
-Statistiques + Historique archivé + Tests E2E complets.
+Statistiques + Historique archivé + Tests E2E complets + Seed de données pour le frontend.
 
 ### Phase 6.1 : Base de Données
 
 | ID           | Titre                                                                      | Dépendance | Critère de Fin | Temps |
 |--------------|----------------------------------------------------------------------------|------------|----------------|-------|
-| **HIST-001** | Ajouter index composé `loans(userId, status, returnedDate)` pour analytics | LOAN-001   | Index créé     | 15min |
+| **HIST-001** | Ajouter index compose `loans(userId, status, returnedDate)` pour analytics | LOAN-002   | Index créé     | 15min |
 
-### Phase 6.2 : Tests (TDD)
+### Phase 6.2 : TDD -- History Service
 
-| ID           | Titre                                                                                     | Dépendance | Critère de Fin      | Temps |
-|--------------|-------------------------------------------------------------------------------------------|------------|---------------------|-------|
-| **HIST-002** | TEST : `GET /history/loans` (filtre status RETURNED/NOT_RETURNED)                         | HIST-001   | Test écrit (échoue) | 20min |
-| **HIST-003** | TEST : `GET /history/statistics` (overview + byCategory + topBorrowers + mostLoanedItems) | HIST-001   | Test écrit (échoue) | 30min |
-| **HIST-004** | TEST : `GET /borrowers/{id}/statistics` (trustScore calculation)                          | BORR-001   | Test écrit (échoue) | 25min |
+Cyclé TDD par comportement.
 
------Contre Expertise--------
-**trustScore sans règles métier définies** : HIST-004 et HIST-007 implémentent un "trustScore" pour les emprunteurs,
-mais **aucun document** (bible, architecture, OpenAPI) ne définit la formule de calcul. Taux de retour à l'heure ?
-Pondération par ancienneté ? Pénalité par jour de retard ? Score sur 100 ou sur 5 ? Sans spécification métier précise,
-le développeur inventera un algorithme arbitraire qui devra être retravaillé.
------Fin Contre Expertise--------
+**Comportement 1 : Historique des prêts**
 
-### Phase 6.3 : Logique Métier
+| ID           | Titre                                                                                     | Dépendance | Critère de Fin         | Temps |
+|--------------|-------------------------------------------------------------------------------------------|------------|------------------------|-------|
+| **HIST-002** | RED : Test `GET /history/loans` (filtre status RETURNED/ABANDONED)                        | HIST-001   | Test écrit, échoue     | 20min |
+| **HIST-003** | GREEN : Implémenter `HistoryService.getArchivedLoans()` (filtres date + status via Prisma) | HIST-002  | Test HIST-002 passe    | 1h30  |
 
-| ID           | Titre                                                                   | Dépendance | Critère de Fin        | Temps |
-|--------------|-------------------------------------------------------------------------|------------|-----------------------|-------|
-| **HIST-005** | Implémenter `HistoryService.getArchivedLoans()` (filtres date + status) | LOAN-016   | Test HIST-002 passe ✅ | 1h30  |
-| **HIST-006** | Implémenter `HistoryService.getStatistics()` (agrégations Prisma)       | LOAN-016   | Test HIST-003 passe ✅ | 2h    |
-| **HIST-007** | Implémenter `BorrowerService.getStatistics()` (calcul trustScore)       | BORR-010   | Test HIST-004 passe ✅ | 1h30  |
+**Comportement 2 : Statistiques**
 
-### Phase 6.4 : Endpoints API
+| ID           | Titre                                                                                     | Dépendance | Critère de Fin         | Temps |
+|--------------|-------------------------------------------------------------------------------------------|------------|------------------------|-------|
+| **HIST-004** | RED : Test `GET /history/statistics` (overview + byCategory + topBorrowers + mostLoanedItems) | HIST-003 | Test écrit, échoue    | 30min |
+| **HIST-005** | GREEN : Implémenter `HistoryService.getStatistics()` (agregations Prisma)                 | HIST-004   | Test HIST-004 passe    | 2h    |
 
-| ID           | Titre                                                                                   | Dépendance | Critère de Fin        | Temps |
-|--------------|-----------------------------------------------------------------------------------------|------------|-----------------------|-------|
-| **HIST-008** | Créer `HistoryController.getLoans()` (GET /history/loans)                               | HIST-005   | Test HIST-002 passe ✅ | 45min |
-| **HIST-009** | Créer `HistoryController.getStatistics()` (GET /history/statistics)                     | HIST-006   | Test HIST-003 passe ✅ | 45min |
-| **HIST-010** | Ajouter endpoint `BorrowersController.getStatistics()` (GET /borrowers/{id}/statistics) | HIST-007   | Test HIST-004 passe ✅ | 30min |
+**Comportement 3 : Trust Score emprunteur**
 
-### Phase 6.5 : Tests E2E + Documentation
+> **Definition du trustScore** : Ratio simple `(prêts retournés / total de prêts terminés) * 100` exprime en
+> pourcentage. Un emprunteur sans prêt terminé à un score de `null` (non calculable). Pas d'algorithme
+> complexe en V1 -- on pourra ponderer par anciennete ou délai en V2+.
 
-| ID          | Titre                                                                                      | Dépendance | Critère de Fin                        | Temps |
-|-------------|--------------------------------------------------------------------------------------------|------------|---------------------------------------|-------|
-| **E2E-001** | Écrire test E2E : Flow complet (register → create loan → confirm → send reminder → return) | HIST-010   | Test E2E passe ✅                      | 2h    |
-| **E2E-002** | Vérifier couverture de code (Domain 100%, Services 90%, Repositories 80%, Controllers 70%) | E2E-001    | Seuils respectés                      | 1h    |
-| **E2E-003** | Générer documentation OpenAPI automatique (Swagger UI accessible sur /api/docs)            | HIST-010   | Swagger UI affiche tous les endpoints | 1h    |
-| **E2E-004** | Publier contrat Pact pour tests de contrat Frontend                                        | E2E-003    | Fichier .pact publié sur Pact Broker  | 30min |
+| ID           | Titre                                                                              | Dépendance | Critère de Fin         | Temps |
+|--------------|------------------------------------------------------------------------------------|------------|------------------------|-------|
+| **HIST-006** | RED : Test `GET /borrowers/{id}/statistics` (trustScore = returned/total * 100)    | BORR-002   | Test écrit, échoue     | 25min |
+| **HIST-007** | GREEN : Implémenter `BorrowerService.getStatistics()` (calcul trustScore via Prisma) | HIST-006 | Test HIST-006 passe    | 1h30  |
 
-**Livrable Sprint 6** : 🚀 **Backend complet avec 100% de couverture de tests + Documentation Swagger**.
+### Phase 6.3 : Endpoints API
+
+| ID           | Titre                                                                                   | Dépendance | Critère de Fin         | Temps |
+|--------------|-----------------------------------------------------------------------------------------|------------|------------------------|-------|
+| **HIST-008** | Créer `HistoryController.getLoans()` (GET /history/loans)                               | HIST-003   | Test HIST-002 passe    | 45min |
+| **HIST-009** | Créer `HistoryController.getStatistics()` (GET /history/statistics)                     | HIST-005   | Test HIST-004 passe    | 45min |
+| **HIST-010** | Ajouter endpoint `BorrowersController.getStatistics()` (GET /borrowers/{id}/statistics) | HIST-007   | Test HIST-006 passe    | 30min |
+
+### Phase 6.4 : Tests E2E + Finalisation
+
+| ID          | Titre                                                                                         | Dépendance | Critère de Fin                              | Temps |
+|-------------|-----------------------------------------------------------------------------------------------|------------|---------------------------------------------|-------|
+| **E2E-001** | Écrire test E2E : Flow complet (register -> create loan -> confirm -> reminder -> return)      | HIST-010   | Test E2E passe                              | 2h    |
+| **E2E-002** | Verifier couverture de code (Domain 95%, Services 90%, Controllers 70%)                        | E2E-001    | Seuils respectes                            | 1h    |
+| **E2E-003** | Configurer Swagger UI (documentation interactive accessible sur /api/docs)                      | HIST-010   | Swagger UI affiché tous les endpoints       | 1h    |
+| **E2E-004** | Créer script de seeding (données réalistes pour le frontend)                                   | HIST-010   | Script executable, données de dev disponibles | 1h30 |
+
+> **E2E-003 (Swagger UI)** : La spec OpenAPI est rédigée manuellement (`openapi.yaml`). Swagger UI est configuré pour
+> servir cette spec -- pas de generation automatique depuis les decorateurs NestJS.
+
+> **E2E-004 (Seeding)** : Script Prisma seed avec des prêteurs, emprunteurs, objets et prêts dans différénts statuts.
+> Indispensable pour le développement frontend en parallèle.
+
+🏁 **Livrable Sprint 6** : **Backend complet avec tests E2E, couverture respectée, Swagger UI et données de seed.**
 
 ---
 
 ## Résumé des Sprints
 
-| Sprint       | Durée        | Modules                   | Endpoints livrés      | Tests           |
-|--------------|--------------|---------------------------|-----------------------|-----------------|
-| **Sprint 0** | 3-4 jours    | Setup infrastructure      | 0                     | ✅ CI/CD         |
-| **Sprint 1** | 5 jours      | Auth + Users              | 7 (Auth: 5, Users: 2) | ✅ 10 tests      |
-| **Sprint 2** | 3 jours      | Borrowers                 | 6                     | ✅ 9 tests       |
-| **Sprint 3** | 4 jours      | Items                     | 6                     | ✅ 10 tests      |
-| **Sprint 4** | 7 jours      | Loans (cœur métier)       | 7                     | ✅ 15 tests      |
-| **Sprint 5** | 5 jours      | Reminders + Notifications | 6                     | ✅ 10 tests      |
-| **Sprint 6** | 3 jours      | History + E2E             | 3                     | ✅ E2E complet   |
-| **TOTAL**    | **30 jours** | **7 modules**             | **35 endpoints**      | **✅ 54+ tests** |
+| Sprint       | Durée           | Modules                   | Endpoints livres           | Tests              |
+|--------------|-----------------|---------------------------|----------------------------|--------------------|
+| **Sprint 0** | 3-4 jours       | Setup infrastructuré      | 2 (health + ready)         | CI/CD              |
+| **Sprint 1** | 5 jours         | Auth + Users              | 9 (Auth: 4, Users: 5)     | ~16 tests          |
+| **Sprint 2** | 3 jours         | Borrowers                 | 6                          | ~8 tests           |
+| **Sprint 3** | 4 jours         | Items                     | 5                          | ~6 tests           |
+| **Sprint 4** | 7 jours         | Loans (coeur métier)      | 6                          | ~12 tests          |
+| **Sprint 5** | 5 jours         | Reminders + Notifications | 2 + système auto           | ~10 tests          |
+| **Sprint 6** | 3-4 jours       | History + E2E + Seed      | 3                          | E2E complet        |
+| **TOTAL**    | **35-40 jours** | **7 modules**             | **~33 endpoints**          | **~52+ tests**     |
 
------Contre Expertise--------
-**Estimation globale : 30 jours calendaires irréaliste** : 35 endpoints + 54 tests + OCR + push notifications + CRON
-jobs + CI/CD + E2E pour 2 développeurs en 30 jours calendaires. Aucun buffer pour les bugs, les blockers techniques (
-configuration FCM, quotas GCP, problèmes Docker), la courbe d'apprentissage (Prisma, BullMQ, NestJS EventBus), ou les
-absences. En pratique, un facteur x2 à x2.5 est courant en développement logiciel. Recommandation : prévoir **45-60
-jours** ou réduire le scope V1 (supprimer OCR, simplifier les statistiques, reporter les push notifications à la V1.1).
-
-**Seeding/fixtures de données manquant** : Aucune tâche dans aucun sprint pour créer des données de test ou des scripts
-de seed. Pourtant, le frontend a besoin de données réalistes pour développer en parallèle (en complément du mock Prism).
-Prévoir une tâche de seeding au Sprint 1 ou 2.
-
-**Migration strategy absente** : Pas de tâche pour gérer les migrations Prisma en production (rollback en cas d'échec,
-data migration pour les schémas existants). Dès le Sprint 1, la DB de production existera — les sprints suivants
-ajouteront des tables et des colonnes. Comment gérer un rollback si le Sprint 3 échoue ?
------Fin Contre Expertise--------
+> **Buffer intégré** : L'estimation de 35-40 jours (vs 30 jours initiaux) inclut un buffer pour les blockers
+> techniques (configuration FCM, problèmes Docker, courbe d'apprentissage NestJS/Prisma/BullMQ) et les imprévus.
+> Sans OCR ni rappels manuels, le scope est plus réaliste pour 2 développeurs.
 
 ---
 
 ## Points de Synchronisation Frontend/Backend
 
-| Moment           | Frontend peut brancher      | Backend disponible                  |
-|------------------|-----------------------------|-------------------------------------|
-| **Fin Sprint 1** | Authentification + Profil   | `/auth/*` + `/users/me`             |
-| **Fin Sprint 2** | Gestion contacts            | `/borrowers/*`                      |
-| **Fin Sprint 3** | Enregistrement objets (OCR) | `/items/*`                          |
-| **Fin Sprint 4** | Création et suivi de prêts  | `/loans/*`                          |
-| **Fin Sprint 5** | Notifications temps réel    | `/reminders/*` + `/notifications/*` |
-| **Fin Sprint 6** | Statistiques complètes      | `/history/*`                        |
+| Moment           | Frontend peut brancher       | Backend disponible                  |
+|------------------|------------------------------|-------------------------------------|
+| **Fin Sprint 1** | Authentification + Profil    | `/auth/*` + `/users/me`             |
+| **Fin Sprint 2** | Gestion emprunteurs          | `/borrowers/*`                      |
+| **Fin Sprint 3** | Enregistrement objets + photos | `/items/*`                        |
+| **Fin Sprint 4** | Création et suivi de prêts   | `/loans/*`                          |
+| **Fin Sprint 5** | Notifications push           | `/notifications/*` + rappels auto   |
+| **Fin Sprint 6** | Statistiques complètes       | `/history/*` + seed data            |
 
 ---
 
 ## Checklist de Fin de Sprint
 
-À valider avant de passer au sprint suivant :
+A valider avant de passer au sprint suivant :
 
 - [ ] Tous les tests unitaires passent (couverture respectée)
 - [ ] Tous les tests d'intégration passent
-- [ ] Migration de base de données appliquée sans erreur
-- [ ] Documentation Swagger mise à jour (endpoints visibles)
-- [ ] Code review approuvé (2 approvals)
-- [ ] CI/CD passe sur `develop` et `main`
-- [ ] Contract Pact publié (si changement d'API)
+- [ ] Migration de basé de données appliquée sans erreur
+- [ ] Spec OpenAPI (`openapi.yaml`) mise à jour si endpoints modifies
+- [ ] Code review approuve (1 approval)
+- [ ] CI/CD passe sur `main`
 - [ ] Changelog mis à jour (Conventional Commits)
 
------Contre Expertise--------
-**Checklist hérite des problèmes identifiés en 02_NORMES** :
-
-- "2 approvals" → mathématiquement impossible à 2 développeurs (cf. contre-expertise 02)
-- "Contract Pact publié" → Pact est overkill pour l'équipe, l'OpenAPI-first approach suffit (cf. contre-expertise 02)
-- "CI/CD sur develop et main" → la branche `develop` est superflue avec GitHub Flow (cf. contre-expertise 02)
-  -----Fin Contre Expertise--------
-
 ---
 
-**Auteur** : Return Team (Backend)
-**Version** : 1.0
-**Date** : 8 février 2026
-
----
-
-**Contre-expertise par :** Ismael AÏHOU
-**Date :** 10 février 2026
+**Co-validé par** : Esdras GBEDOZIN & Ismael AIHOU
+**Date de dernière mise à jour** : 12 février 2026
+**Version** : 1.1 -- MVP Baseline (post contre-expertise)

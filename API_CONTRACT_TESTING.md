@@ -1,541 +1,223 @@
 # API_CONTRACT_TESTING.md
 
-**Return ↺ - Stratégie de Tests de Contrat (Contract Testing)**
+**Return ↺ - Stratégie de Validation du Contrat API**
 
 ---
 
-## 1. Qu'est-ce que le Contract Testing ?
+## 1. Approche : OpenAPI-First
 
-Les **tests de contrat** vérifient que le **fournisseur** (backend) et le **consommateur** (frontend mobile) respectent
-le même contrat d'API défini dans `openapi.yaml`.
+Pour une équipe de 2 développeurs travaillant sur le même projet (backend + frontend), l'approche **OpenAPI-first**
+remplace avantageusement le Contract Testing classique (Pact). Le fichier `openapi.yaml` constitue le **contrat unique**
+entre le backend NestJS et le frontend React Native.
 
-**Différence avec les tests E2E classiques** :
+**Pourquoi pas Pact ?**
 
-- **E2E** : Teste le flow complet (UI → API → DB → API → UI). Lent, fragile.
-- **Contract Testing** : Teste uniquement l'interface API (request/response). Rapide, ciblé.
+Pact est conçu pour synchroniser des **équipes séparées** (front/back indépendants). Dans notre contexte :
 
-**Problème résolu** :
-> "Le backend a changé le format de la réponse `/loans` (ajout d'un champ obligatoire), mais le frontend n'est pas au
-> courant → l'app crash en production."
+- La même équipe développe les deux côtés
+- Le fichier OpenAPI est partagé dans le même repository
+- Pact ajouterait un broker, des state handlers, et une CI supplémentaire — sans bénéfice proportionnel
 
-Les tests de contrat détectent ce problème **avant** le merge.
-
----
-
-## 2. Outil Choisi : Pact (Pact Foundation)
-
-**Pact** est le standard de facto pour le contract testing. Il utilise une approche **consumer-driven** :
-
-1. Le **consumer** (React Native) génère un contrat Pact décrivant ses attentes
-2. Le **provider** (NestJS backend) valide qu'il respecte ce contrat
-3. Les deux équipes peuvent évoluer indépendamment tant que le contrat est respecté
-
------Contre Expertise--------
-**Pact repose sur le postulat de "deux équipes indépendantes"** : Le point 3 ci-dessus dit "les deux équipes peuvent
-évoluer indépendamment". Or il s'agit de la **même équipe de 2 développeurs** qui fait le front et le back. L'intérêt
-principal de Pact (synchronisation inter-équipes asynchrone) n'existe pas ici. L'approche **OpenAPI-first** (spec
-partagée → Prism mock → tests Supertest) couvre le même besoin sans la complexité supplémentaire de Pact (broker,
-publication, vérification, state handlers). Ce document entier, bien que pédagogiquement intéressant, décrit une
-infrastructure surdimensionnée pour le contexte du projet.
------Fin Contre Expertise--------
-
-**Alternatives rejetées** :
-
-- **Spring Cloud Contract** : Spécifique Java (incompatible avec NestJS)
-- **Dredd** : Validation unidirectionnelle (pas de feedback du consumer)
-- **Postman Contract Testing** : Moins mature, lock-in outil propriétaire
+**Notre approche couvre 95% des bénéfices de Pact avec 20% de la complexité.**
 
 ---
 
-## 3. Architecture du Contract Testing
+## 2. Les 4 Piliers de la Validation
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  CONSUMER (React Native)                                    │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ Pact Tests (loan.pact.spec.ts)                      │    │
-│  │ - Enregistre les requêtes attendues                 │    │
-│  │ - Définit les réponses attendues                    │    │
-│  └───────────────────────┬─────────────────────────────┘    │
-│                          │                                   │
-│                          ▼                                   │
-│                  ┌───────────────┐                           │
-│                  │  loan.json    │ (Pact file)               │
-│                  │  (contrat)    │                           │
-│                  └───────┬───────┘                           │
-└──────────────────────────┼───────────────────────────────────┘
-                           │
-                           │ Publication vers Pact Broker
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │  Pact Broker    │ (serveur central)
-                  │  (optionnel)    │
-                  └────────┬────────┘
-                           │
-┌──────────────────────────┼───────────────────────────────────┐
-│  PROVIDER (NestJS Backend)                                   │
-│                          │                                   │
-│                          ▼                                   │
-│                  ┌───────────────┐                           │
-│                  │  loan.json    │ (téléchargé depuis Broker)│
-│                  │  (contrat)    │                           │
-│                  └───────┬───────┘                           │
-│                          │                                   │
-│                          ▼                                   │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ Pact Verification (loan.provider.spec.ts)          │    │
-│  │ - Rejoue les requêtes du consumer                  │    │
-│  │ - Vérifie que les réponses correspondent           │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-```
+### Pilier 1 : OpenAPI Spec comme Source de Vérité
 
----
+Le fichier `openapi.yaml` définit :
 
-## 4. Implémentation Côté Consumer (React Native)
+- Tous les endpoints, méthodes HTTP, et codes de réponse
+- Les schémas de requête et de réponse (DTOs)
+- Les exemples de données réalistes
+- Les erreurs RFC 7807 standardisées
 
-### 4.1 Installation
+**Validation du fichier** :
 
 ```bash
-npm install --save-dev @pact-foundation/pact jest
+# Linter OpenAPI (intégré en CI)
+npx @stoplight/spectral-cli lint openapi.yaml
 ```
 
-### 4.2 Configuration
+### Pilier 2 : Prism Mock Server (Développement Frontend)
+
+Prism génère un serveur mock à partir du fichier OpenAPI, permettant au frontend de développer **sans attendre le
+backend**.
+
+```bash
+# Lancer le mock server
+prism mock openapi.yaml --host 0.0.0.0 --port 3000 --cors
+
+# Mode avec exemples prédéfinis (recommandé pour les tests)
+prism mock openapi.yaml --host 0.0.0.0 --port 3000 --cors
+# → Utilise les exemples définis dans l'OpenAPI
+
+# Mode dynamique (exploration manuelle)
+prism mock openapi.yaml --host 0.0.0.0 --port 3000 --cors --dynamic
+# → Génère des données aléatoires réalistes
+```
+
+**Ce que Prism vérifie automatiquement** :
+
+- ✅ Format des requêtes entrantes (types, regex, longueurs)
+- ✅ Headers requis (Authorization, Content-Type)
+- ✅ Paramètres de query valides
+- ✅ Cohérence des réponses avec les schémas
+
+### Pilier 3 : Tests Supertest (Validation Backend)
+
+Côté backend, **Supertest** valide que les endpoints réels respectent le contrat défini dans l'OpenAPI :
 
 ```typescript
-// __tests__/pact/setup.ts
-import {Pact} from '@pact-foundation/pact';
-import path from 'path';
+// test/e2e/loans.e2e-spec.ts
+describe('POST /v1/loans', () => {
+  it('should create a loan with PENDING_CONFIRMATION status', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/v1/loans')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        itemId: testItem.id,
+        borrowerId: testBorrower.id,
+        returnDate: '2026-04-15',
+      })
+      .expect(201);
 
-export const provider = new Pact({
-    consumer: 'ReturnMobileApp',
-    provider: 'ReturnAPI',
-    port: 1234, // Port local pour le mock Pact
-    log: path.resolve(process.cwd(), 'logs', 'pact.log'),
-    dir: path.resolve(process.cwd(), 'pacts'),
-    logLevel: 'info',
+    expect(response.body).toMatchObject({
+      status: 'PENDING_CONFIRMATION',
+      item: expect.objectContaining({ id: testItem.id }),
+      borrower: expect.objectContaining({ id: testBorrower.id }),
+    });
+    expect(response.body).toHaveProperty('id');
+    expect(response.body).toHaveProperty('createdAt');
+  });
+
+  it('should return RFC 7807 error for invalid return date', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/v1/loans')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        itemId: testItem.id,
+        borrowerId: testBorrower.id,
+        returnDate: '2020-01-01', // Date passée
+      })
+      .expect(400);
+
+    expect(response.body).toMatchObject({
+      type: expect.stringContaining('https://api.return.app/errors/'),
+      status: 400,
+      title: expect.any(String),
+      detail: expect.any(String),
+    });
+  });
 });
 ```
 
-### 4.3 Exemple de Test de Contrat
+### Pilier 4 : Tests d'Intégration au Basculement
+
+Quand le frontend bascule d'un module mock vers le backend réel, une série de **smoke tests** valide l'alignement :
 
 ```typescript
-// __tests__/pact/loan.pact.spec.ts
-import {provider} from './setup';
-import {like, iso8601DateTime} from '@pact-foundation/pact/src/dsl/matchers';
-
-describe('Loan API Contract', () => {
-    beforeAll(() => provider.setup());
-    afterEach(() => provider.verify());
-    afterAll(() => provider.finalize());
-
-    describe('POST /loans', () => {
-        it('creates a loan with pending confirmation status', async () => {
-            // Définir les attentes du consumer
-            await provider.addInteraction({
-                state: 'user is authenticated',
-                uponReceiving: 'a request to create a loan',
-                withRequest: {
-                    method: 'POST',
-                    path: '/v1/loans',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer some-token',
-                    },
-                    body: {
-                        item: {
-                            name: 'Perceuse Bosch',
-                            category: 'TOOLS',
-                            estimatedValue: 129.99,
-                        },
-                        borrower: {
-                            firstName: 'Marie',
-                            lastName: 'Dupont',
-                            email: 'marie.dupont@example.com',
-                        },
-                        returnDate: '2026-03-15',
-                    },
-                },
-                willRespondWith: {
-                    status: 201,
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: {
-                        id: like('loan-123'),
-                        item: {
-                            id: like('item-456'),
-                            name: 'Perceuse Bosch',
-                            category: 'TOOLS',
-                            estimatedValue: 129.99,
-                        },
-                        borrower: {
-                            id: like('borrower-789'),
-                            firstName: 'Marie',
-                            lastName: 'Dupont',
-                            email: 'marie.dupont@example.com',
-                        },
-                        status: 'PENDING_CONFIRMATION',
-                        returnDate: '2026-03-15',
-                        createdAt: iso8601DateTime('2026-02-08T14:00:00Z'),
-                        updatedAt: iso8601DateTime('2026-02-08T14:00:00Z'),
-                    },
-                },
-            });
-
-            // Appeler l'API avec le client réel
-            const loan = await createLoan({
-                item: {name: 'Perceuse Bosch', category: 'TOOLS', estimatedValue: 129.99},
-                borrower: {firstName: 'Marie', lastName: 'Dupont', email: 'marie.dupont@example.com'},
-                returnDate: '2026-03-15',
-            });
-
-            // Vérifier le comportement
-            expect(loan.status).toBe('PENDING_CONFIRMATION');
-            expect(loan.item.name).toBe('Perceuse Bosch');
-        });
-    });
-
-    describe('GET /loans/{loanId}', () => {
-        it('returns 404 when loan does not exist', async () => {
-            await provider.addInteraction({
-                state: 'user is authenticated',
-                uponReceiving: 'a request for a non-existent loan',
-                withRequest: {
-                    method: 'GET',
-                    path: '/v1/loans/loan-999',
-                    headers: {
-                        'Authorization': 'Bearer some-token',
-                    },
-                },
-                willRespondWith: {
-                    status: 404,
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: {
-                        type: like('https://api.return.app/errors/loan-not-found'),
-                        title: 'Loan Not Found',
-                        status: 404,
-                        detail: like('The loan with ID \'loan-999\' does not exist.'),
-                        instance: '/v1/loans/loan-999',
-                        timestamp: iso8601DateTime('2026-02-08T14:32:00Z'),
-                        requestId: like('req-7f3c9a2b'),
-                    },
-                },
-            });
-
-            // Appeler l'API et vérifier l'erreur
-            await expect(getLoanById('loan-999')).rejects.toMatchObject({
-                status: 404,
-                type: 'https://api.return.app/errors/loan-not-found',
-            });
-        });
-    });
-});
-```
-
-### 4.4 Exécution des Tests
-
-```bash
-npm run test:pact
-```
-
-**Résultat** : Un fichier `pacts/ReturnMobileApp-ReturnAPI.json` est généré.
-
----
-
-## 5. Implémentation Côté Provider (NestJS Backend)
-
-### 5.1 Installation
-
-```bash
-npm install --save-dev @pact-foundation/pact
-```
-
-### 5.2 Configuration
-
-```typescript
-// test/pact/loan.provider.spec.ts
-import {Verifier} from '@pact-foundation/pact';
-import path from 'path';
-import {INestApplication} from '@nestjs/common';
-import {Test} from '@nestjs/testing';
-import {AppModule} from '../../src/app.module';
-
-describe('Pact Verification', () => {
-    let app: INestApplication;
-
-    beforeAll(async () => {
-        // Démarrer l'application NestJS
-        const moduleRef = await Test.createTestingModule({
-            imports: [AppModule],
-        }).compile();
-
-        app = moduleRef.createNestApplication();
-        await app.init();
-    });
-
-    afterAll(async () => {
-        await app.close();
-    });
-
-    it('validates the expectations of ReturnMobileApp', async () => {
-        const opts = {
-            provider: 'ReturnAPI',
-            providerBaseUrl: 'http://localhost:3000', // URL du backend de test
-            pactUrls: [
-                path.resolve(__dirname, '../../pacts/ReturnMobileApp-ReturnAPI.json'),
-            ],
-            stateHandlers: {
-                'user is authenticated': async () => {
-                    // Setup : Créer un utilisateur de test et générer un token
-                    const user = await createTestUser({email: 'test@example.com'});
-                    const token = generateJWT(user.id);
-                    process.env.TEST_AUTH_TOKEN = token;
-                },
-                'loan loan-123 exists': async () => {
-                    // Setup : Créer un prêt en base de test
-                    await createTestLoan({id: 'loan-123', status: 'ACTIVE'});
-                },
-            },
-            requestFilter: (req, res, next) => {
-                // Injecter le token de test si nécessaire
-                if (process.env.TEST_AUTH_TOKEN) {
-                    req.headers['authorization'] = `Bearer ${process.env.TEST_AUTH_TOKEN}`;
-                }
-                next();
-            },
-        };
-
-        const verifier = new Verifier(opts);
-        await verifier.verifyProvider();
-    });
-});
-```
-
-### 5.3 Exécution de la Vérification
-
-```bash
-npm run test:pact:provider
-```
-
-**Résultat** :
-
-- ✅ Si toutes les interactions passent → Le backend respecte le contrat
-- ❌ Si une interaction échoue → Détail de l'écart (champ manquant, mauvais type, etc.)
-
----
-
-## 6. Utilisation du Pact Broker (Production)
-
-Le **Pact Broker** est un serveur central qui stocke les contrats et facilite la collaboration entre équipes.
-
-### 6.1 Déploiement du Broker (Docker)
-
------Contre Expertise--------
-**Pact Broker = infrastructure supplémentaire à maintenir** : Le Broker nécessite un serveur Docker + une base
-PostgreSQL dédiée. C'est un service de plus à déployer, monitorer, et maintenir. Pour 2 développeurs, le fichier `.pact`
-peut simplement être partagé via le repository Git (ou un artefact CI). Le Broker n'apporte de la valeur que quand
-plusieurs équipes/repos consomment le même contrat.
------Fin Contre Expertise--------
-
-```bash
-docker run -d \
-  --name pactbroker \
-  -p 9292:9292 \
-  -e PACT_BROKER_DATABASE_URL=postgres://user:pass@postgres/pactbroker \
-  pactfoundation/pact-broker:latest
-```
-
-### 6.2 Publication du Contrat (Consumer)
-
-```bash
-# Dans le projet React Native
-npx pact-broker publish \
-  ./pacts \
-  --consumer-app-version=$(git rev-parse HEAD) \
-  --broker-base-url=https://pact.return.app \
-  --broker-username=admin \
-  --broker-password=secret
-```
-
-### 6.3 Vérification depuis le Broker (Provider)
-
-```typescript
-// Modifier loan.provider.spec.ts
-const opts = {
-    provider: 'ReturnAPI',
-    providerBaseUrl: 'http://localhost:3000',
-    pactBrokerUrl: 'https://pact.return.app',
-    pactBrokerUsername: 'admin',
-    pactBrokerPassword: 'secret',
-    publishVerificationResult: true,
-    providerVersion: process.env.GIT_COMMIT,
+// Checklist de basculement par module
+const SMOKE_TESTS = {
+  auth: [
+    'POST /auth/register → 201 (création de compte)',
+    'POST /auth/login → 200 (connexion + tokens)',
+    'POST /auth/refresh → 200 (renouvellement token)',
+    'POST /auth/logout → 204 (déconnexion)',
+  ],
+  loans: [
+    'POST /loans → 201 (création prêt)',
+    'GET /loans → 200 (liste paginée)',
+    'GET /loans/{id} → 200 (détail avec relations)',
+    'POST /loans/{id}/confirm → 200 (confirmation)',
+    'POST /loans/{id}/contest → 200 (contestation)',
+  ],
+  // ... par module
 };
 ```
 
-### 6.4 Workflow CI/CD
+---
+
+## 3. Workflow CI/CD
 
 ```yaml
-# .github/workflows/pact.yml
-name: Pact Contract Tests
+# .github/workflows/api-validation.yml
+name: API Contract Validation
 
-on: [ push, pull_request ]
+on: [push, pull_request]
 
 jobs:
-  consumer:
+  lint-openapi:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - run: npm ci
-      - run: npm run test:pact
-      - name: Publish Pact
-        run: |
-          npx pact-broker publish ./pacts \
-            --consumer-app-version=${{ github.sha }} \
-            --broker-base-url=${{ secrets.PACT_BROKER_URL }} \
-            --broker-token=${{ secrets.PACT_BROKER_TOKEN }}
+      - uses: actions/checkout@v4
+      - run: npx @stoplight/spectral-cli lint openapi.yaml
 
-  provider:
+  backend-tests:
     runs-on: ubuntu-latest
-    needs: consumer
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: npm ci
-      - run: npm run test:pact:provider
+      - run: npm run test        # Unit tests
+      - run: npm run test:e2e    # Supertest E2E (avec Testcontainers)
 ```
 
 ---
 
-## 7. Avantages du Contract Testing
+## 4. Détection des Cassures de Contrat
 
-✅ **Détection précoce** : Cassure de contrat détectée avant production  
-✅ **Développement parallèle** : Frontend et backend progressent indépendamment  
-✅ **Documentation vivante** : Les tests de contrat servent de spécification exécutable  
-✅ **Refactoring sûr** : Changements internes du backend sans impact si le contrat est respecté  
-✅ **Feedback rapide** : Tests plus rapides qu'un E2E complet (pas de UI, pas de DB réelle)
+### Scénario : Le Backend Change un Format de Réponse
 
----
+1. Le développeur modifie un DTO backend
+2. **Les tests Supertest échouent** → le développeur met à jour le test
+3. **L'OpenAPI doit être mis à jour** → vérification en code review
+4. **Le frontend est informé** → même équipe, même PR
 
-## 8. Cas d'Usage Concrets
+### Scénario : Le Frontend a Besoin d'un Nouveau Champ
 
-### Cas 1 : Le Backend Change le Format de Date
-
-**Avant** :
-
-```json
-{
-  "createdAt": "2026-02-08T14:00:00Z"
-}
-```
-
-**Après (changement backend)** :
-
-```json
-{
-  "createdAt": 1675868400
-} // Timestamp Unix
-```
-
-**Résultat Pact** :
-
-```
-❌ Verification failed for GET /loans
-Expected: ISO 8601 DateTime (string)
-Actual: Unix timestamp (number)
-```
-
-→ Le provider doit **soit** :
-
-- Revenir au format ISO 8601
-- Négocier un nouveau contrat avec le consumer
-
-### Cas 2 : Le Frontend Ajoute un Champ Optionnel
-
-Le consumer met à jour son contrat pour accepter un nouveau champ `item.photos` (optionnel).
-
-**Comportement** :
-
-- Le provider (backend) continue de fonctionner sans `photos` → Tests passent ✅
-- Quand le backend implémente `photos`, le consumer l'utilise automatiquement
-
-→ Évolution non-bloquante.
+1. Le développeur ajoute le champ dans `openapi.yaml`
+2. **Prism le retourne automatiquement** → le frontend peut développer
+3. Le backend implémente le champ → les tests Supertest valident
+4. Le basculement mock → réel fonctionne sans surprise
 
 ---
 
-## 9. Limites du Contract Testing
+## 5. Avantages vs Pact
 
-**Ce que Pact NE vérifie PAS** :
-
-- ❌ **Logique métier** : Pact ne teste pas si `PENDING_CONFIRMATION` → `ACTIVE` est valide
-- ❌ **Performance** : Pas de mesure de latence
-- ❌ **Sécurité** : Pas de test de JWT invalide (sauf si explicitement défini)
-- ❌ **Données réelles** : Pas de vérification sur une vraie base de données
-
-**Complément nécessaire** :
-
-- Tests unitaires (logique métier)
-- Tests E2E (flows complets)
-- Tests de charge (performance)
+| Critère | Pact | Notre Approche (OpenAPI-first) |
+|---|---|---|
+| Complexité de setup | Élevée (broker, state handlers, CI jobs) | Faible (spectral + prism + supertest) |
+| Infrastructure supplémentaire | Pact Broker (Docker + PostgreSQL) | Aucune |
+| Temps de maintenance | Élevé (contrats à publier, vérifier) | Faible (fichier YAML partagé) |
+| Couverture | Interactions consumer-driven | Spec complète (tous les endpoints) |
+| Documentation | Générée depuis les contrats | `openapi.yaml` = documentation vivante |
+| Adapté pour 2 devs | Non (conçu pour équipes séparées) | Oui |
 
 ---
 
-## 10. Checklist de Mise en Place
+## 6. Quand Migrer vers Pact ?
 
-- [ ] Installer Pact dans le projet mobile (consumer)
-- [ ] Installer Pact dans le projet backend (provider)
-- [ ] Écrire au moins 1 test de contrat par endpoint critique (login, create loan, list loans)
-- [ ] Configurer les "state handlers" côté provider (setup des données de test)
-- [ ] Intégrer Pact dans la CI/CD (publication + vérification automatique)
-- [ ] (Optionnel) Déployer un Pact Broker pour la collaboration
-- [ ] Documenter le workflow dans le README du projet
+Pact deviendrait pertinent si :
 
----
+- L'équipe grandit à 4+ développeurs avec des équipes front/back séparées
+- Le frontend et le backend sont dans des repositories distincts
+- Plusieurs consumers (app mobile, app web, API partenaires) consomment la même API
 
-## 11. Commandes Essentielles
-
-```bash
-# Consumer (React Native)
-npm run test:pact                    # Générer le contrat
-npx pact-broker publish ./pacts      # Publier vers le broker
-
-# Provider (NestJS)
-npm run test:pact:provider           # Vérifier le contrat localement
-npm run test:pact:provider:ci        # Vérifier depuis le broker
-
-# Afficher les contrats publiés
-npx pact-broker list-latest-pact-versions \
-  --broker-base-url=https://pact.return.app
-```
+Dans ce cas, ce document servira de référence pour la migration.
 
 ---
 
-**Résumé en 1 phrase** :
-> Pact garantit que le frontend React Native et le backend NestJS parlent le même langage (contrat API) en testant
-> automatiquement leurs interactions, détectant les incompatibilités avant la production.
+## 7. Checklist de Mise en Place
+
+- [ ] `openapi.yaml` validé avec Spectral (0 erreur)
+- [ ] Prism mock fonctionnel (`npm run mock:api`)
+- [ ] Au moins 1 test Supertest par endpoint critique (auth, loans, reminders)
+- [ ] CI/CD : lint OpenAPI + tests backend automatiques
+- [ ] Checklist de smoke tests définie pour chaque module (basculement mock → réel)
 
 ---
 
------Contre Expertise--------
-**Recommandation globale** : Ce document est bien rédigé et pédagogique. Il peut servir de référence si l'équipe
-grandit (3+ développeurs séparés front/back). Mais pour le MVP à 2 développeurs, **Pact est overkill**. L'approche
-recommandée est :
-
-1. OpenAPI spec comme contrat unique (déjà en place)
-2. Prism mock pour le développement frontend (déjà documenté)
-3. Tests Supertest côté backend pour valider les endpoints
-4. Tests d'intégration au moment du basculement mock → réel
-
-Cette approche couvre 95% des bénéfices de Pact avec 20% de la complexité.
------Fin Contre Expertise--------
-
-**Auteur** : Return Team
-**Version** : 1.0
-**Date** : 8 février 2026
-
----
-
-**Contre-expertise par :** Ismael AÏHOU
-**Date :** 10 février 2026
+**Co-validé par** : Esdras GBEDOZIN & Ismael AÏHOU
+**Date de dernière mise à jour** : 12 février 2026
+**Version** : 1.1 — MVP Baseline (post contre-expertise)

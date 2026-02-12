@@ -2,84 +2,20 @@ openapi: 3.1.0
 
 info:
   title: Return API
-  version: 1.0.0
+  version: 1.1.0
   description: |
-    **Return** - API pour la gestion de prêts d'objets personnels.
-    
-    Cette API permet de :
-    - Gérer des prêts (création, suivi, confirmation, clôture)
-    - Enregistrer des objets via photo (reconnaissance automatique)
-    - Planifier et envoyer des rappels diplomatiques
-    - Consulter l'historique des prêts
-    
-    **Architecture** : Monolithe Modulaire (NestJS + PostgreSQL)
-    **Authentification** : JWT (Bearer Token)
-    **Standards** : RFC 7807 pour toutes les erreurs
+    **Return** — API de gestion de prêts d'objets personnels et d'argent.
 
-  # -----Contre Expertise--------
-  # POINTS GÉNÉRAUX SUR L'OPENAPI SPEC :
-  #
-  # 1. GET /auth/me et GET /users/me : doublons fonctionnels
-  #    Les deux endpoints retournent le même schéma User. Le document dit
-  #    "Identique à /auth/me (alias pour cohérence REST)". Garder un seul
-  #    des deux pour éviter la confusion. Recommandation : garder /users/me
-  #    (plus RESTful) et supprimer /auth/me (ou le documenter comme déprécié).
-  #
-  # 2. CreateLoanDto : oneOf item/borrower = complexité de validation
-  #    Le champ "item" accepte soit un CreateItemDto soit un UUID string.
-  #    Ce pattern oneOf est puissant mais complique la validation côté backend
-  #    (discriminator nécessaire) et la génération de types TypeScript.
-  #    Cohérent avec LOAN-006 (création inline) déjà critiqué en 04_ROADMAP.
-  #
-  # 3. ReminderType enum : 5 types vs 4 rappels dans la bible
-  #    L'enum définit PREVENTIVE, ON_DUE_DATE, FIRST_OVERDUE, SECOND_OVERDUE,
-  #    FINAL_OVERDUE (5 types). La bible projet mentionne 4 rappels (J-3, J+3,
-  #    J+10, J+17) sans ON_DUE_DATE. La roadmap backend (04) dit aussi 5.
-  #    À aligner avec la bible ou mettre à jour la bible.
-  #
-  # 4. NotificationChannel enum : EMAIL et SMS en V1
-  #    L'enum inclut PUSH, EMAIL, SMS mais seul PUSH est V1.
-  #    UserSettings.notificationChannels a un exemple [PUSH, EMAIL].
-  #    Le frontend affichera des options non fonctionnelles en V1.
-  #    Recommandation : retirer EMAIL/SMS de l'enum V1 ou les marquer
-  #    comme "coming soon" dans la description.
-  #
-  # 5. UserRole ADMIN : scope fantôme
-  #    L'enum UserRole inclut ADMIN mais aucun endpoint admin n'existe
-  #    dans cette spec. Déjà soulevé dans la contre-expertise 01.
-  #
-  # 6. SubscriptionTier FREE/PREMIUM : prématuré pour V1
-  #    Le schéma User inclut un champ subscriptionTier avec FREE/PREMIUM.
-  #    Le freemium est prévu en V2+ (Post-MVP Sprint 10). Inclure ce champ
-  #    dès V1 force le frontend à gérer un état qui ne change jamais.
-  #
-  # 7. Pagination incohérente : /items et /borrowers ne sont pas paginés
-  #    GET /loans et GET /notifications retournent {data, pagination}
-  #    mais GET /items et GET /borrowers retournent un simple array.
-  #    Incohérence qui compliquera la généricité côté frontend.
-  #    Recommandation : paginer tous les endpoints de liste.
-  #
-  # 8. Endpoints manquants par rapport aux roadmaps :
-  #    - GET /borrowers/{id}/statistics (présent dans roadmap 04 HIST-010)
-  #      mais défini dans la spec. OK.
-  #    - POST /users/me/delete : devrait être DELETE /users/me (convention REST).
-  #      POST pour une suppression est inhabituel.
-  #    - PUT /users/me/avatar : absent des roadmaps backend et frontend.
-  #    - GET/PATCH /users/me/settings : absent des roadmaps.
-  #
-  # 9. trustScore formula définie ici mais pas dans la bible
-  #    BorrowerStatistics.trustScore a la formule dans la description :
-  #    "(returnedOnTime * 100 + returnedLate * 50) / totalLoans"
-  #    C'est la seule source qui définit cette formule.
-  #    Elle devrait être dans la bible ou un document métier dédié.
-  #
-  # 10. Photo.url "signée, expire après 7 jours" : non géré côté frontend
-  #     Si les URLs expirent, le frontend doit rafraîchir les URLs.
-  #     Aucun endpoint de renouvellement n'est prévu. Les images en cache
-  #     deviendront des liens morts après 7 jours.
-  #
-  # Contre-expertise par : Ismael AÏHOU — 10 février 2026
-  # -----Fin Contre Expertise--------
+    Cette API permet de :
+    - Gérer des prêts d'objets (photo, retour physique) et d'argent (montant, remboursement)
+    - Suivre le cycle de vie complet d'un prêt (création, confirmation, rappels, retour)
+    - Planifier et envoyer des rappels automatiques diplomatiques (J-3, J, J+7, J+14, J+21)
+    - Consulter l'historique et les statistiques de prêts
+
+    **Architecture** : Monolithe Modulaire (NestJS 11.x + PostgreSQL 17+)
+    **Authentification** : JWT (Bearer Token) avec révocation immédiate via Redis
+    **Standards** : RFC 7807 pour toutes les erreurs, i18n FR/EN
+    **Validation** : class-validator + class-transformer
 
   contact:
     name: Return Support
@@ -91,9 +27,7 @@ info:
 
 servers:
   - url: https://api.return.app/v1
-    description: Production
-  - url: https://staging-api.return.app/v1
-    description: Staging (Pré-production)
+    description: Production (Fly.io — Europe West)
   - url: http://localhost:3000/v1
     description: Développement local
 
@@ -105,15 +39,17 @@ tags:
   - name: Items
     description: Gestion des objets prêtables
   - name: Borrowers
-    description: Gestion des contacts (emprunteurs)
+    description: Gestion des emprunteurs (compte obligatoire)
   - name: Reminders
     description: Système de rappels automatiques
   - name: Notifications
-    description: Gestion des notifications push/email
+    description: Gestion des notifications push (V1)
   - name: Users
     description: Profil utilisateur et paramètres
   - name: History
     description: Historique et statistiques des prêts
+  - name: Health
+    description: Endpoints de santé pour monitoring et load balancer
 
 security:
   - BearerAuth: [ ]
@@ -273,33 +209,16 @@ paths:
     post:
       tags:
         - Authentication
-      summary: Se déconnecter (invalider le refresh token)
+      summary: Se déconnecter (invalider les tokens)
       description: |
-        Invalide le refresh token actuel. L'access token reste valide jusqu'à son
-        expiration naturelle (15 min), mais ne peut plus être renouvelé.
+        Invalide immédiatement l'access token (ajouté à la blacklist Redis) et le
+        refresh token. Le token ne peut plus être utilisé ni renouvelé.
+
+        **V1** : Révocation immédiate via blacklist Redis (TTL = durée restante du token).
       operationId: logoutUser
       responses:
         '204':
           description: Déconnexion réussie (pas de contenu retourné)
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /auth/me:
-    get:
-      tags:
-        - Authentication
-      summary: Récupérer les informations de l'utilisateur connecté
-      description: |
-        Retourne le profil complet de l'utilisateur authentifié.
-        Utile pour vérifier la validité du token.
-      operationId: getCurrentUser
-      responses:
-        '200':
-          description: Profil utilisateur
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -465,7 +384,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '429':
-          description: Limite de création dépassée (50 prêts/jour)
+          description: Limite de création dépassée (15 prêts/jour)
           content:
             application/json:
               schema:
@@ -474,7 +393,7 @@ paths:
                 type: https://api.return.app/errors/daily-loan-limit-exceeded
                 title: Daily Loan Limit Exceeded
                 status: 429
-                detail: You have reached the maximum of 50 loans per day.
+                detail: You have reached the maximum of 15 loans per day.
                 instance: /v1/loans
                 timestamp: 2026-02-08T16:00:00Z
                 requestId: req-1a2b3c4d
@@ -607,7 +526,7 @@ paths:
         - `PENDING_CONFIRMATION` → `ACTIVE` (si timeout 48h atteint)
         - `ACTIVE` → `RETURNED` (confirmer retour)
         - `AWAITING_RETURN` → `RETURNED` (confirmer retour tardif)
-        - Toute transition → `NOT_RETURNED` (abandon manuel)
+        - `ACTIVE` / `AWAITING_RETURN` → `ABANDONED` (abandon manuel)
         
         **Emprunteur** :
         - `PENDING_CONFIRMATION` → `ACTIVE` (accepter)
@@ -786,25 +705,45 @@ paths:
           schema:
             type: boolean
           example: true
+        - name: page
+          in: query
+          description: Numéro de page (commence à 1)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Nombre de résultats par page (max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
       responses:
         '200':
           description: Liste des objets
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Item'
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Item'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMetadata'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
     post:
       tags:
         - Items
-      summary: Créer un objet manuellement
+      summary: Créer un objet
       description: |
-        Créer un objet sans photo (saisie manuelle).
-        Pour créer un objet avec reconnaissance photo, utiliser `/items/recognize`.
+        Créer un objet par saisie manuelle (nom, catégorie, valeur estimée).
+        Une photo peut être ajoutée séparément via `/items/{itemId}/photos`.
       operationId: createItem
       requestBody:
         required: true
@@ -829,116 +768,6 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
-  /items/recognize:
-    post:
-      tags:
-        - Items
-      summary: Créer un objet avec reconnaissance automatique (OCR)
-      description: |
-        Upload d'une photo pour reconnaissance automatique de l'objet via
-        Google Cloud Vision API.
-        
-        **Workflow** :
-        1. Upload de la photo
-        2. Analyse par l'API de vision (délai ~2-5 secondes)
-        3. Retour de l'objet avec nom et catégorie pré-remplis
-        4. L'utilisateur peut modifier les informations avant de créer le prêt
-        
-        **Limites** : 100 requêtes/jour en V1.
-      operationId: recognizeItem
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - photo
-              properties:
-                photo:
-                  type: string
-                  format: binary
-                  description: Image au format JPEG ou PNG (max 5MB)
-      responses:
-        '200':
-          description: Objet reconnu avec succès
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  item:
-                    $ref: '#/components/schemas/Item'
-                  confidence:
-                    type: number
-                    format: float
-                    minimum: 0
-                    maximum: 1
-                    example: 0.92
-                    description: Score de confiance de la reconnaissance (0-1)
-                  alternativeNames:
-                    type: array
-                    items:
-                      type: string
-                    example: [ "Perceuse", "Drill", "Power tool" ]
-                    description: Noms alternatifs détectés
-              example:
-                item:
-                  id: item-temp-123
-                  name: Perceuse électrique
-                  category: TOOLS
-                  estimatedValue: null
-                  photos:
-                    - id: photo-1a2b
-                      url: https://photos.return.app/temp/photo-1.jpg
-                      uploadedAt: "2026-02-08T18:00:00Z"
-                confidence: 0.92
-                alternativeNames: [ "Perceuse", "Drill", "Power drill" ]
-        '400':
-          description: Format de fichier invalide ou fichier trop volumineux
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-              example:
-                type: https://api.return.app/errors/invalid-file-format
-                title: Invalid File Format
-                status: 400
-                detail: "Only JPEG and PNG images are accepted. Max size: 5MB."
-                instance: /v1/items/recognize
-                timestamp: 2026-02-08T18:10:00Z
-                requestId: req-7a8b9c0d
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          description: Limite quotidienne de reconnaissance dépassée
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-              example:
-                type: https://api.return.app/errors/ocr-daily-limit-exceeded
-                title: Daily OCR Limit Exceeded
-                status: 429
-                detail: You have reached the maximum of 100 photo recognitions per day.
-                instance: /v1/items/recognize
-                timestamp: 2026-02-08T18:15:00Z
-                requestId: req-8b9c0d1e
-        '503':
-          description: Service de reconnaissance temporairement indisponible
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-              example:
-                type: https://api.return.app/errors/ocr-service-unavailable
-                title: OCR Service Unavailable
-                status: 503
-                detail: The image recognition service is temporarily unavailable. Please try again later.
-                instance: /v1/items/recognize
-                timestamp: 2026-02-08T18:20:00Z
-                requestId: req-9c0d1e2f
 
   /items/{itemId}:
     parameters:
@@ -1133,15 +962,35 @@ paths:
             type: string
             enum: [ asc, desc ]
             default: asc
+        - name: page
+          in: query
+          description: Numéro de page (commence à 1)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Nombre de résultats par page (max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
       responses:
         '200':
           description: Liste des emprunteurs
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Borrower'
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Borrower'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMetadata'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -1389,67 +1238,6 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /loans/{loanId}/reminders/manual:
-    parameters:
-      - name: loanId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-
-    post:
-      tags:
-        - Reminders
-      summary: Envoyer un rappel manuel immédiat
-      description: |
-        Le prêteur peut envoyer un rappel personnalisé en dehors du calendrier automatique.
-        **Limite** : 10 rappels manuels par heure pour éviter le spam.
-      operationId: sendManualReminder
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                  minLength: 10
-                  maxLength: 500
-                  nullable: true
-                  example: "Bonjour, aurais-tu la possibilité de me rendre la perceuse cette semaine ?"
-                  description: Message personnalisé (null = utiliser template par défaut)
-      responses:
-        '200':
-          description: Rappel envoyé avec succès
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Reminder'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          description: Limite de rappels manuels dépassée
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-              example:
-                type: https://api.return.app/errors/manual-reminder-limit-exceeded
-                title: Manual Reminder Limit Exceeded
-                status: 429
-                detail: You can send a maximum of 10 manual reminders per hour.
-                instance: /v1/loans/loan-123/reminders/manual
-                timestamp: 2026-02-08T20:00:00Z
-                requestId: req-3a4b5c6d
-
   /reminders/{reminderId}:
     parameters:
       - name: reminderId
@@ -1613,7 +1401,7 @@ paths:
       tags:
         - Users
       summary: Récupérer le profil utilisateur
-      description: Identique à /auth/me (alias pour cohérence REST).
+      description: Retourne le profil complet de l'utilisateur authentifié.
       operationId: getUserProfile
       responses:
         '200':
@@ -1665,6 +1453,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+
+    delete:
+      tags:
+        - Users
+      summary: Supprimer définitivement le compte
+      description: |
+        Suppression irréversible du compte et de toutes les données associées
+        (prêts, objets, emprunteurs). Conforme RGPD (droit à l'effacement).
+        **Attention** : Impossible si des prêts actifs existent.
+      operationId: deleteUserAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+                - confirmationText
+              properties:
+                password:
+                  type: string
+                  format: password
+                  description: Mot de passe pour confirmer
+                confirmationText:
+                  type: string
+                  enum: [ "DELETE MY ACCOUNT" ]
+                  description: 'Doit être exactement "DELETE MY ACCOUNT"'
+      responses:
+        '204':
+          description: Compte supprimé avec succès
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Mot de passe incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: Des prêts actifs existent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/active-loans-exist
+                title: Active Loans Exist
+                status: 409
+                detail: Cannot delete account while active loans exist. Please close all loans first.
+                instance: /v1/users/me
+                timestamp: 2026-02-08T21:30:00Z
+                requestId: req-6d7e8f9a
 
   /users/me/settings:
     get:
@@ -1791,60 +1632,6 @@ paths:
                 timestamp: 2026-02-08T21:00:00Z
                 requestId: req-5c6d7e8f
 
-  /users/me/delete:
-    post:
-      tags:
-        - Users
-      summary: Supprimer définitivement le compte
-      description: |
-        Suppression irréversible du compte et de toutes les données associées
-        (prêts, objets, emprunteurs).
-        **Attention** : Impossible si des prêts actifs existent.
-      operationId: deleteUserAccount
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - password
-                - confirmationText
-              properties:
-                password:
-                  type: string
-                  format: password
-                  description: Mot de passe pour confirmer
-                confirmationText:
-                  type: string
-                  enum: [ "DELETE MY ACCOUNT" ]
-                  description: 'Doit être exactement "DELETE MY ACCOUNT"'
-      responses:
-        '204':
-          description: Compte supprimé avec succès
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          description: Mot de passe incorrect
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-        '409':
-          description: Des prêts actifs existent
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-              example:
-                type: https://api.return.app/errors/active-loans-exist
-                title: Active Loans Exist
-                status: 409
-                detail: Cannot delete account while active loans exist. Please close all loans first.
-                instance: /v1/users/me/delete
-                timestamp: 2026-02-08T21:30:00Z
-                requestId: req-6d7e8f9a
-
   # =============================================================================
   # HISTORY ENDPOINTS
   # =============================================================================
@@ -1865,7 +1652,7 @@ paths:
             type: array
             items:
               type: string
-              enum: [ RETURNED, NOT_RETURNED, CONTESTED ]
+              enum: [ RETURNED, NOT_RETURNED, CONTESTED, ABANDONED ]
           style: form
           explode: false
         - name: borrowerId
@@ -2007,6 +1794,98 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  # =============================================================================
+  # HEALTH CHECK ENDPOINTS
+  # =============================================================================
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Vérification de santé basique (liveness)
+      description: |
+        Retourne le statut du serveur. Utilisé par le load balancer Fly.io
+        pour déterminer si l'instance est vivante.
+      operationId: healthCheck
+      security: [ ]
+      responses:
+        '200':
+          description: Serveur opérationnel
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-02-12T10:00:00Z"
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+  /ready:
+    get:
+      tags:
+        - Health
+      summary: Vérification de disponibilité (readiness)
+      description: |
+        Vérifie que toutes les dépendances sont opérationnelles
+        (PostgreSQL, Redis, FCM). Utilisé pour le routing du load balancer.
+      operationId: readinessCheck
+      security: [ ]
+      responses:
+        '200':
+          description: Toutes les dépendances opérationnelles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        enum: [ ok, error ]
+                        example: ok
+                      redis:
+                        type: string
+                        enum: [ ok, error ]
+                        example: ok
+                      fcm:
+                        type: string
+                        enum: [ ok, error ]
+                        example: ok
+        '503':
+          description: Une ou plusieurs dépendances indisponibles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: ok
+                      redis:
+                        type: string
+                        example: error
+                      fcm:
+                        type: string
+                        example: ok
+
 components:
   securitySchemes:
     BearerAuth:
@@ -2027,8 +1906,11 @@ components:
     Loan:
       type: object
       description: |
-        Prêt enregistré où un Objet est temporairement transféré d'un Prêteur
-        à un Emprunteur avec expectative de retour.
+        Prêt enregistré : un Objet (physique) ou de l'Argent est temporairement
+        transféré d'un Prêteur à un Emprunteur avec expectative de retour.
+        Deux workflows distincts selon la catégorie de l'item :
+        - **OBJECT** (catégories != MONEY) : photo, retour physique
+        - **MONEY** (catégorie = MONEY) : montant, remboursement
       required:
         - id
         - item
@@ -2093,20 +1975,22 @@ components:
         - AWAITING_RETURN
         - RETURNED
         - NOT_RETURNED
+        - ABANDONED
       description: |
         Statut du prêt :
         - **PENDING_CONFIRMATION** : Prêt créé, en attente de confirmation de l'emprunteur
-        - **ACTIVE** : Prêt confirmé, en cours
-        - **ACTIVE_BY_DEFAULT** : Prêt non confirmé mais accepté implicitement (timeout 48h)
-        - **CONTESTED** : Prêt refusé par l'emprunteur
-        - **AWAITING_RETURN** : Date de retour dépassée, rappel(s) envoyé(s)
-        - **RETURNED** : Objet restitué, prêt clos avec succès
-        - **NOT_RETURNED** : Objet non restitué après 3 rappels, prêt clos en échec
+        - **ACTIVE** : Prêt confirmé par l'emprunteur, en cours
+        - **ACTIVE_BY_DEFAULT** : Non confirmé mais accepté implicitement (timeout 48h)
+        - **CONTESTED** : Prêt refusé/contesté par l'emprunteur
+        - **AWAITING_RETURN** : Date de retour dépassée, rappels automatiques en cours
+        - **RETURNED** : Objet restitué / argent remboursé, prêt clos avec succès
+        - **NOT_RETURNED** : Objet non restitué après les 5 rappels automatiques (J-3, J, J+7, J+14, J+21)
+        - **ABANDONED** : Prêt abandonné manuellement par le prêteur
       example: ACTIVE
 
     Item:
       type: object
-      description: Bien physique ou immatériel faisant l'objet d'un Prêt
+      description: Bien physique ou somme d'argent faisant l'objet d'un Prêt
       required:
         - id
         - name
@@ -2121,7 +2005,7 @@ components:
           minLength: 3
           maxLength: 100
           example: Perceuse Bosch PSB 1800
-          description: Nom de l'objet (saisi manuellement ou détecté par OCR)
+          description: Nom de l'objet (saisie manuelle)
         description:
           type: string
           nullable: true
@@ -2161,8 +2045,9 @@ components:
         - MONEY
         - OTHER
       description: |
-        Catégorie de l'objet détectée automatiquement ou sélectionnée manuellement.
-        **MONEY** impose estimatedValue obligatoire (montant prêté).
+        Catégorie de l'objet sélectionnée manuellement par le prêteur.
+        **MONEY** active le workflow de prêt d'argent (estimatedValue = montant prêté, obligatoire).
+        Les autres catégories concernent des prêts d'objets physiques (workflow standard avec photo).
       example: TOOLS
 
     Photo:
@@ -2196,12 +2081,15 @@ components:
     Borrower:
       type: object
       description: |
-        Personne physique à qui un objet est prêté.
-        Peut ne pas avoir de compte utilisateur (Emprunteur Invité).
+        Personne physique à qui un objet ou de l'argent est prêté.
+        Doit posséder un compte Return (inscription obligatoire).
+        Si le compte n'existe pas encore lors de la création du prêt, une invitation
+        est envoyée par email. Le prêt reste en PENDING_CONFIRMATION jusqu'à inscription.
       required:
         - id
         - firstName
         - lastName
+        - email
       properties:
         id:
           type: string
@@ -2220,9 +2108,8 @@ components:
         email:
           type: string
           format: email
-          nullable: true
           example: marie.dupont@example.com
-          description: Email (optionnel si non inscrite)
+          description: Email de l'emprunteur (obligatoire, sert d'identifiant pour le lien de compte)
         phoneNumber:
           type: string
           nullable: true
@@ -2233,7 +2120,7 @@ components:
           format: uuid
           nullable: true
           example: user-9a8b7c6d
-          description: ID utilisateur si l'emprunteur est inscrit
+          description: ID utilisateur Return (null si invitation en attente)
         statistics:
           $ref: '#/components/schemas/BorrowerStatistics'
 
@@ -2274,7 +2161,10 @@ components:
 
     Reminder:
       type: object
-      description: Notification automatique envoyée à l'emprunteur
+      description: |
+        Rappel automatique envoyé à l'emprunteur via push notification.
+        Les rappels sont 100% automatiques (pas de rappel manuel) et utilisent
+        des templates prédéfinis avec pool aléatoire de messages diplomatiques.
       required:
         - id
         - loanId
@@ -2321,12 +2211,15 @@ components:
         - SECOND_OVERDUE
         - FINAL_OVERDUE
       description: |
-        Type de rappel :
-        - **PREVENTIVE** : 3 jours avant la date de retour
-        - **ON_DUE_DATE** : Le jour de la date de retour
-        - **FIRST_OVERDUE** : 3 jours après la date de retour (J+3)
-        - **SECOND_OVERDUE** : 10 jours après (J+10)
-        - **FINAL_OVERDUE** : 17 jours après (J+17, dernier rappel)
+        Type de rappel (politique fixe, 5 rappels automatiques) :
+        - **PREVENTIVE** : 3 jours avant la date de retour (J-3)
+        - **ON_DUE_DATE** : Le jour de la date de retour (J)
+        - **FIRST_OVERDUE** : 7 jours après la date de retour (J+7)
+        - **SECOND_OVERDUE** : 14 jours après (J+14)
+        - **FINAL_OVERDUE** : 21 jours après (J+21, dernier rappel avant passage en NOT_RETURNED)
+
+        Chaque rappel utilise un template prédéfini avec pool aléatoire de messages
+        diplomatiques, sélectionné automatiquement par tier. Pas de rappel manuel.
       example: PREVENTIVE
 
     ReminderStatus:
@@ -2348,18 +2241,16 @@ components:
       type: string
       enum:
         - PUSH
-        - EMAIL
-        - SMS
       description: |
-        Canal de notification :
-        - **PUSH** : Notification push mobile (FCM) - V1
-        - **EMAIL** : Email - V2+
-        - **SMS** : SMS (Twilio) - V2+
+        Canal de notification (V1 : push uniquement) :
+        - **PUSH** : Notification push mobile via Firebase Cloud Messaging (FCM)
+
+        V2+ ajoutera EMAIL et SMS.
       example: PUSH
 
     User:
       type: object
-      description: Utilisateur inscrit de l'application (Prêteur)
+      description: Utilisateur inscrit de l'application (peut être Prêteur et/ou Emprunteur)
       required:
         - id
         - email
@@ -2395,8 +2286,6 @@ components:
           example: https://photos.return.app/users/user-123/avatar.jpg
         settings:
           $ref: '#/components/schemas/UserSettings'
-        subscriptionTier:
-          $ref: '#/components/schemas/SubscriptionTier'
         createdAt:
           type: string
           format: date-time
@@ -2411,51 +2300,39 @@ components:
       type: string
       enum:
         - LENDER
-        - ADMIN
       description: |
-        Rôle de l'utilisateur :
-        - **LENDER** : Utilisateur standard (peut créer des prêts)
-        - **ADMIN** : Administrateur (accès lecture seule en production)
+        Rôle de l'utilisateur (V1 : rôle unique) :
+        - **LENDER** : Utilisateur inscrit (peut prêter et emprunter)
+
+        Note : tout utilisateur peut être à la fois Prêteur et Emprunteur selon le contexte.
+        Le rôle ADMIN n'est pas prévu en V1.
       example: LENDER
 
     UserSettings:
       type: object
       description: Paramètres de notification et préférences utilisateur
       properties:
-        notificationChannels:
-          type: array
-          items:
-            $ref: '#/components/schemas/NotificationChannel'
-          example: [ PUSH, EMAIL ]
-          description: Canaux de notification activés
+        pushNotificationsEnabled:
+          type: boolean
+          example: true
+          description: Activer/désactiver les notifications push
         reminderEnabled:
           type: boolean
           example: true
           description: Activer/désactiver les rappels automatiques
         language:
           type: string
-          enum: [ fr, en, es, de ]
+          enum: [ fr, en ]
           example: fr
-          description: Langue de l'interface
+          description: Langue de l'interface et des notifications (V1 — FR et EN)
         timezone:
           type: string
           example: Europe/Paris
-          description: Fuseau horaire pour les rappels
-
-    SubscriptionTier:
-      type: string
-      enum:
-        - FREE
-        - PREMIUM
-      description: |
-        Niveau d'abonnement :
-        - **FREE** : Gratuit (V1 - pas de limite)
-        - **PREMIUM** : Payant (V2+ - fonctionnalités avancées)
-      example: FREE
+          description: Fuseau horaire pour la planification des rappels
 
     Notification:
       type: object
-      description: Notification push ou email reçue par l'utilisateur
+      description: Notification push reçue par l'utilisateur (V1 — push uniquement via FCM)
       required:
         - id
         - type
@@ -2473,6 +2350,7 @@ components:
           enum:
             - LOAN_CREATED
             - LOAN_CONFIRMED
+            - LOAN_AUTO_CONFIRMED
             - LOAN_CONTESTED
             - LOAN_RETURNED
             - REMINDER_SENT
@@ -2708,9 +2586,14 @@ components:
 
     CreateBorrowerDto:
       type: object
+      description: |
+        Ajouter un emprunteur à son carnet de contacts.
+        L'email est obligatoire car il sert d'identifiant pour le lien vers le compte Return.
+        Si l'emprunteur n'a pas encore de compte, une invitation lui sera envoyée.
       required:
         - firstName
         - lastName
+        - email
       properties:
         firstName:
           type: string
@@ -2725,8 +2608,8 @@ components:
         email:
           type: string
           format: email
-          nullable: true
           example: marie.dupont@example.com
+          description: Email obligatoire (identifiant de compte Return)
         phoneNumber:
           type: string
           nullable: true
