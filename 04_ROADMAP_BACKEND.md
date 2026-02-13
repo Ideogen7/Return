@@ -323,11 +323,11 @@ Cyclé TDD par comportement.
 |--------------|-----------------------------------------------------------------------------------------------|------------|-------------------------|-------|
 | **LOAN-017** | RED : Test ACTIVE -> AWAITING_RETURN si returnDate dépassée                                   | LOAN-016   | Test écrit, échoue      | 20min |
 | **LOAN-018** | RED : Test AWAITING_RETURN -> RETURNED                                                        | LOAN-017   | Test écrit, échoue      | 20min |
-| **LOAN-019** | RED : Test AWAITING_RETURN -> ABANDONED après 5 rappels (via AllRemindersExhaustedEvent)       | LOAN-018   | Test écrit, échoue      | 25min |
+| **LOAN-019** | RED : Test AWAITING_RETURN -> NOT_RETURNED après 5 rappels (via AllRemindersExhaustedEvent)    | LOAN-018   | Test écrit, échoue      | 25min |
 | **LOAN-020** | RED : Test transition invalidé retourné 400 (ex: DISPUTED -> ACTIVE)                          | LOAN-019   | Test écrit, échoue      | 20min |
 | **LOAN-021** | GREEN : Implémenter `LoanService.updateStatus()` (validation via StatusMachine)               | LOAN-020   | Tests LOAN-017 à LOAN-020 passent | 2h |
 
-> **Note sur LOAN-019** : La transition AWAITING_RETURN -> ABANDONED est déclenchée par un événement
+> **Note sur LOAN-019** : La transition AWAITING_RETURN -> NOT_RETURNED est déclenchée par un événement
 > `AllRemindersExhaustedEvent` emis par le module Reminder (Sprint 5). Le module Loan écoute cet événement via
 > `@OnEvent` -- il ne connait pas le nombre de rappels (découplage inter-modules). Le test mocke cet événement.
 
@@ -403,7 +403,7 @@ Cyclé TDD par comportement.
 | **REM-013** | GREEN : Implémenter emission `AllRemindersExhaustedEvent` dans le CRON d'envoi             | REM-012    | Test REM-012 passe   | 1h    |
 
 > **Note** : L'événement `AllRemindersExhaustedEvent` est emis par le module Reminder après l'envoi du 5e rappel
-> (FINAL_OVERDUE). Le module Loan écoute cet événement (via `@OnEvent`) pour passer le prêt en statut ABANDONED.
+> (FINAL_OVERDUE). Le module Loan écoute cet événement (via `@OnEvent`) pour passer le prêt en statut NOT_RETURNED.
 > Le module Reminder ne connait pas les statuts de prêt -- découplage strict.
 
 **Comportement 4 : Consultation des notifications**
@@ -446,7 +446,7 @@ Cyclé TDD par comportement.
 
 | ID           | Titre                                                                                     | Dépendance | Critère de Fin         | Temps |
 |--------------|-------------------------------------------------------------------------------------------|------------|------------------------|-------|
-| **HIST-002** | RED : Test `GET /history/loans` (filtre status RETURNED/ABANDONED)                        | HIST-001   | Test écrit, échoue     | 20min |
+| **HIST-002** | RED : Test `GET /history/loans` (filtre status RETURNED/NOT_RETURNED/ABANDONED)            | HIST-001   | Test écrit, échoue     | 20min |
 | **HIST-003** | GREEN : Implémenter `HistoryService.getArchivedLoans()` (filtres date + status via Prisma) | HIST-002  | Test HIST-002 passe    | 1h30  |
 
 **Comportement 2 : Statistiques**

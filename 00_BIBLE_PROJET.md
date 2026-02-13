@@ -138,7 +138,7 @@ protégeant les biens de l'utilisateur.
   expectative de retour
 - Attributs clés : Date de départ, Date de retour prévue, Statut, Type (Objet | Argent)
 - Cycle de vie : En attente de confirmation → Actif (ou Contesté / Actif par défaut) → En attente de retour → Rendu /
-  Non rendu
+  Non rendu / Abandonné
 
 **Objet (Item)**
 
@@ -188,7 +188,8 @@ protégeant les biens de l'utilisateur.
 - **Contesté (DISPUTED)** : Prêt refusé par l'Emprunteur, rappels désactivés
 - **En attente de retour (AWAITING_RETURN)** : Date de retour dépassée, relance(s) envoyée(s)
 - **Rendu (RETURNED)** : Objet restitué, Prêt clos avec succès
-- **Non rendu / abandonné (ABANDONED)** : Objet non restitué après 3 relances post-échéance, Prêt clos en échec
+- **Non rendu (NOT_RETURNED)** : Objet non restitué après épuisement des 5 rappels automatiques (J-3, J, J+7, J+14, J+21), Prêt clos automatiquement en échec
+- **Abandonné (ABANDONED)** : Le Prêteur renonce volontairement à récupérer son bien avant la fin du cycle de rappels. Prêt clos manuellement
 
 ### Vocabulaire Exclu (Anti-Patterns)
 
@@ -357,21 +358,22 @@ Les questions ouvertes ont été clarifiées avec les réponses suivantes :
     - **J+7** : 1ère relance post-échéance
     - **J+14** : 2ème relance post-échéance
     - **J+21** : 3ème et dernière relance
-- Après la 3ème relance ignorée (J+21) → Statut automatique = **"Non rendu (abandonné)"**
-- Le Prêteur peut toujours voir cet objet dans l'onglet "Non rendus"
+- Après la 5ème notification ignorée (J+21, dernière relance) → Statut automatique = **"Non rendu (NOT_RETURNED)"**
+- Le Prêteur peut à tout moment abandonner manuellement la réclamation → Statut = **"Abandonné (ABANDONED)"**
+- Le Prêteur peut toujours voir ces objets dans l'onglet "Non rendus" et "Abandonnés"
 - Possibilité de réactiver manuellement le Prêt si l'objet est finalement rendu
 
 **Timeline :**
 
-| Jour | Action                   | Statut du prêt        |
-|------|--------------------------|-----------------------|
-| J-3  | Rappel préventif         | Actif                 |
-| J    | Rappel à l'échéance      | Actif                 |
-| J+1  | Date dépassée            | En attente de retour  |
-| J+7  | 1ère relance             | En attente de retour  |
-| J+14 | 2ème relance             | En attente de retour  |
-| J+21 | 3ème et dernière relance | En attente de retour  |
-| J+22 | Clôture automatique      | Non rendu (abandonné) |
+| Jour | Action                          | Statut du prêt        |
+|------|---------------------------------|-----------------------|
+| J-3  | 1er rappel (préventif)           | Actif                 |
+| J    | 2ème rappel (échéance)            | Actif                 |
+| J+1  | Date dépassée                    | En attente de retour  |
+| J+7  | 3ème rappel (1ère relance)        | En attente de retour  |
+| J+14 | 4ème rappel (2ème relance)        | En attente de retour  |
+| J+21 | 5ème rappel (dernière relance) | En attente de retour  |
+| J+22 | Clôture automatique            | Non rendu (NOT_RETURNED) |
 
 ### Q5 : Monétisation ✅
 

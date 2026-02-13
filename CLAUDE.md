@@ -27,7 +27,7 @@ le contrat API OpenAPI.
 
 Modules NestJS découplés par événements (EventEmitter2 + @OnEvent) :
 
-- **Loans** : Cycle de vie des prêts (PENDING_CONFIRMATION → ACTIVE → RETURNED/ABANDONED). Types : Objet physique et
+- **Loans** : Cycle de vie des prêts (PENDING_CONFIRMATION → ACTIVE → RETURNED/NOT_RETURNED/ABANDONED). Types : Objet physique et
   Argent.
 - **Items** : Objets prêtés (photo, nom, catégorie, valeur estimée optionnelle)
 - **Reminders** : Rappels automatiques (BullMQ jobs) — politique fixe J-3, J, J+7, J+14, J+21
@@ -115,8 +115,8 @@ pas de connotation commerciale)
 ## Statuts de Prêt (Machine à États)
 
 `PENDING_CONFIRMATION` → `ACTIVE` (accepté) | `ACTIVE_BY_DEFAULT` (timeout 48h) | `DISPUTED` (refusé)
-`ACTIVE` / `ACTIVE_BY_DEFAULT` → `AWAITING_RETURN` (date dépassée) → `RETURNED` (rendu) | `ABANDONED` (5 rappels
-ignorés)
+`ACTIVE` / `ACTIVE_BY_DEFAULT` → `AWAITING_RETURN` (date dépassée) → `RETURNED` (rendu) | `NOT_RETURNED` (5 rappels
+ignorés) | `ABANDONED` (abandon manuel par le prêteur)
 
 ## Documents de Référence
 

@@ -241,7 +241,7 @@ Gestion complète du cyclé de vie des prêts (création, confirmation, suivi, c
 ```
 PENDING_CONFIRMATION → ACTIVE (accepte) | ACTIVE_BY_DEFAULT (timeout 48h) | DISPUTED (refuse)
 ACTIVE / ACTIVE_BY_DEFAULT → AWAITING_RETURN (date dépassée)
-AWAITING_RETURN → RETURNED (rendu) | ABANDONED (5 rappels ignores)
+AWAITING_RETURN → RETURNED (rendu) | NOT_RETURNED (5 rappels ignorés) | ABANDONED (abandon manuel)
 ```
 
 ### Politique de rappels (automatique, backend)
@@ -252,7 +252,7 @@ AWAITING_RETURN → RETURNED (rendu) | ABANDONED (5 rappels ignores)
 | 2      | J (jour J)      | Rappel le jour de l'échéance     |
 | 3      | J+7             | Premier rappel post-échéance     |
 | 4      | J+14            | Deuxieme rappel post-échéance    |
-| 5      | J+21            | Dernier rappel → ABANDONED       |
+| 5      | J+21            | Dernier rappel → NOT_RETURNED    |
 
 > Les rappels sont 100% automatiques cote backend (BullMQ). Le frontend **ne géré pas** l'envoi de rappels manuels en V1. Il reçoit et affiché les notifications push resultantes.
 
@@ -268,7 +268,7 @@ AWAITING_RETURN → RETURNED (rendu) | ABANDONED (5 rappels ignores)
 | ID           | Titre                                                                                                              | Dépendance | Critère de Fin                | Temps |
 |--------------|--------------------------------------------------------------------------------------------------------------------|------------|-------------------------------|-------|
 | **LOAN-003** | Créer composant `LoanCard` (photo objet + nom + emprunteur + status badge + type OBJECT/MONEY)                     | SETUP-007  | Card affichée dans liste      | 1h30  |
-| **LOAN-004** | Créer composant `StatusBadge` (PENDING_CONFIRMATION en orange, ACTIVE en vert, ACTIVE_BY_DEFAULT en vert clair, AWAITING_RETURN en rouge, DISPUTED en gris, RETURNED en bleu, ABANDONED en noir) | SETUP-007  | Badge colore selon status     | 1h    |
+| **LOAN-004** | Créer composant `StatusBadge` (PENDING_CONFIRMATION en orange, ACTIVE en vert, ACTIVE_BY_DEFAULT en vert clair, AWAITING_RETURN en rouge, DISPUTED en gris, RETURNED en bleu, NOT_RETURNED en noir, ABANDONED en gris foncé) | SETUP-007  | Badge colore selon status     | 1h    |
 | **LOAN-005** | Créer composant `LoanWizard` (step 1: type OBJECT/MONEY, step 2: sélection objet existant ou saisie montant, step 3: sélection emprunteur existant, step 4: date retour + notes) | SETUP-007  | Wizard 4 étapes fonctionnel   | 4h    |
 | **LOAN-006** | Créer composant `LoanTimeline` (affichage historique statuts)                                                      | SETUP-007  | Timeline verticale avec dates | 2h    |
 | **LOAN-007** | Créer composant `ConfirmationDialog` (pour emprunteur : "Accepter" / "Refuser")                                    | SETUP-007  | Dialog modale avec 2 boutons  | 1h    |
