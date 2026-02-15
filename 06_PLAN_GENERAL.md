@@ -49,7 +49,7 @@
 |  Sprint 3 : Items (Photos) -> Synchronisation                             |
 |  Sprint 4 : Loans -> Synchronisation                                      |
 |  Sprint 5 : Reminders + Notifications -> Synchronisation                  |
-|  Sprint 6 : History -> Synchronisation complète                           |
+|  Sprint 6 : History + Déploiement -> Synchronisation complète + Go Live   |
 +---------------------------------------------------------------------------+
 ```
 
@@ -67,7 +67,7 @@ Sprint 0 : Setup Infrastructuré (4 jours)
 
 Sprint 1 : Auth + Users (5 jours)
 +- Backend  : [============] 60% Jour 1-3 -> [====================] 100% Jour 5
-|  +- Livrables : POST /auth/register, /login, /refresh, /logout, GET /users/me, PATCH /users/me, PATCH /users/me/password, DELETE /users/me
+|  +- Livrables : POST /auth/register, /login, /refresh, /logout, GET /users/me, PATCH /users/me, PATCH /users/me/password, DELETE /users/me, GET /users/me/settings, PATCH /users/me/settings
 +- Frontend : [====================] 100% (Login, Register, Profile via Mock)
    SYNC POINT : Frontend basculé Auth -> Backend réel (Jour 5)
 
@@ -75,7 +75,7 @@ Sprint 1 : Auth + Users (5 jours)
 
 Sprint 2 : Borrowers (4 jours)
 +- Backend  : [============] 60% Jour 1-2 -> [====================] 100% Jour 4
-|  +- Livrables : CRUD Borrowers (6 endpoints)
+|  +- Livrables : CRUD Borrowers (5 endpoints)
 +- Frontend : [====================] 100% (Liste, Création, Édition via Mock)
    SYNC POINT : Frontend basculé Borrowers -> Backend réel (Jour 4)
 
@@ -83,7 +83,7 @@ Sprint 2 : Borrowers (4 jours)
 
 Sprint 3 : Items - Photos (4 jours)
 +- Backend  : [==========] 50% Jour 1-2 -> [====================] 100% Jour 4
-|  +- Livrables : CRUD Items + R2 Photos (5 endpoints)
+|  +- Livrables : CRUD Items + R2 Photos + Avatar utilisateur (7 endpoints)
 +- Frontend : [====================] 100% (Liste, Upload Photos via Mock)
    SYNC POINT : Frontend basculé Items -> Backend réel (Jour 4)
 
@@ -91,7 +91,7 @@ Sprint 3 : Items - Photos (4 jours)
 
 Sprint 4 : Loans - Coeur Métier (8 jours)
 +- Backend  : [======] 30% Jour 1-3 -> [============] 60% Jour 5 -> [====================] 100% Jour 8
-|  +- Livrables : Workflow 8 statuts + Confirmation + CRON Timeout + Redis/BullMQ (6 endpoints)
+|  +- Livrables : Workflow 8 statuts + Confirmation + CRON Timeout + Redis/BullMQ (8 endpoints)
 +- Frontend : [====================] 100% (Création, Workflow, Confirmation via Mock)
    SYNC POINT : Frontend basculé Loans -> Backend réel (Jour 8)
 
@@ -99,15 +99,15 @@ Sprint 4 : Loans - Coeur Métier (8 jours)
 
 Sprint 5 : Reminders automatiques + Notifications (5 jours)
 +- Backend  : [==========] 50% Jour 1-3 -> [====================] 100% Jour 5
-|  +- Livrables : 5 rappels auto (J-3, J, J+7, J+14, J+21) + FCM Push (5 endpoints)
+|  +- Livrables : 5 rappels auto (J-3, J, J+7, J+14, J+21) + FCM Push (3 endpoints notifications)
 +- Frontend : [====================] 100% (Notifications Push + Rappels via Mock)
    SYNC POINT : Frontend basculé Notifications -> Backend réel (Jour 5)
 
 --- Buffer (1 jour) ---
 
-Sprint 6 : History + Dashboard + Polish (4 jours)
+Sprint 6 : History + Déploiement + Polish (4 jours)
 +- Backend  : [============] 60% Jour 1-2 -> [====================] 100% Jour 4
-|  +- Livrables : Statistiques + Historique + Smoke tests complets (3 endpoints)
+|  +- Livrables : Statistiques + Historique + Borrower loans + Déploiement Fly.io (5 endpoints)
 +- Frontend : [====================] 100% (Dashboard + Stats + Historique via Mock)
    SYNC POINT FINAL : Frontend 100% Backend réel (Jour 4)
 ```
@@ -132,7 +132,7 @@ Sprint 6 : History + Dashboard + Polish (4 jours)
 | **M2 — Gestion Contacts** | Jour 15 | CRUD Borrowers Frontend vers Backend réel | Smoke tests : créer un emprunteur retourné 201 ; lister retourné la pagination ; supprimer retourné 204 ; erreur 409 si email déjà pris ; Frontend affiché la liste des emprunteurs |
 | **M-CHECK — Checkpoint Mi-Parcours** | Jour 20-22 | Evaluation du scope restant vs temps disponible | Decision formelle : on continue le plan complet OU on coupe des features non-essentielles (stats avancees, deep linking, dashboard détaillé) pour tenir la date. Documenter la decision dans un ADR |
 | **M3 — Enregistrement Objets (Photos)** | Jour 20 | Upload photos + CRUD Items Frontend vers Backend réel | Smoke tests : `POST /items` avec type OBJECT retourné 201 ; `POST /items` avec type MONEY retourné 201 ; upload photo vers R2 retourné URL ; `DELETE /items/{id}` avec prêt actif retourné 409 |
-| **M4 — Prêts Fonctionnels** | Jour 29 | Workflow 7 statuts complet Frontend vers Backend réel | Smoke tests : créer prêt (PENDING) -> confirmer (ACTIVE) -> retournér (RETURNED) ; créer prêt -> contester (DISPUTED) ; timeout 48h passe en ACTIVE_BY_DEFAULT ; transition invalidé retourné 400 |
+| **M4 — Prêts Fonctionnels** | Jour 29 | Workflow 8 statuts complet Frontend vers Backend réel | Smoke tests : créer prêt (PENDING) -> confirmer (ACTIVE) -> retournér (RETURNED) ; créer prêt -> contester (DISPUTED) ; timeout 48h passe en ACTIVE_BY_DEFAULT ; transition invalidé retourné 400 |
 | **M5 — Notifications Push** | Jour 35 | Rappels automatiques et notifications temps réel fonctionnels | Smoke tests : rappel J-3 planifié à la création du prêt ; notification push reçue sur device physique ; `GET /notifications` retourné la liste ; `PATCH /notifications/{id}/read` marque comme lu |
 | **M6 — MVP Complet** | Jour 45 | App complète prete pour déploiement production | Smoke tests : flow complet register -> créer item -> créer prêt -> confirmer -> retournér -> consulter stats ; déploiement Fly.io OK ; build Expo OK (iOS + Android) |
 
@@ -145,9 +145,9 @@ Sprint 6 : History + Dashboard + Polish (4 jours)
 | Jour | Dev 1 (Backend) | Dev 2 (Frontend) |
 |---|---|---|
 | **J1** | Setup NestJS + TypeScript + ESLint + Prettier | Setup Expo (React Native) + TypeScript + ESLint + Prettier |
-| **J2** | Prisma + PostgreSQL Docker + Redis Docker | React Navigation + Zustand + React Native Paper |
+| **J2** | Prisma + PostgreSQL Docker + Redis Docker + `docker-compose.yml` | React Navigation + Zustand + React Native Paper |
 | **J3** | JWT Module (Passport.js) + Redis blacklist + RFC 7807 Exception Filter + Winston | Axios + JWT Interceptor + AsyncStorage securise + react-i18next (FR/EN) |
-| **J4** | CI/CD GitHub Actions (lint + tests + Spectral lint openapi.yaml) | Prism Mock Server + CI/CD (lint + RNTL tests) |
+| **J4** | CI/CD GitHub Actions (lint + tests + Spectral lint openapi.yaml + Docker build) + `Dockerfile` | Prism Mock Server + CI/CD (lint + RNTL tests) |
 
 **Livrable** : Infrastructuré complète prete pour développement.
 
@@ -160,7 +160,7 @@ Sprint 6 : History + Dashboard + Polish (4 jours)
 | **J1** | Schemas Prisma User + RefreshToken + Migrations | Store Zustand Auth + Actions |
 | **J2** | Tests TDD : register, login, refresh, logout | Composants UI : LoginForm, RegisterForm |
 | **J3** | Implémentation Services + Controllers Auth + Redis blacklist logout | Écrans : LoginScreen, RegisterScreen |
-| **J4** | Tests TDD : updateProfile, changePassword, deleteAccount + Implémentation | Écrans : ProfileScreen, EditProfileScreen |
+| **J4** | Tests TDD : updateProfile, changePassword, deleteAccount, getSettings, updateSettings + Implémentation | Écrans : ProfileScreen, EditProfileScreen, SettingsScreen |
 | **J5** | Review + Fix bugs + Documentation Swagger | Navigation + AuthGuard + Tests RNTL |
 
 SYNC : Frontend basculé Auth vers Backend réel (fin J5).
@@ -187,7 +187,7 @@ SYNC : Frontend basculé Borrowers vers Backend réel (fin J4).
 | **J1** | Schemas Prisma Item + Photo + Migrations | Store Zustand Items + Actions CRUD |
 | **J2** | Tests TDD : CRUD Items + R2 Photos upload | Composants UI : ItemCard, ItemForm, PhotoPicker |
 | **J3** | Implémentation Services (R2 Photos, types OBJECT + MONEY) | Composants UI : PhotoGallery |
-| **J4** | Implémentation Controllers + Tests Supertest | Écrans : ItemList, CreateItem, ItemDetail + Tests RNTL |
+| **J4** | Implémentation Controllers + PUT /users/me/avatar (réutilise R2) + Tests Supertest | Écrans : ItemList, CreateItem, ItemDetail + Tests RNTL |
 
 SYNC : Frontend basculé Items vers Backend réel (fin J4).
 
@@ -231,14 +231,14 @@ SYNC : Frontend basculé Notifications vers Backend réel (fin J5).
 
 ---
 
-### Sprint 6 : History + Dashboard + Polish (4 jours)
+### Sprint 6 : History + Déploiement + Polish (4 jours)
 
 | Jour | Dev 1 (Backend) | Dev 2 (Frontend) |
 |---|---|---|
-| **J1** | Tests TDD : getArchivedLoans, getStatistics, trustScore | Store Zustand History + Actions |
-| **J2** | Implémentation HistoryService + Agregations Prisma | Composants UI : StatCard, PieChart, TopBorrowersList |
+| **J1** | Tests TDD : getArchivedLoans, getStatistics, trustScore, borrowerLoans | Store Zustand History + Actions |
+| **J2** | Implémentation HistoryService + Agregations Prisma + BorrowerService.getLoans() | Composants UI : StatCard, PieChart, TopBorrowersList |
 | **J3** | Smoke tests d'intégration complets + Documentation finale | Écrans : Dashboard, History, Statistics + Tests RNTL |
-| **J4** | Déploiement production Fly.io + Smoke tests | Polish UI + Fix bugs finaux + Build Expo (iOS + Android) |
+| **J4** | Vérification Dockerfile + `fly.toml` + Déploiement production Fly.io + Smoke tests | Polish UI + Fix bugs finaux + Build Expo (iOS + Android) |
 
 SYNC FINAL : Frontend 100% Backend réel (fin J4).
 
@@ -258,6 +258,8 @@ SYNC FINAL : Frontend 100% Backend réel (fin J4).
 - `PATCH /users/me` (200 OK, 409 Email taken)
 - `PATCH /users/me/password` (200 OK, 401 Wrong current password)
 - `DELETE /users/me` (204 No Content — suppression de compte et données associées)
+- `GET /users/me/settings` (200 OK — préférences notifications + langue)
+- `PATCH /users/me/settings` (200 OK — update enableReminders, defaultLanguage)
 
 **Action Frontend** :
 
@@ -280,10 +282,12 @@ const MOCK_MODULES = {
 - [ ] Supertest : `POST /auth/login` retourne 200 avec access + refresh tokens
 - [ ] Supertest : `POST /auth/logout` ajoute le token à la blacklist Redis
 - [ ] Supertest : `GET /users/me` retourne les infos utilisateur
+- [ ] Supertest : `GET /users/me/settings` retourne les paramètres
 - [ ] Supertest : `DELETE /users/me` retourne 204 et supprime les données
 - [ ] RNTL : Login vers Dashboard (flow complet)
 - [ ] RNTL : Register vers Dashboard
 - [ ] RNTL : Édition profil
+- [ ] RNTL : Paramètres notifications + langue
 - [ ] Gestion erreur 401 (token expire -> refresh auto)
 
 ---
@@ -297,7 +301,9 @@ const MOCK_MODULES = {
 - `GET /borrowers/{id}` (200 OK, 404 Not found)
 - `PATCH /borrowers/{id}` (200 OK)
 - `DELETE /borrowers/{id}` (204 No Content, 409 Active loans)
-- `GET /borrowers/{id}/statistics` (200 OK)
+
+> **Note** : `GET /borrowers/{id}/statistics` et `GET /borrowers/{id}/loans` ne sont pas disponibles à ce stade.
+> Ils nécessitent les données de prêts (module Loans, Sprint 4) et sont implémentés au Sprint 6.
 
 **Action Frontend** :
 
@@ -333,6 +339,7 @@ const MOCK_MODULES = {
 - `PATCH /items/{id}` (200 OK)
 - `DELETE /items/{id}` (204 No Content, 409 Currently loaned)
 - `POST /items/{id}/photos` (201 Created, max 5 photos)
+- `PUT /users/me/avatar` (200 OK — upload photo de profil via R2)
 
 **Action Frontend** :
 
@@ -353,6 +360,7 @@ const MOCK_MODULES = {
 - [ ] Supertest : `POST /items` avec type OBJECT retourné 201
 - [ ] Supertest : `POST /items` avec type MONEY retourné 201
 - [ ] Supertest : `POST /items/{id}/photos` upload vers R2
+- [ ] Supertest : `PUT /users/me/avatar` upload vers R2
 - [ ] RNTL : Création objet avec photo
 - [ ] Gestion erreur 400 (type MONEY sans montant)
 
@@ -371,7 +379,7 @@ const MOCK_MODULES = {
 - `POST /loans/{id}/confirm` (200 OK -> ACTIVE)
 - `POST /loans/{id}/contest` (200 OK -> DISPUTED)
 
-> **Note** : 6 endpoints différents sont implémentés (DELETE et PATCH génériques sont comptés séparément).
+> **Note** : 8 endpoints Loans implémentés au total (CRUD + confirm + contest + updateStatus).
 
 **Action Frontend** :
 
@@ -440,13 +448,18 @@ const MOCK_MODULES = {
 
 ---
 
-### SYNC FINAL : History (Fin Sprint 6 — Jour 45)
+### SYNC FINAL : History + Déploiement (Fin Sprint 6 — Jour 45)
 
 **Backend disponible** :
 
 - `GET /history/loans` (200 OK, filtres date + status)
 - `GET /history/statistics` (200 OK, overview + charts)
 - `GET /borrowers/{id}/statistics` (200 OK, trustScore)
+- `GET /borrowers/{id}/loans` (200 OK, filtres status)
+
+> **Note** : `GET /borrowers/{id}/statistics` et `GET /borrowers/{id}/loans` sont implémentés dans ce sprint
+> car ils nécessitent les données de prêts (module Loans, Sprint 4). Le backend est également déployé sur Fly.io
+> dans ce sprint (Dockerfile + fly.toml + `fly deploy`).
 
 **Action Frontend** :
 
@@ -490,7 +503,7 @@ const MOCK_MODULES = {
 
 ### Backend
 
-- [ ] ~30 endpoints fonctionnels (conformes à openapi.yaml)
+- [ ] ~40 endpoints fonctionnels (conformes à openapi.yaml, 3 endpoints Reminders réservés V2)
 - [ ] Couverture de tests : Domain 95%, Services 90%, Controllers 70%
 - [ ] Smoke tests d'intégration passent (flow complet register -> loan -> return)
 - [ ] Documentation Swagger accessible `/api/docs`
@@ -515,6 +528,9 @@ const MOCK_MODULES = {
 
 ### Infrastructuré
 
+- [ ] Dockerfile multi-stage fonctionnel (image < 200 MB)
+- [ ] `docker-compose.yml` pour développement local (NestJS + PostgreSQL + Redis)
+- [ ] `fly.toml` configuré (region `cdg`, release_command: prisma migrate deploy)
 - [ ] Backend déployé sur Fly.io (production, 1 region Europe West)
 - [ ] PostgreSQL manage (Fly.io)
 - [ ] Redis manage (cache + BullMQ + blacklist JWT)
@@ -522,6 +538,7 @@ const MOCK_MODULES = {
 - [ ] Firebasé Cloud Messaging configuré
 - [ ] DNS configuré (`api.return.app`)
 - [ ] SSL/TLS actif (Let's Encrypt via Fly.io)
+- [ ] CI/CD : lint + tests + Spectral + Docker build
 
 ### Documentation
 
@@ -562,7 +579,7 @@ const MOCK_MODULES = {
 
 | Semaine | Sprints | Modules Livres | SYNC Points |
 |---|---|---|---|
-| **Semaine 1** | Sprint 0 (4j) + buffer (1j) | Setup complet (NestJS, Expo, CI/CD, i18n, Mock Server, Redis blacklist) | — |
+| **Semaine 1** | Sprint 0 (4j) + buffer (1j) | Setup complet (NestJS, Expo, CI/CD, i18n, Mock Server, Redis blacklist, Docker) | — |
 | **Semaine 2** | Sprint 1 (5j) | Auth + Users | SYNC Auth (J10) |
 | **Semaine 3** | Buffer (1j) + Sprint 2 (4j) | Borrowers | SYNC Borrowers (J15) |
 | **Semaine 4** | Buffer (1j) + Sprint 3 (4j) | Items + Photos R2 | SYNC Items (J20) |

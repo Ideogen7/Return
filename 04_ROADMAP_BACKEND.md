@@ -38,20 +38,24 @@ utilisés.
 |---------------|-----------------------------------------------------------|------------|---------------------------------------------|-------|
 | **SETUP-001** | Initialiser le repository NestJS                          | -          | `npm run start` fonctionne                  | 30min |
 | **SETUP-002** | Configurer TypeScript strict + ESLint + Prettier          | SETUP-001  | `npm run lint` passe sans erreur            | 30min |
-| **SETUP-003** | Installer Prisma + PostgreSQL (Docker Compose)            | SETUP-001  | `npx prisma db push` fonctionne             | 1h    |
+| **SETUP-003** | Installer Prisma + PostgreSQL + Redis (Docker Compose)    | SETUP-001  | `docker compose up` démarre PostgreSQL + Redis, `npx prisma db push` fonctionne | 1h30  |
 | **SETUP-004** | Configurer Winston (logs JSON structurés)                 | SETUP-001  | Logs écrits en JSON avec requestId          | 1h    |
 | **SETUP-005** | Implémenter RFC 7807 Exception Filter global              | SETUP-004  | Erreur 404 retourné format RFC 7807         | 1h30  |
 | **SETUP-006** | Configurer JWT Module (access + refresh tokens)           | SETUP-001  | JWT signe et vérifié avec `@nestjs/jwt`     | 1h    |
 | **SETUP-007** | Créer le Guard d'authentification (JwtAuthGuard)          | SETUP-006  | Route protégée retourné 401 si pas de token | 1h    |
 | **SETUP-008** | Implémenter endpoints `/health` et `/ready`               | SETUP-001  | Fly.io liveness/readiness probes opérationnelles | 45min |
 | **SETUP-009** | Configurer gestion des environnements (.env, ConfigModule)| SETUP-001  | ConfigModule NestJS charge les variables par env (dev/prod), secrets documentes | 1h |
-| **SETUP-010** | Setup CI/CD GitHub Actions (lint + tests + Spectral lint openapi.yaml) | SETUP-002  | Pipeline passe sur `main`                   | 1h30  |
+| **SETUP-010** | Setup CI/CD GitHub Actions (lint + tests + Spectral lint openapi.yaml + Docker build) | SETUP-002  | Pipeline passe sur `main`                   | 1h30  |
+| **SETUP-011** | Créer `Dockerfile` multi-stage (Node.js 22 LTS, builder + runner) + `.dockerignore` | SETUP-001  | `docker build -t return-api .` réussit      | 1h    |
+| **SETUP-012** | Créer `docker-compose.yml` complet (backend + PostgreSQL 17 + Redis 8)               | SETUP-003  | `docker compose up` démarre le stack local  | 45min |
 
 > **Note sur SETUP-009** : Deux environnements en V1 : dev et production. Pas de staging.
 
-> **Note sur SETUP-010** : GitHub Flow -- la CI/CD tourne sur `main` uniquement (pas de branche `develop`). Spectral valide que l'openapi.yaml respecte les standards OpenAPI 3.1.0.
+> **Note sur SETUP-010** : GitHub Flow -- la CI/CD tourne sur `main` uniquement (pas de branche `develop`). Spectral valide que l'openapi.yaml respecte les standards OpenAPI 3.1.0. Le pipeline inclut un `docker build` pour vérifier que l'image de production reste constructible.
 
-**Livrable Sprint 0** : 🚀 Backend démarrable avec auth JWT fonctionnel, health checks opérationnels et CI/CD en place (pas de BDD métier encore).
+> **Note sur SETUP-011/012** : Le Dockerfile utilise un multi-stage build (étape builder pour `npm ci` + `npx prisma generate`, étape runner avec image Node.js slim). Le `docker-compose.yml` inclut PostgreSQL 17, Redis 8 et le backend NestJS pour le développement local. Redis est inclus dès le Sprint 0 même si le module NestJS Redis n'est configuré qu'au Sprint 1 (AUTH-014) -- le conteneur tourne en attente.
+
+**Livrable Sprint 0** : 🚀 Backend démarrable avec auth JWT fonctionnel, health checks opérationnels, CI/CD en place et stack Docker local fonctionnel (pas de BDD métier encore).
 
 ---
 
@@ -133,7 +137,19 @@ Cyclé TDD par comportement pour chaque endpoint utilisateur.
 | **USER-008** | RED : Test `DELETE /users/me` (erreur 409 si prêts actifs)                                      | USER-007   | Test écrit, échoue      | 15min |
 | **USER-009** | GREEN : Implémenter `UserService.deleteAccount()` + `UsersController.deleteMe()` (RGPD)        | USER-008   | Tests USER-007/008 passent | 1h30 |
 
-🏁 **Livrable Sprint 1** : **Frontend peut s'authentifier + gérer profil** (4 endpoints Auth + 5 endpoints Users).
+**Comportement 5 : Settings utilisateur**
+
+| ID           | Titre                                                                                           | Dépendance | Critère de Fin          | Temps |
+|--------------|-------------------------------------------------------------------------------------------------|------------|-------------------------|-------|
+| **USER-010** | RED : Test `GET /users/me/settings` (success 200, retourne préférences notifications + langue)  | USER-009   | Test écrit, échoue      | 15min |
+| **USER-011** | GREEN : Implémenter `UserService.getSettings()` + `UsersController.getSettings()`               | USER-010   | Test USER-010 passe     | 45min |
+| **USER-012** | RED : Test `PATCH /users/me/settings` (update enableReminders, defaultLanguage)                  | USER-011   | Test écrit, échoue      | 15min |
+| **USER-013** | GREEN : Implémenter `UserService.updateSettings()` + `UsersController.updateSettings()`         | USER-012   | Test USER-012 passe     | 45min |
+
+> **Note** : `PUT /users/me/avatar` (upload photo de profil) nécessite Cloudflare R2, configuré au Sprint 3.
+> Cet endpoint est implémenté au Sprint 3 après ITEM-011 (PhotoStorageService).
+
+🏁 **Livrable Sprint 1** : **Frontend peut s'authentifier + gérer profil et paramètres** (4 endpoints Auth + 6 endpoints Users).
 
 ---
 
@@ -190,9 +206,11 @@ Cyclé TDD par comportement (RED -> GREEN -> REFACTOR -> COMMIT).
 
 | ID           | Titre                                          | Dépendance | Critère de Fin                               | Temps |
 |--------------|-------------------------------------------------|------------|----------------------------------------------|-------|
-| **BORR-015** | Créer `BorrowersController` (6 endpoints CRUD) | BORR-014   | Tous les tests BORR-003 à BORR-013 passent   | 1h30  |
+| **BORR-015** | Créer `BorrowersController` (5 endpoints CRUD) | BORR-014   | Tous les tests BORR-003 à BORR-013 passent   | 1h30  |
 
-🏁 **Livrable Sprint 2** : **Frontend peut gérer les emprunteurs** (6 endpoints Borrowers).
+🏁 **Livrable Sprint 2** : **Frontend peut gérer les emprunteurs** (5 endpoints Borrowers CRUD).
+
+> **Note** : `GET /borrowers/{id}/statistics` (trustScore) est implémenté au Sprint 6 (HIST-006/007/010) car il nécessite les données de prêts (module Loans, Sprint 4). `GET /borrowers/{id}/loans` est également reporté au Sprint 6.
 
 ---
 
@@ -232,6 +250,10 @@ Cyclé TDD par comportement.
 |--------------|---------------------------------------------------------------------------------|------------|----------------------|-------|
 | **ITEM-008** | RED : Test `GET /items` (liste paginée avec filtres category/available)          | ITEM-007   | Test écrit, échoue   | 25min |
 | **ITEM-009** | GREEN : Implémenter `ItemService.findAll()` (filtres + pagination via Prisma)   | ITEM-008   | Test ITEM-008 passe  | 1h    |
+| **ITEM-009b** | RED : Test `GET /items/{id}` (success 200 avec photos)                         | ITEM-009   | Test écrit, échoue   | 15min |
+| **ITEM-009c** | GREEN : Implémenter `ItemService.findById()` (avec relations photos via Prisma) | ITEM-009b | Test ITEM-009b passe | 30min |
+| **ITEM-009d** | RED : Test `PATCH /items/{id}` (update name/description/category)              | ITEM-009c  | Test écrit, échoue   | 15min |
+| **ITEM-009e** | GREEN : Implémenter `ItemService.update()` (via Prisma)                        | ITEM-009d  | Test ITEM-009d passe | 30min |
 
 **Comportement 3 : Upload photos**
 
@@ -252,9 +274,19 @@ Cyclé TDD par comportement.
 
 | ID           | Titre                                        | Dépendance | Critère de Fin                               | Temps |
 |--------------|----------------------------------------------|------------|----------------------------------------------|-------|
-| **ITEM-015** | Créer `ItemsController` (CRUD + photos)      | ITEM-014   | Tous les tests ITEM-005 à ITEM-013 passent   | 2h    |
+| **ITEM-015** | Créer `ItemsController` (6 endpoints CRUD + photos) | ITEM-014   | Tous les tests ITEM-005 à ITEM-014 passent   | 2h    |
 
-🏁 **Livrable Sprint 3** : **Frontend peut gérer les objets avec photos** (5 endpoints Items).
+### Phase 3.4 : Avatar Utilisateur (après R2)
+
+> **Note** : `PUT /users/me/avatar` est implémenté dans ce sprint car il dépend de `PhotoStorageService` (ITEM-011, interface R2). Le code réutilise la même interface de stockage que les photos d'items.
+
+| ID           | Titre                                                                              | Dépendance | Critère de Fin          | Temps |
+|--------------|------------------------------------------------------------------------------------|------------|-------------------------|-------|
+| **USER-014** | RED : Test `PUT /users/me/avatar` (upload success 200, retourne URL)               | ITEM-011   | Test écrit, échoue      | 20min |
+| **USER-015** | GREEN : Implémenter `UserService.updateAvatar()` (upload R2 via PhotoStorage)      | USER-014   | Test USER-014 passe     | 1h    |
+| **USER-016** | Ajouter `UsersController.updateAvatar()` (PUT /users/me/avatar)                    | USER-015   | Test E2E passe          | 30min |
+
+🏁 **Livrable Sprint 3** : **Frontend peut gérer les objets avec photos** (6 endpoints Items + 1 endpoint Users: avatar).
 
 ---
 
@@ -338,6 +370,15 @@ Cyclé TDD par comportement.
 | **LOAN-022** | RED : Test timeout auto 48h (PENDING_CONFIRMATION -> ACTIVE_BY_DEFAULT via CRON)              | LOAN-021          | Test écrit, échoue | 30min |
 | **LOAN-023** | GREEN : Implémenter CRON Job timeout 48h (PENDING -> ACTIVE_BY_DEFAULT via BullMQ)            | LOAN-022, LOAN-001 | Test LOAN-022 passe | 2h   |
 
+**Comportement 6 : Modification et suppression de prêt**
+
+| ID           | Titre                                                                                         | Dépendance        | Critère de Fin            | Temps |
+|--------------|-----------------------------------------------------------------------------------------------|--------------------|---------------------------|-------|
+| **LOAN-030** | RED : Test `PATCH /loans/{id}` (update notes/returnDate success 200)                          | LOAN-012           | Test écrit, échoue        | 20min |
+| **LOAN-031** | GREEN : Implémenter `LoanService.update()` (via Prisma)                                       | LOAN-030           | Test LOAN-030 passe       | 45min |
+| **LOAN-032** | RED : Test `DELETE /loans/{id}` (soft delete success 204, erreur 409 si déjà rendu)           | LOAN-031           | Test écrit, échoue        | 25min |
+| **LOAN-033** | GREEN : Implémenter `LoanService.delete()` (soft delete + annulation rappels via EventBus)    | LOAN-032           | Test LOAN-032 passe       | 1h    |
+
 ### Phase 4.4 : Endpoints API
 
 | ID           | Titre                                                             | Dépendance | Critère de Fin                          | Temps |
@@ -348,8 +389,10 @@ Cyclé TDD par comportement.
 | **LOAN-027** | Créer `LoansController.confirm()` (POST /loans/{id}/confirm)      | LOAN-016   | Test LOAN-013 passe                     | 30min |
 | **LOAN-028** | Créer `LoansController.contest()` (POST /loans/{id}/contest)      | LOAN-016   | Test LOAN-014 passe                     | 30min |
 | **LOAN-029** | Créer `LoansController.updateStatus()` (PATCH /loans/{id}/status) | LOAN-021   | Tests LOAN-017 à LOAN-020 passent       | 1h    |
+| **LOAN-034** | Créer `LoansController.update()` (PATCH /loans/{id})              | LOAN-031   | Test LOAN-030 passe                     | 30min |
+| **LOAN-035** | Créer `LoansController.delete()` (DELETE /loans/{id})             | LOAN-033   | Test LOAN-032 passe                     | 30min |
 
-🏁 **Livrable Sprint 4** : **Frontend peut créer et suivre des prêts (workflow complet)** (6 endpoints Loans).
+🏁 **Livrable Sprint 4** : **Frontend peut créer et suivre des prêts (workflow complet)** (8 endpoints Loans).
 
 ---
 
@@ -414,6 +457,8 @@ Cyclé TDD par comportement.
 | **REM-015** | GREEN : Implémenter `NotificationService.findAll()` (pagination via Prisma)  | REM-014    | Test REM-014 passe   | 1h    |
 | **REM-016** | RED : Test `PATCH /notifications/{id}/read` (marquer comme lu success 200)   | REM-015    | Test écrit, échoue   | 15min |
 | **REM-017** | GREEN : Implémenter `NotificationService.markAsRead()` (via Prisma)          | REM-016    | Test REM-016 passe   | 30min |
+| **REM-020** | RED : Test `POST /notifications/read-all` (marquer toutes comme lues 204)    | REM-017    | Test écrit, échoue   | 15min |
+| **REM-021** | GREEN : Implémenter `NotificationService.markAllAsRead()` (via Prisma)       | REM-020    | Test REM-020 passe   | 30min |
 
 ### Phase 5.3 : Endpoints API
 
@@ -421,8 +466,9 @@ Cyclé TDD par comportement.
 |-------------|-------------------------------------------------------------------------------|------------|-------------------------|-------|
 | **REM-018** | Créer `NotificationsController.findAll()` (GET /notifications)                | REM-015    | Test REM-014 passe      | 45min |
 | **REM-019** | Créer `NotificationsController.markAsRead()` (PATCH /notifications/{id}/read) | REM-017    | Test REM-016 passe      | 30min |
+| **REM-022** | Créer `NotificationsController.markAllAsRead()` (POST /notifications/read-all) | REM-021   | Test REM-020 passe      | 30min |
 
-🏁 **Livrable Sprint 5** : **Frontend reçoit des notifications push automatiques** (2 endpoints Notifications + système de rappels automatique en arriere-plan).
+🏁 **Livrable Sprint 5** : **Frontend reçoit des notifications push automatiques** (3 endpoints Notifications + système de rappels automatique en arrière-plan).
 
 ---
 
@@ -475,6 +521,15 @@ Cyclé TDD par comportement.
 | **HIST-009** | Créer `HistoryController.getStatistics()` (GET /history/statistics)                     | HIST-005   | Test HIST-004 passe    | 45min |
 | **HIST-010** | Ajouter endpoint `BorrowersController.getStatistics()` (GET /borrowers/{id}/statistics) | HIST-007   | Test HIST-006 passe    | 30min |
 
+**Comportement 4 : Historique de prêts par emprunteur**
+
+| ID           | Titre                                                                                   | Dépendance | Critère de Fin         | Temps |
+|--------------|-----------------------------------------------------------------------------------------|------------|------------------------|-------|
+| **HIST-011** | RED : Test `GET /borrowers/{id}/loans` (liste des prêts filtrée par statut)             | LOAN-010   | Test écrit, échoue     | 20min |
+| **HIST-012** | GREEN : Implémenter `BorrowerService.getLoans()` (filtre status via Prisma)             | HIST-011   | Test HIST-011 passe    | 1h    |
+| **HIST-013** | Ajouter endpoint `BorrowersController.getLoans()` (GET /borrowers/{id}/loans)           | HIST-012   | Test HIST-011 passe    | 30min |
+| **HIST-010** | Ajouter endpoint `BorrowersController.getStatistics()` (GET /borrowers/{id}/statistics) | HIST-007   | Test HIST-006 passe    | 30min |
+
 ### Phase 6.4 : Tests E2E + Finalisation
 
 | ID          | Titre                                                                                         | Dépendance | Critère de Fin                              | Temps |
@@ -490,24 +545,42 @@ Cyclé TDD par comportement.
 > **E2E-004 (Seeding)** : Script Prisma seed avec des prêteurs, emprunteurs, objets et prêts dans différénts statuts.
 > Indispensable pour le développement frontend en parallèle.
 
-🏁 **Livrable Sprint 6** : **Backend complet avec tests E2E, couverture respectée, Swagger UI et données de seed.**
+### Phase 6.5 : Containerisation & Déploiement Production
+
+| ID            | Titre                                                                                         | Dépendance | Critère de Fin                              | Temps |
+|---------------|-----------------------------------------------------------------------------------------------|------------|---------------------------------------------|-------|
+| **DEPLOY-001** | Vérifier et optimiser le `Dockerfile` (taille image < 200 MB, health checks intégrés)        | SETUP-011  | Image optimisée, `docker run` fonctionne    | 1h    |
+| **DEPLOY-002** | Créer `fly.toml` (app name, region `cdg`, release_command: `prisma migrate deploy`, checks)   | DEPLOY-001 | `fly deploy --dry-run` passe                | 1h    |
+| **DEPLOY-003** | Provisionner PostgreSQL managed + Redis (Upstash) sur Fly.io                                 | DEPLOY-002 | `fly postgres create` + Upstash configuré   | 1h    |
+| **DEPLOY-004** | Premier `fly deploy` + vérification health checks + smoke tests production                    | DEPLOY-003 | `GET /health` et `GET /ready` retournent 200 | 1h30  |
+| **DEPLOY-005** | Configurer DNS (`api.return.app`) + certificat SSL (Let's Encrypt via Fly.io)                 | DEPLOY-004 | `curl https://api.return.app/v1/health` retourne 200 | 30min |
+
+> **Note DEPLOY-002** : Le `fly.toml` utilise `release_command = "npx prisma migrate deploy"` pour appliquer les
+> migrations automatiquement avant de router le trafic vers la nouvelle version. Cette stratégie est décrite dans
+> la section 7 de `01_ARCHITECTURE_TECHNIQUE.md`.
+
+🏁 **Livrable Sprint 6** : **Backend complet déployé en production avec tests E2E, couverture respectée, Swagger UI, données de seed et infrastructure Fly.io opérationnelle.**
 
 ---
 
 ## Résumé des Sprints
 
-| Sprint       | Durée           | Modules                   | Endpoints livres           | Tests              |
-|--------------|-----------------|---------------------------|----------------------------|--------------------|
-| **Sprint 0** | 3-4 jours       | Setup infrastructuré      | 2 (health + ready)         | CI/CD              |
-| **Sprint 1** | 5 jours         | Auth + Users              | 8 (Auth: 4, Users: 4)     | ~16 tests          |
-| **Sprint 2** | 4 jours         | Borrowers                 | 6                          | ~8 tests           |
-| **Sprint 3** | 4 jours         | Items                     | 5                          | ~6 tests           |
-| **Sprint 4** | 8 jours         | Loans (coeur métier)      | 6                          | ~12 tests          |
-| **Sprint 5** | 5 jours         | Reminders + Notifications | 2 + système auto           | ~10 tests          |
-| **Sprint 6** | 4 jours         | History + E2E + Seed      | 3                          | E2E complet        |
-| **TOTAL**    | **38-42 jours** | **7 modules**             | **~32 endpoints**          | **~52+ tests**     |
+| Sprint       | Durée           | Modules                   | Endpoints livres                          | Tests              |
+|--------------|-----------------|---------------------------|-------------------------------------------|--------------------|
+| **Sprint 0** | 3-4 jours       | Setup infrastructuré      | 2 (health + ready) + Docker               | CI/CD              |
+| **Sprint 1** | 5 jours         | Auth + Users              | 10 (Auth: 4, Users: 6)                    | ~20 tests          |
+| **Sprint 2** | 4 jours         | Borrowers                 | 5                                          | ~8 tests           |
+| **Sprint 3** | 4 jours         | Items + Avatar            | 7 (Items: 6, Avatar: 1)                   | ~10 tests          |
+| **Sprint 4** | 8 jours         | Loans (coeur métier)      | 8                                          | ~16 tests          |
+| **Sprint 5** | 5 jours         | Reminders + Notifications | 3 + système auto                           | ~12 tests          |
+| **Sprint 6** | 4 jours         | History + Déploiement     | 5 (History: 2, Borrower stats/loans: 2, E2E) | E2E complet     |
+| **TOTAL**    | **38-42 jours** | **7 modules**             | **~40 endpoints** (+ 3 réservés V2)        | **~66+ tests**     |
 
-> **Buffer intégré** : L'estimation de 35-40 jours (vs 30 jours initiaux) inclut un buffer pour les blockers
+> **Endpoints réservés V2** : 3 endpoints Reminders (`GET /loans/{id}/reminders`, `GET /reminders/{id}`,
+> `POST /reminders/{id}/cancel`) sont définis dans `openapi.yaml` mais ne sont pas implémentés en V1 car
+> les rappels sont 100% automatiques. Ils seront implémentés quand les rappels manuels seront ajoutés (V2+).
+
+> **Buffer intégré** : L'estimation de 38-42 jours (vs 30 jours initiaux) inclut un buffer pour les blockers
 > techniques (configuration FCM, problèmes Docker, courbe d'apprentissage NestJS/Prisma/BullMQ) et les imprévus.
 > Sans OCR ni rappels manuels, le scope est plus réaliste pour 2 développeurs.
 

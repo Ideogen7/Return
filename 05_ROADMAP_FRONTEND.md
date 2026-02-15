@@ -21,6 +21,8 @@
 
 **Durée estimée** : 6 Sprints de 5 jours + buffer intégration (35-40 jours calendaires).
 
+> **Note Containerisation** : L'application mobile React Native n'est **pas conteneurisée**. Les builds natifs (iOS/Android) sont gérés par **Expo/EAS Build** (cloud). Seul le backend est conteneurisé (Docker + Fly.io). Voir `04_ROADMAP_BACKEND.md` Sprint 0 et Phase 6.5.
+
 **Stack Frontend** :
 
 | Technologie             | Version   | Rôle                                      |
@@ -112,6 +114,7 @@ Authentification complète + Édition de profil + Suppression de compte (RGPD). 
 | **AUTH-014** | Créer écran `EditProfileScreen` (connecté EditProfileForm au store)           | AUTH-009            | Sauvegarde mise à jour profil via API mock  | 1h    |
 | **AUTH-015** | Créer écran `ChangePasswordScreen` (connecté ChangePasswordForm au store)     | AUTH-010            | Change mot de passe via API mock            | 1h    |
 | **AUTH-016** | Créer écran `DeleteAccountScreen` (confirmation + appel `DELETE /users/me`)   | AUTH-001            | Suppression compte via API mock (RGPD)      | 1h30  |
+| **AUTH-016b** | Créer écran `SettingsScreen` (langue, préférences notifications)                | AUTH-001            | GET + PATCH `/users/me/settings` via mock   | 1h30  |
 
 > **Note AUTH-016** : L'écran `DeleteAccountScreen` implémente la suppression de compte conformement au RGPD. L'utilisateur doit confirmer par saisie de son mot de passe avant suppression. En cas de prêts actifs, l'API retourné une erreur 409 — l'écran affiché un message explicatif.
 
@@ -139,7 +142,7 @@ Authentification complète + Édition de profil + Suppression de compte (RGPD). 
 | **AUTH-029** | Écrire test RNTL : état de chargement (loading spinner)                | AUTH-011   | Test RNTL passe                                   | 30min |
 | **AUTH-030** | Écrire test RNTL : DeleteAccountScreen confirmation + erreur 409       | AUTH-016   | Test RNTL passe                                   | 45min |
 
-📦 **Livrable Sprint 1** : **Authentification + Profil + Suppression de compte complets** (connectés au Mock Server), couverts par tests RNTL.
+📦 **Livrable Sprint 1** : **Authentification + Profil + Settings + Suppression de compte complets** (connectés au Mock Server), couverts par tests RNTL.
 
 ---
 
@@ -463,13 +466,13 @@ export const API_BASE_URL = (endpoint: string): string => {
 | Sprint       | Durée        | Modules              | Écrans livres                                                           | Tests RNTL      |
 |--------------|--------------|----------------------|-------------------------------------------------------------------------|-----------------|
 | **Sprint 0** | 3-4 jours    | Setup infrastructuré | 0                                                                       | CI/CD setup     |
-| **Sprint 1** | 5 jours      | Auth + Profil        | 6 (Login, Register, Profile, EditProfile, ChangePassword, DeleteAccount)| 6 tests         |
+| **Sprint 1** | 5 jours      | Auth + Profil + Settings | 7 (Login, Register, Profile, EditProfile, ChangePassword, DeleteAccount, Settings) | 6 tests         |
 | **Sprint 2** | 4 jours      | Borrowers            | 4 (List, Create, Detail, Edit)                                          | 2 tests         |
 | **Sprint 3** | 4 jours      | Items (Photos)       | 4 (List, Create, Detail, Edit)                                          | 2 tests         |
 | **Sprint 4** | 8 jours      | Loans                | 5 (List, Create, Detail, Confirm, Return)                               | 4 tests         |
 | **Sprint 5** | 5 jours      | Notifications        | 1 (NotificationList) + header badge                                     | 2 tests         |
 | **Sprint 6** | 4 jours      | Dashboard + History  | 3 (Dashboard, History, Statistics)                                      | 1 test          |
-| **TOTAL**    | **38-42 j.** | **7 modules**        | **23 écrans**                                                           | **17+ tests**   |
+| **TOTAL**    | **38-42 j.** | **7 modules**        | **24 écrans**                                                           | **17+ tests**   |
 
 ---
 
@@ -477,12 +480,12 @@ export const API_BASE_URL = (endpoint: string): string => {
 
 | Moment                   | Frontend basculé vers         | Backend disponible                  |
 |--------------------------|-------------------------------|-------------------------------------|
-| **Fin Sprint 1 Backend** | Auth + Users réel             | `/auth/*` + `/users/me`            |
+| **Fin Sprint 1 Backend** | Auth + Users + Settings réel  | `/auth/*` + `/users/me` + `/users/me/settings` |
 | **Fin Sprint 2 Backend** | Borrowers réel                | `/borrowers/*`                     |
 | **Fin Sprint 3 Backend** | Items réel (Photos + R2)      | `/items/*`                         |
 | **Fin Sprint 4 Backend** | Loans réel (workflow complet) | `/loans/*`                         |
 | **Fin Sprint 5 Backend** | Notifications réelles (FCM)   | `/reminders/*` + `/notifications/*`|
-| **Fin Sprint 6 Backend** | History réel                  | `/history/*`                       |
+| **Fin Sprint 6 Backend** | History + Déploiement réel    | `/history/*` + `/borrowers/{id}/loans` |
 
 ---
 
