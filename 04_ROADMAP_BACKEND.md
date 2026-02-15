@@ -44,12 +44,12 @@ utilisés.
 | **SETUP-006** | Configurer JWT Module (access + refresh tokens)           | SETUP-001  | JWT signe et vérifié avec `@nestjs/jwt`     | 1h    |
 | **SETUP-007** | Créer le Guard d'authentification (JwtAuthGuard)          | SETUP-006  | Route protégée retourné 401 si pas de token | 1h    |
 | **SETUP-008** | Implémenter endpoints `/health` et `/ready`               | SETUP-001  | Fly.io liveness/readiness probes opérationnelles | 45min |
-| **SETUP-009** | Configurer gestion des environnements (.env, ConfigModule) | SETUP-001 | ConfigModule NestJS charge les variables par env (dev/prod), secrets documentes | 1h |
-| **SETUP-010** | Setup CI/CD GitHub Actions (lint + tests)                 | SETUP-002  | Pipeline passe sur `main`                   | 1h30  |
+| **SETUP-009** | Configurer gestion des environnements (.env, ConfigModule)| SETUP-001  | ConfigModule NestJS charge les variables par env (dev/prod), secrets documentes | 1h |
+| **SETUP-010** | Setup CI/CD GitHub Actions (lint + tests + Spectral lint openapi.yaml) | SETUP-002  | Pipeline passe sur `main`                   | 1h30  |
 
 > **Note sur SETUP-009** : Deux environnements en V1 : dev et production. Pas de staging.
 
-> **Note sur SETUP-010** : GitHub Flow -- la CI/CD tourne sur `main` uniquement (pas de branche `develop`).
+> **Note sur SETUP-010** : GitHub Flow -- la CI/CD tourne sur `main` uniquement (pas de branche `develop`). Spectral valide que l'openapi.yaml respecte les standards OpenAPI 3.1.0.
 
 **Livrable Sprint 0** : 🚀 Backend démarrable avec auth JWT fonctionnel, health checks opérationnels et CI/CD en place (pas de BDD métier encore).
 
@@ -137,7 +137,7 @@ Cyclé TDD par comportement pour chaque endpoint utilisateur.
 
 ---
 
-## Sprint 2 : Module Borrowers (3 jours)
+## Sprint 2 : Module Borrowers (4 jours)
 
 ### Objectif
 
@@ -258,11 +258,11 @@ Cyclé TDD par comportement.
 
 ---
 
-## Sprint 4 : Module Loans (Coeur Métier) (7 jours)
+## Sprint 4 : Module Loans (Coeur Métier) (8 jours)
 
 ### Objectif
 
-Gestion complète du cyclé de vie des prêts (7 statuts, workflow de confirmation, clôture).
+Gestion complète du cyclé de vie des prêts (8 statuts, workflow de confirmation, clôture).
 
 ### Phase 4.0 : Setup BullMQ
 
@@ -426,7 +426,7 @@ Cyclé TDD par comportement.
 
 ---
 
-## Sprint 6 : Module History + Finalisation (3-4 jours)
+## Sprint 6 : Module History + Finalisation (4 jours)
 
 ### Objectif
 
@@ -499,13 +499,13 @@ Cyclé TDD par comportement.
 | Sprint       | Durée           | Modules                   | Endpoints livres           | Tests              |
 |--------------|-----------------|---------------------------|----------------------------|--------------------|
 | **Sprint 0** | 3-4 jours       | Setup infrastructuré      | 2 (health + ready)         | CI/CD              |
-| **Sprint 1** | 5 jours         | Auth + Users              | 9 (Auth: 4, Users: 5)     | ~16 tests          |
-| **Sprint 2** | 3 jours         | Borrowers                 | 6                          | ~8 tests           |
+| **Sprint 1** | 5 jours         | Auth + Users              | 8 (Auth: 4, Users: 4)     | ~16 tests          |
+| **Sprint 2** | 4 jours         | Borrowers                 | 6                          | ~8 tests           |
 | **Sprint 3** | 4 jours         | Items                     | 5                          | ~6 tests           |
-| **Sprint 4** | 7 jours         | Loans (coeur métier)      | 6                          | ~12 tests          |
+| **Sprint 4** | 8 jours         | Loans (coeur métier)      | 6                          | ~12 tests          |
 | **Sprint 5** | 5 jours         | Reminders + Notifications | 2 + système auto           | ~10 tests          |
-| **Sprint 6** | 3-4 jours       | History + E2E + Seed      | 3                          | E2E complet        |
-| **TOTAL**    | **35-40 jours** | **7 modules**             | **~33 endpoints**          | **~52+ tests**     |
+| **Sprint 6** | 4 jours         | History + E2E + Seed      | 3                          | E2E complet        |
+| **TOTAL**    | **38-42 jours** | **7 modules**             | **~32 endpoints**          | **~52+ tests**     |
 
 > **Buffer intégré** : L'estimation de 35-40 jours (vs 30 jours initiaux) inclut un buffer pour les blockers
 > techniques (configuration FCM, problèmes Docker, courbe d'apprentissage NestJS/Prisma/BullMQ) et les imprévus.

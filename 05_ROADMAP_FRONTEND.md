@@ -143,7 +143,7 @@ Authentification complète + Édition de profil + Suppression de compte (RGPD). 
 
 ---
 
-## Sprint 2 : Module Borrowers (3 jours)
+## Sprint 2 : Module Borrowers (4 jours)
 
 ### Objectif
 
@@ -230,7 +230,7 @@ Enregistrement d'objets avec photos + upload. La reconnaissance automatique (OCR
 
 ---
 
-## Sprint 4 : Module Loans — Coeur Métier (7 jours)
+## Sprint 4 : Module Loans — Coeur Métier (8 jours)
 
 ### Objectif
 
@@ -359,7 +359,7 @@ Recevoir et gérer les notifications push. Les rappels sont 100% automatiques co
 
 ---
 
-## Sprint 6 : Module History + Dashboard (3 jours)
+## Sprint 6 : Module History + Dashboard (4 jours)
 
 ### Objectif
 
@@ -464,12 +464,12 @@ export const API_BASE_URL = (endpoint: string): string => {
 |--------------|--------------|----------------------|-------------------------------------------------------------------------|-----------------|
 | **Sprint 0** | 3-4 jours    | Setup infrastructuré | 0                                                                       | CI/CD setup     |
 | **Sprint 1** | 5 jours      | Auth + Profil        | 6 (Login, Register, Profile, EditProfile, ChangePassword, DeleteAccount)| 6 tests         |
-| **Sprint 2** | 3 jours      | Borrowers            | 4 (List, Create, Detail, Edit)                                          | 2 tests         |
+| **Sprint 2** | 4 jours      | Borrowers            | 4 (List, Create, Detail, Edit)                                          | 2 tests         |
 | **Sprint 3** | 4 jours      | Items (Photos)       | 4 (List, Create, Detail, Edit)                                          | 2 tests         |
-| **Sprint 4** | 7 jours      | Loans                | 5 (List, Create, Detail, Confirm, Return)                               | 4 tests         |
+| **Sprint 4** | 8 jours      | Loans                | 5 (List, Create, Detail, Confirm, Return)                               | 4 tests         |
 | **Sprint 5** | 5 jours      | Notifications        | 1 (NotificationList) + header badge                                     | 2 tests         |
-| **Sprint 6** | 3 jours      | Dashboard + History  | 3 (Dashboard, History, Statistics)                                      | 1 test          |
-| **TOTAL**    | **35-40 j.** | **7 modules**        | **23 écrans**                                                           | **17+ tests**   |
+| **Sprint 6** | 4 jours      | Dashboard + History  | 3 (Dashboard, History, Statistics)                                      | 1 test          |
+| **TOTAL**    | **38-42 j.** | **7 modules**        | **23 écrans**                                                           | **17+ tests**   |
 
 ---
 

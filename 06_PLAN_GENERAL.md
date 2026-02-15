@@ -67,7 +67,7 @@ Sprint 0 : Setup Infrastructuré (4 jours)
 
 Sprint 1 : Auth + Users (5 jours)
 +- Backend  : [============] 60% Jour 1-3 -> [====================] 100% Jour 5
-|  +- Livrables : POST /auth/register, /login, /refresh, /logout, PATCH /users/me, DELETE /users/me
+|  +- Livrables : POST /auth/register, /login, /refresh, /logout, GET /users/me, PATCH /users/me, PATCH /users/me/password, DELETE /users/me
 +- Frontend : [====================] 100% (Login, Register, Profile via Mock)
    SYNC POINT : Frontend basculé Auth -> Backend réel (Jour 5)
 
@@ -91,7 +91,7 @@ Sprint 3 : Items - Photos (4 jours)
 
 Sprint 4 : Loans - Coeur Métier (8 jours)
 +- Backend  : [======] 30% Jour 1-3 -> [============] 60% Jour 5 -> [====================] 100% Jour 8
-|  +- Livrables : Workflow 7 statuts + Confirmation + CRON Timeout + Redis/BullMQ (7 endpoints)
+|  +- Livrables : Workflow 8 statuts + Confirmation + CRON Timeout + Redis/BullMQ (6 endpoints)
 +- Frontend : [====================] 100% (Création, Workflow, Confirmation via Mock)
    SYNC POINT : Frontend basculé Loans -> Backend réel (Jour 8)
 
@@ -127,7 +127,7 @@ Sprint 6 : History + Dashboard + Polish (4 jours)
 
 | Milestone | Jour | Critère de Succes | Go/No-Go |
 |---|---|---|---|
-| **M0 — Infrastructuré Ready** | Jour 4 | Backend demarre + Mock Server lancé + CI/CD opérationnel + i18n configuré | Smoke tests : `npm run start:dev` (backend) demarre sans erreur ; `npx expo start` (frontend) affiché l'écran d'accueil ; pipeline CI passe au vert |
+| **M0 — Infrastructuré Ready** | Jour 4 | Backend demarre + Mock Server lancé + CI/CD opérationnel (incl. Spectral lint openapi.yaml) + i18n configuré | Smoke tests : `npm run start:dev` (backend) demarre sans erreur ; `npx expo start` (frontend) affiché l'écran d'accueil ; pipeline CI passe au vert (Spectral valide openapi.yaml) |
 | **M1 — Auth Complet** | Jour 10 | Login/Register fonctionnel Frontend vers Backend réel | Smoke tests : `POST /auth/register` retourné 201 ; `POST /auth/login` retourné un JWT validé ; refresh token fonctionne ; `DELETE /users/me` supprime le compte ; Frontend affiché le Dashboard après login |
 | **M2 — Gestion Contacts** | Jour 15 | CRUD Borrowers Frontend vers Backend réel | Smoke tests : créer un emprunteur retourné 201 ; lister retourné la pagination ; supprimer retourné 204 ; erreur 409 si email déjà pris ; Frontend affiché la liste des emprunteurs |
 | **M-CHECK — Checkpoint Mi-Parcours** | Jour 20-22 | Evaluation du scope restant vs temps disponible | Decision formelle : on continue le plan complet OU on coupe des features non-essentielles (stats avancees, deep linking, dashboard détaillé) pour tenir la date. Documenter la decision dans un ADR |
@@ -199,7 +199,7 @@ SYNC : Frontend basculé Items vers Backend réel (fin J4).
 |---|---|---|
 | **J1** | Schema Prisma Loan + Migrations + Index | Store Zustand Loans + Actions |
 | **J2** | Tests TDD : createLoan (type OBJECT + MONEY), confirmLoan, contestLoan | Composants UI : LoanCard, StatusBadge |
-| **J3** | Tests TDD : updateStatus, workflow transitions (7 statuts) | Composants UI : LoanWizard (3 steps) |
+| **J3** | Tests TDD : updateStatus, workflow transitions (8 statuts) | Composants UI : LoanWizard (3 steps) |
 | **J4** | Implémentation LoanFactory + LoanStatusMachine | Composants UI : LoanTimeline, ConfirmationDialog |
 | **J5** | Implémentation LoanService + EventEmitter2 | Écrans : LoanListScreen, CreateLoanScreen |
 | **J6** | Setup Redis + BullMQ + CRON Job timeout 48h + Controllers | Écrans : LoanDetailScreen, ConfirmLoanScreen, ReturnLoanScreen |
@@ -254,6 +254,7 @@ SYNC FINAL : Frontend 100% Backend réel (fin J4).
 - `POST /auth/login` (200 OK, 401 Invalid credentials)
 - `POST /auth/refresh` (200 OK, 401 Invalid refresh token)
 - `POST /auth/logout` (204 No Content — token ajouté à la blacklist Redis)
+- `GET /users/me` (200 OK)
 - `PATCH /users/me` (200 OK, 409 Email taken)
 - `PATCH /users/me/password` (200 OK, 401 Wrong current password)
 - `DELETE /users/me` (204 No Content — suppression de compte et données associées)
@@ -275,10 +276,11 @@ const MOCK_MODULES = {
 
 **Smoke tests de validation** :
 
-- [ ] Supertest : `POST /auth/register` retourné 201 avec JWT
-- [ ] Supertest : `POST /auth/login` retourné 200 avec access + refresh tokens
-- [ ] Supertest : `POST /auth/logout` ajouté le token à la blacklist Redis
-- [ ] Supertest : `DELETE /users/me` retourné 204 et supprime les données
+- [ ] Supertest : `POST /auth/register` retourne 201 avec JWT
+- [ ] Supertest : `POST /auth/login` retourne 200 avec access + refresh tokens
+- [ ] Supertest : `POST /auth/logout` ajoute le token à la blacklist Redis
+- [ ] Supertest : `GET /users/me` retourne les infos utilisateur
+- [ ] Supertest : `DELETE /users/me` retourne 204 et supprime les données
 - [ ] RNTL : Login vers Dashboard (flow complet)
 - [ ] RNTL : Register vers Dashboard
 - [ ] RNTL : Édition profil
@@ -369,6 +371,8 @@ const MOCK_MODULES = {
 - `POST /loans/{id}/confirm` (200 OK -> ACTIVE)
 - `POST /loans/{id}/contest` (200 OK -> DISPUTED)
 
+> **Note** : 6 endpoints différents sont implémentés (DELETE et PATCH génériques sont comptés séparément).
+
 **Action Frontend** :
 
 ```typescript
@@ -408,7 +412,8 @@ const MOCK_MODULES = {
 
 > **Note** : Les rappels sont 100% automatiques (politique fixe J-3, J, J+7, J+14, J+21).
 > 5 rappels planifiés automatiquement à la création d'un prêt avec date d'échéance.
-> Pas de rappels manuels en V1.
+> Les 3 endpoints `/reminders/*` ne sont pas utilisés en V1 (réservés pour rappels manuels V2+).
+> **Endpoints actifs en V1** : 3 endpoints notifications (`GET /notifications`, `PATCH /notifications/{id}/read`, `POST /notifications/read-all`).
 
 **Action Frontend** :
 
