@@ -542,7 +542,7 @@ Cyclé TDD par comportement.
 > **E2E-003 (Swagger UI)** : La spec OpenAPI est rédigée manuellement (`openapi.yaml`). Swagger UI est configuré pour
 > servir cette spec -- pas de generation automatique depuis les decorateurs NestJS.
 
-> **E2E-004 (Seeding)** : Script Prisma seed avec des prêteurs, emprunteurs, objets et prêts dans différénts statuts.
+> **E2E-004 (Seeding)** : Script Prisma seed avec des prêteurs, emprunteurs, objets et prêts dans différents statuts.
 > Indispensable pour le développement frontend en parallèle.
 
 ### Phase 6.5 : Containerisation & Déploiement Production
