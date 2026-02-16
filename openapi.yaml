@@ -1,0 +1,2848 @@
+openapi: 3.1.0
+
+info:
+  title: Return API
+  version: 1.1.0
+  description: |
+    **Return** — API de gestion de prêts d'objets personnels et d'argent.
+
+    Cette API permet de :
+    - Gérer des prêts d'objets (photo, retour physique) et d'argent (montant, remboursement)
+    - Suivre le cycle de vie complet d'un prêt (création, confirmation, rappels, retour)
+    - Planifier et envoyer des rappels automatiques diplomatiques (J-3, J, J+7, J+14, J+21)
+    - Consulter l'historique et les statistiques de prêts
+
+    **Architecture** : Monolithe Modulaire (NestJS 11.x + PostgreSQL 17+)
+    **Authentification** : JWT (Bearer Token) avec révocation immédiate via Redis
+    **Standards** : RFC 7807 pour toutes les erreurs, i18n FR/EN
+    **Validation** : class-validator + class-transformer
+
+  contact:
+    name: Return Support
+    email: support@return.app
+    url: https://return.app/support
+  license:
+    name: Proprietary
+    url: https://return.app/license
+
+servers:
+  - url: https://api.return.app/v1
+    description: Production (Fly.io — Europe West)
+  - url: http://localhost:3000/v1
+    description: Développement local
+
+tags:
+  - name: Authentication
+    description: Inscription, connexion et gestion de session
+  - name: Loans
+    description: Gestion du cycle de vie des prêts
+  - name: Items
+    description: Gestion des objets prêtables
+  - name: Borrowers
+    description: Gestion des emprunteurs (compte obligatoire)
+  - name: Reminders
+    description: Système de rappels automatiques
+  - name: Notifications
+    description: Gestion des notifications push (V1)
+  - name: Users
+    description: Profil utilisateur et paramètres
+  - name: History
+    description: Historique et statistiques des prêts
+  - name: Health
+    description: Endpoints de santé pour monitoring et load balancer
+
+security:
+  - BearerAuth: [ ]
+
+paths:
+  # =============================================================================
+  # AUTHENTICATION ENDPOINTS (Exemple de structure)
+  # =============================================================================
+  
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Créer un nouveau compte utilisateur
+      description: |
+        Inscription d'un nouvel utilisateur. Retourne un JWT valide après création.
+        Le compte est créé avec le rôle `LENDER` par défaut.
+      operationId: registerUser
+      security: [ ]  # Public endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDto'
+            examples:
+              basic:
+                summary: Inscription basique
+                value:
+                  email: john.doe@example.com
+                  password: SecureP@ssw0rd!
+                  firstName: John
+                  lastName: Doe
+      responses:
+        '201':
+          description: Compte créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  value:
+                    accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    expiresIn: 900
+                    tokenType: Bearer
+                    user:
+                      id: user-123
+                      email: john.doe@example.com
+                      firstName: John
+                      lastName: Doe
+                      role: LENDER
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                emailTaken:
+                  value:
+                    type: https://api.return.app/errors/email-already-exists
+                    title: Email Already Exists
+                    status: 409
+                    detail: "The email 'john.doe@example.com' is already registered."
+                    instance: /v1/auth/register
+                    timestamp: 2026-02-08T14:32:00Z
+                    requestId: req-7f3c9a2b
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Se connecter à un compte existant
+      description: |
+        Authentification par email + mot de passe. Retourne un access token (15 min)
+        et un refresh token (30 jours).
+      operationId: loginUser
+      security: [ ]  # Public endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDto'
+            examples:
+              valid:
+                value:
+                  email: john.doe@example.com
+                  password: SecureP@ssw0rd!
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Identifiants invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                invalidCredentials:
+                  value:
+                    type: https://api.return.app/errors/invalid-credentials
+                    title: Invalid Credentials
+                    status: 401
+                    detail: Email or password is incorrect.
+                    instance: /v1/auth/login
+                    timestamp: 2026-02-08T14:35:00Z
+                    requestId: req-8a4d1b3c
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Renouveler un access token expiré
+      description: |
+        Utilise le refresh token pour obtenir un nouveau access token.
+        Le refresh token reste valide jusqu'à son expiration (30 jours).
+      operationId: refreshToken
+      security: [ ]  # Public endpoint (le refresh token est dans le body)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenDto'
+            examples:
+              valid:
+                value:
+                  refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token renouvelé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Refresh token invalide ou expiré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Se déconnecter (invalider les tokens)
+      description: |
+        Invalide immédiatement l'access token (ajouté à la blacklist Redis) et le
+        refresh token. Le token ne peut plus être utilisé ni renouvelé.
+
+        **V1** : Révocation immédiate via blacklist Redis (TTL = durée restante du token).
+      operationId: logoutUser
+      responses:
+        '204':
+          description: Déconnexion réussie (pas de contenu retourné)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # =============================================================================
+  # LOANS ENDPOINTS
+  # =============================================================================
+
+  /loans:
+    get:
+      tags:
+        - Loans
+      summary: Lister tous les prêts de l'utilisateur connecté
+      description: |
+        Récupère la liste des prêts créés par l'utilisateur avec filtres et pagination.
+        Par défaut, retourne uniquement les prêts actifs (non archivés).
+      operationId: listLoans
+      parameters:
+        - name: status
+          in: query
+          description: Filtrer par statut de prêt (plusieurs valeurs possibles séparées par des virgules)
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/LoanStatus'
+          style: form
+          explode: false
+          example: ACTIVE,AWAITING_RETURN
+        - name: borrowerId
+          in: query
+          description: Filtrer par emprunteur
+          schema:
+            type: string
+            format: uuid
+          example: borrower-5d6e7f8a
+        - name: includeArchived
+          in: query
+          description: Inclure les prêts archivés (rendus ou non rendus)
+          schema:
+            type: boolean
+            default: false
+          example: false
+        - name: page
+          in: query
+          description: Numéro de page (commence à 1)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: limit
+          in: query
+          description: Nombre de résultats par page (max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+        - name: sortBy
+          in: query
+          description: Champ de tri
+          schema:
+            type: string
+            enum: [ createdAt, returnDate, status ]
+            default: createdAt
+          example: returnDate
+        - name: sortOrder
+          in: query
+          description: Ordre de tri
+          schema:
+            type: string
+            enum: [ asc, desc ]
+            default: desc
+          example: asc
+      responses:
+        '200':
+          description: Liste des prêts récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Loan'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMetadata'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Loans
+      summary: Créer un nouveau prêt
+      description: |
+        Créer un prêt avec un objet (existant ou nouveau) et un emprunteur.
+        Le statut initial est toujours PENDING_CONFIRMATION.
+        Une notification de confirmation est automatiquement envoyée à l'emprunteur.
+      operationId: createLoan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLoanDto'
+            examples:
+              newItemAndBorrower:
+                summary: Nouvel objet + nouvel emprunteur
+                value:
+                  item:
+                    name: Perceuse Bosch PSB 1800
+                    description: Perceuse-visseuse sans fil 18V
+                    category: TOOLS
+                    estimatedValue: 129.99
+                  borrower:
+                    firstName: Marie
+                    lastName: Dupont
+                    email: marie.dupont@example.com
+                    phoneNumber: "+33612345678"
+                  returnDate: "2026-03-15"
+                  notes: "Avec 2 batteries et chargeur"
+              existingBorrower:
+                summary: Nouvel objet + emprunteur existant
+                value:
+                  item:
+                    name: "Livre : Clean Code"
+                    category: BOOKS
+                    estimatedValue: 35.00
+                  borrower: borrower-5d6e7f8a
+                  returnDate: "2026-03-01"
+              moneyLoan:
+                summary: Prêt d'argent
+                value:
+                  item:
+                    name: Prêt personnel
+                    category: MONEY
+                    estimatedValue: 500.00
+                  borrower:
+                    firstName: Paul
+                    lastName: Martin
+                    email: paul.martin@example.com
+                  returnDate: "2026-04-15"
+                  notes: "Remboursement prévu fin avril"
+      responses:
+        '201':
+          description: Prêt créé avec succès
+          headers:
+            Location:
+              description: URI du prêt créé
+              schema:
+                type: string
+                format: uri
+                example: /v1/loans/loan-7f3c9a2b
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          description: Limite de création dépassée (15 prêts/jour)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/daily-loan-limit-exceeded
+                title: Daily Loan Limit Exceeded
+                status: 429
+                detail: You have reached the maximum of 15 loans per day.
+                instance: /v1/loans
+                timestamp: 2026-02-08T16:00:00Z
+                requestId: req-1a2b3c4d
+
+  /loans/{loanId}:
+    parameters:
+      - name: loanId
+        in: path
+        required: true
+        description: Identifiant unique du prêt
+        schema:
+          type: string
+          format: uuid
+        example: loan-7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
+
+    get:
+      tags:
+        - Loans
+      summary: Récupérer les détails d'un prêt
+      description: |
+        Retourne toutes les informations d'un prêt, y compris les objets, emprunteur,
+        rappels planifiés et historique des changements de statut.
+      operationId: getLoanById
+      responses:
+        '200':
+          description: Détails du prêt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Loans
+      summary: Mettre à jour un prêt
+      description: |
+        Permet de modifier les notes ou certaines métadonnées du prêt.
+        **Note** : Pour changer le statut, utiliser `/loans/{loanId}/status`.
+      operationId: updateLoan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                returnDate:
+                  type: string
+                  format: date
+                  nullable: true
+                  example: "2026-03-20"
+                notes:
+                  type: string
+                  nullable: true
+                  maxLength: 500
+                  example: "Retour décalé car travaux en cours"
+      responses:
+        '200':
+          description: Prêt mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Loans
+      summary: Supprimer un prêt (soft delete)
+      description: |
+        Archive le prêt (soft delete). Le prêt reste en base mais est marqué comme supprimé.
+        Les rappels planifiés sont automatiquement annulés.
+        
+        **Attention** : Cette action est irréversible (pas de restauration en V1).
+      operationId: deleteLoan
+      responses:
+        '204':
+          description: Prêt supprimé avec succès (pas de contenu retourné)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Impossible de supprimer un prêt déjà rendu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/loan-already-returned
+                title: Cannot Delete Returned Loan
+                status: 409
+                detail: You cannot delete a loan that has already been returned.
+                instance: /v1/loans/loan-123
+                timestamp: 2026-02-08T16:30:00Z
+                requestId: req-5e6f7a8b
+
+  /loans/{loanId}/status:
+    parameters:
+      - name: loanId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      tags:
+        - Loans
+      summary: Changer le statut d'un prêt
+      description: |
+        Permet les transitions de statut suivantes selon le rôle :
+        
+        **Prêteur (propriétaire du prêt)** :
+        - `PENDING_CONFIRMATION` → `ACTIVE` (si timeout 48h atteint)
+        - `ACTIVE` → `RETURNED` (confirmer retour)
+        - `AWAITING_RETURN` → `RETURNED` (confirmer retour tardif)
+        - `ACTIVE` / `AWAITING_RETURN` → `ABANDONED` (abandon manuel)
+        
+        **Emprunteur** :
+        - `PENDING_CONFIRMATION` → `ACTIVE` (accepter)
+        - `PENDING_CONFIRMATION` → `CONTESTED` (refuser)
+        
+        Les transitions invalides retournent une erreur 409 Conflict.
+      operationId: updateLoanStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLoanStatusDto'
+            examples:
+              confirmReturn:
+                summary: Prêteur confirme le retour
+                value:
+                  status: RETURNED
+                  notes: "Rendu en bon état le 14/03"
+              borrowerAccepts:
+                summary: Emprunteur accepte le prêt
+                value:
+                  status: ACTIVE
+              borrowerRefuses:
+                summary: Emprunteur conteste le prêt
+                value:
+                  status: CONTESTED
+                  notes: "Je n'ai jamais emprunté cet objet"
+      responses:
+        '200':
+          description: Statut mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Transition de statut non autorisée pour votre rôle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/forbidden-status-transition
+                title: Forbidden Status Transition
+                status: 403
+                detail: Only the borrower can confirm or contest a loan.
+                instance: /v1/loans/loan-123/status
+                timestamp: 2026-02-08T17:00:00Z
+                requestId: req-9a8b7c6d
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Transition de statut invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invalid-status-transition
+                title: Invalid Status Transition
+                status: 409
+                detail: "Cannot transition from RETURNED to ACTIVE."
+                instance: /v1/loans/loan-123/status
+                timestamp: 2026-02-08T17:05:00Z
+                requestId: req-1b2c3d4e
+
+  /loans/{loanId}/confirm:
+    post:
+      tags:
+        - Loans
+      summary: Confirmer un prêt (emprunteur uniquement)
+      description: |
+        Raccourci pour l'emprunteur : accepter le prêt en une seule action.
+        Équivalent à `PATCH /loans/{loanId}/status` avec `status: ACTIVE`.
+      operationId: confirmLoan
+      parameters:
+        - name: loanId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Prêt confirmé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Le prêt a déjà été confirmé ou contesté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /loans/{loanId}/contest:
+    post:
+      tags:
+        - Loans
+      summary: Contester un prêt (emprunteur uniquement)
+      description: |
+        L'emprunteur refuse le prêt (il nie l'avoir emprunté).
+        Le statut passe à CONTESTED et les rappels sont désactivés.
+      operationId: contestLoan
+      parameters:
+        - name: loanId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 10
+                  maxLength: 500
+                  example: "Je n'ai jamais emprunté cet objet. Il doit y avoir une erreur."
+      responses:
+        '200':
+          description: Prêt contesté avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # ITEMS ENDPOINTS
+  # =============================================================================
+
+  /items:
+    get:
+      tags:
+        - Items
+      summary: Lister tous les objets de l'utilisateur
+      description: |
+        Récupère tous les objets créés par l'utilisateur, qu'ils soient actuellement
+        prêtés ou non.
+      operationId: listItems
+      parameters:
+        - name: category
+          in: query
+          description: Filtrer par catégorie
+          schema:
+            $ref: '#/components/schemas/ItemCategory'
+          example: TOOLS
+        - name: available
+          in: query
+          description: Filtrer les objets disponibles (non prêtés actuellement)
+          schema:
+            type: boolean
+          example: true
+        - name: page
+          in: query
+          description: Numéro de page (commence à 1)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Nombre de résultats par page (max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Liste des objets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Item'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMetadata'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Items
+      summary: Créer un objet
+      description: |
+        Créer un objet par saisie manuelle (nom, catégorie, valeur estimée).
+        Une photo peut être ajoutée séparément via `/items/{itemId}/photos`.
+      operationId: createItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItemDto'
+      responses:
+        '201':
+          description: Objet créé avec succès
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+                example: /v1/items/item-9a1b2c3d
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /items/{itemId}:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - Items
+      summary: Récupérer les détails d'un objet
+      operationId: getItemById
+      responses:
+        '200':
+          description: Détails de l'objet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Items
+      summary: Mettre à jour un objet
+      operationId: updateItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 3
+                  maxLength: 100
+                description:
+                  type: string
+                  nullable: true
+                  maxLength: 500
+                category:
+                  $ref: '#/components/schemas/ItemCategory'
+                estimatedValue:
+                  type: number
+                  format: float
+                  nullable: true
+                  minimum: 0
+      responses:
+        '200':
+          description: Objet mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Items
+      summary: Supprimer un objet
+      description: |
+        Supprime un objet s'il n'est associé à aucun prêt actif.
+        Si l'objet est prêté, la suppression est refusée (409 Conflict).
+      operationId: deleteItem
+      responses:
+        '204':
+          description: Objet supprimé avec succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: L'objet est actuellement prêté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/item-currently-loaned
+                title: Item Currently Loaned
+                status: 409
+                detail: Cannot delete an item that is currently on loan.
+                instance: /v1/items/item-123
+                timestamp: 2026-02-08T18:30:00Z
+                requestId: req-0d1e2f3a
+
+  /items/{itemId}/photos:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      tags:
+        - Items
+      summary: Ajouter une photo à un objet existant
+      description: |
+        Upload d'une photo supplémentaire (max 5 photos par objet).
+      operationId: addPhotoToItem
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - photo
+              properties:
+                photo:
+                  type: string
+                  format: binary
+                  description: Image au format JPEG ou PNG (max 5MB)
+      responses:
+        '201':
+          description: Photo ajoutée avec succès
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+                example: /v1/items/item-123/photos/photo-4d5e
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Photo'
+        '400':
+          description: Format invalide ou limite de photos atteinte
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/max-photos-exceeded
+                title: Maximum Photos Exceeded
+                status: 400
+                detail: An item can have a maximum of 5 photos.
+                instance: /v1/items/item-123/photos
+                timestamp: 2026-02-08T18:40:00Z
+                requestId: req-1e2f3a4b
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # BORROWERS ENDPOINTS
+  # =============================================================================
+
+  /borrowers:
+    get:
+      tags:
+        - Borrowers
+      summary: Lister tous les contacts (emprunteurs)
+      description: |
+        Récupère la liste des emprunteurs avec leurs statistiques de fiabilité.
+      operationId: listBorrowers
+      parameters:
+        - name: sortBy
+          in: query
+          description: Champ de tri
+          schema:
+            type: string
+            enum: [ firstName, lastName, trustScore, totalLoans ]
+            default: firstName
+          example: trustScore
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [ asc, desc ]
+            default: asc
+        - name: page
+          in: query
+          description: Numéro de page (commence à 1)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Nombre de résultats par page (max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Liste des emprunteurs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Borrower'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMetadata'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Borrowers
+      summary: Ajouter un nouveau contact
+      description: Créer un emprunteur sans prêt associé (carnet d'adresses).
+      operationId: createBorrower
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBorrowerDto'
+      responses:
+        '201':
+          description: Contact créé avec succès
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+                example: /v1/borrowers/borrower-5d6e7f8a
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Borrower'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Contact déjà existant avec cet email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/borrower-already-exists
+                title: Borrower Already Exists
+                status: 409
+                detail: A contact with this email already exists in your list.
+                instance: /v1/borrowers
+                timestamp: 2026-02-08T19:00:00Z
+                requestId: req-2f3a4b5c
+
+  /borrowers/{borrowerId}:
+    parameters:
+      - name: borrowerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - Borrowers
+      summary: Récupérer les détails d'un emprunteur
+      operationId: getBorrowerById
+      responses:
+        '200':
+          description: Détails de l'emprunteur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Borrower'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Borrowers
+      summary: Mettre à jour un contact
+      operationId: updateBorrower
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                lastName:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                email:
+                  type: string
+                  format: email
+                  nullable: true
+                phoneNumber:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Contact mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Borrower'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Borrowers
+      summary: Supprimer un contact
+      description: |
+        Supprime un emprunteur s'il n'a aucun prêt actif.
+        L'historique des prêts passés est préservé.
+      operationId: deleteBorrower
+      responses:
+        '204':
+          description: Contact supprimé avec succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: L'emprunteur a des prêts actifs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /borrowers/{borrowerId}/statistics:
+    parameters:
+      - name: borrowerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - Borrowers
+      summary: Récupérer les statistiques de fiabilité d'un emprunteur
+      operationId: getBorrowerStatistics
+      responses:
+        '200':
+          description: Statistiques détaillées
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BorrowerStatistics'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /borrowers/{borrowerId}/loans:
+    parameters:
+      - name: borrowerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - Borrowers
+      summary: Lister tous les prêts d'un emprunteur
+      description: Récupère l'historique complet des prêts pour cet emprunteur.
+      operationId: getBorrowerLoans
+      parameters:
+        - name: status
+          in: query
+          description: Filtrer par statut
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/LoanStatus'
+          style: form
+          explode: false
+      responses:
+        '200':
+          description: Liste des prêts de l'emprunteur
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Loan'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # REMINDERS ENDPOINTS
+  # =============================================================================
+
+  /loans/{loanId}/reminders:
+    parameters:
+      - name: loanId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - Reminders
+      summary: Lister tous les rappels d'un prêt
+      description: |
+        Récupère la liste de tous les rappels planifiés et envoyés pour ce prêt.
+      operationId: getLoanReminders
+      responses:
+        '200':
+          description: Liste des rappels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reminder'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reminders/{reminderId}:
+    parameters:
+      - name: reminderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - Reminders
+      summary: Récupérer les détails d'un rappel
+      operationId: getReminderById
+      responses:
+        '200':
+          description: Détails du rappel
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reminder'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reminders/{reminderId}/cancel:
+    parameters:
+      - name: reminderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      tags:
+        - Reminders
+      summary: Annuler un rappel planifié
+      description: |
+        Annule un rappel qui n'a pas encore été envoyé.
+        Utilisé notamment quand le prêt est rendu avant la date prévue.
+      operationId: cancelReminder
+      responses:
+        '204':
+          description: Rappel annulé avec succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Le rappel a déjà été envoyé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/reminder-already-sent
+                title: Reminder Already Sent
+                status: 409
+                detail: Cannot cancel a reminder that has already been sent.
+                instance: /v1/reminders/reminder-123/cancel
+                timestamp: 2026-02-08T20:15:00Z
+                requestId: req-4b5c6d7e
+
+  # =============================================================================
+  # NOTIFICATIONS ENDPOINTS
+  # =============================================================================
+
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Lister toutes les notifications de l'utilisateur
+      description: |
+        Récupère les notifications push reçues (rappels, confirmations, etc.).
+      operationId: listNotifications
+      parameters:
+        - name: unreadOnly
+          in: query
+          description: Afficher uniquement les notifications non lues
+          schema:
+            type: boolean
+            default: false
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Liste des notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMetadata'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/{notificationId}/read:
+    parameters:
+      - name: notificationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      tags:
+        - Notifications
+      summary: Marquer une notification comme lue
+      operationId: markNotificationAsRead
+      responses:
+        '204':
+          description: Notification marquée comme lue
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /notifications/read-all:
+    post:
+      tags:
+        - Notifications
+      summary: Marquer toutes les notifications comme lues
+      operationId: markAllNotificationsAsRead
+      responses:
+        '204':
+          description: Toutes les notifications marquées comme lues
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # =============================================================================
+  # USERS ENDPOINTS
+  # =============================================================================
+
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Récupérer le profil utilisateur
+      description: Retourne le profil complet de l'utilisateur authentifié.
+      operationId: getUserProfile
+      responses:
+        '200':
+          description: Profil utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags:
+        - Users
+      summary: Mettre à jour le profil utilisateur
+      operationId: updateUserProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                lastName:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Profil mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Email déjà utilisé par un autre utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+    delete:
+      tags:
+        - Users
+      summary: Supprimer définitivement le compte
+      description: |
+        Suppression irréversible du compte et de toutes les données associées
+        (prêts, objets, emprunteurs). Conforme RGPD (droit à l'effacement).
+        **Attention** : Impossible si des prêts actifs existent.
+      operationId: deleteUserAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+                - confirmationText
+              properties:
+                password:
+                  type: string
+                  format: password
+                  description: Mot de passe pour confirmer
+                confirmationText:
+                  type: string
+                  enum: [ "DELETE MY ACCOUNT" ]
+                  description: 'Doit être exactement "DELETE MY ACCOUNT"'
+      responses:
+        '204':
+          description: Compte supprimé avec succès
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Mot de passe incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: Des prêts actifs existent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/active-loans-exist
+                title: Active Loans Exist
+                status: 409
+                detail: Cannot delete account while active loans exist. Please close all loans first.
+                instance: /v1/users/me
+                timestamp: 2026-02-08T21:30:00Z
+                requestId: req-6d7e8f9a
+
+  /users/me/settings:
+    get:
+      tags:
+        - Users
+      summary: Récupérer les paramètres utilisateur
+      operationId: getUserSettings
+      responses:
+        '200':
+          description: Paramètres utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags:
+        - Users
+      summary: Mettre à jour les paramètres
+      operationId: updateUserSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSettings'
+      responses:
+        '200':
+          description: Paramètres mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/avatar:
+    put:
+      tags:
+        - Users
+      summary: Mettre à jour la photo de profil
+      operationId: updateUserAvatar
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - avatar
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: Image au format JPEG ou PNG (max 2MB)
+      responses:
+        '200':
+          description: Photo de profil mise à jour
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profilePicture:
+                    type: string
+                    format: uri
+                    example: https://photos.return.app/users/user-123/avatar.jpg
+        '400':
+          description: Format invalide ou fichier trop volumineux
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/password:
+    patch:
+      tags:
+        - Users
+      summary: Changer le mot de passe
+      operationId: changePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                  example: OldP@ssw0rd!
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+                  pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+                  example: NewSecureP@ssw0rd!
+      responses:
+        '204':
+          description: Mot de passe changé avec succès
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Mot de passe actuel incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invalid-current-password
+                title: Invalid Current Password
+                status: 401
+                detail: The current password you provided is incorrect.
+                instance: /v1/users/me/password
+                timestamp: 2026-02-08T21:00:00Z
+                requestId: req-5c6d7e8f
+
+  # =============================================================================
+  # HISTORY ENDPOINTS
+  # =============================================================================
+
+  /history/loans:
+    get:
+      tags:
+        - History
+      summary: Récupérer l'historique des prêts archivés
+      description: |
+        Liste des prêts terminés (rendus ou non rendus).
+      operationId: getLoansHistory
+      parameters:
+        - name: status
+          in: query
+          description: Filtrer par statut final
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ RETURNED, NOT_RETURNED, CONTESTED, ABANDONED ]
+          style: form
+          explode: false
+        - name: borrowerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          description: Date de début de période
+          schema:
+            type: string
+            format: date
+          example: "2026-01-01"
+        - name: endDate
+          in: query
+          description: Date de fin de période
+          schema:
+            type: string
+            format: date
+          example: "2026-12-31"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Historique des prêts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Loan'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMetadata'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /history/statistics:
+    get:
+      tags:
+        - History
+      summary: Récupérer les statistiques globales de prêt
+      description: |
+        Statistiques détaillées sur l'utilisation de l'application par l'utilisateur.
+      operationId: getUserStatistics
+      responses:
+        '200':
+          description: Statistiques globales
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  overview:
+                    type: object
+                    properties:
+                      totalLoans:
+                        type: integer
+                        example: 42
+                        description: Nombre total de prêts créés
+                      activeLoans:
+                        type: integer
+                        example: 5
+                        description: Prêts actuellement en cours
+                      returnedLoans:
+                        type: integer
+                        example: 35
+                        description: Prêts rendus avec succès
+                      notReturnedLoans:
+                        type: integer
+                        example: 2
+                        description: Prêts non rendus
+                      contestedLoans:
+                        type: integer
+                        example: 0
+                        description: Prêts contestés
+                      averageReturnDelay:
+                        type: number
+                        format: float
+                        example: -1.5
+                        description: Délai moyen de retour en jours (+ = retard, - = avance)
+                  byCategory:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        category:
+                          $ref: '#/components/schemas/ItemCategory'
+                        count:
+                          type: integer
+                          example: 12
+                        totalValue:
+                          type: number
+                          format: float
+                          nullable: true
+                          example: 450.00
+                  topBorrowers:
+                    type: array
+                    description: Top 5 emprunteurs les plus actifs
+                    items:
+                      type: object
+                      properties:
+                        borrower:
+                          $ref: '#/components/schemas/UserSummary'
+                        loanCount:
+                          type: integer
+                          example: 8
+                        trustScore:
+                          type: number
+                          format: float
+                          example: 92.5
+                  mostLoanedItems:
+                    type: array
+                    description: Top 5 objets les plus prêtés
+                    items:
+                      type: object
+                      properties:
+                        item:
+                          $ref: '#/components/schemas/Item'
+                        loanCount:
+                          type: integer
+                          example: 6
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # =============================================================================
+  # HEALTH CHECK ENDPOINTS
+  # =============================================================================
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Vérification de santé basique (liveness)
+      description: |
+        Retourne le statut du serveur. Utilisé par le load balancer Fly.io
+        pour déterminer si l'instance est vivante.
+      operationId: healthCheck
+      security: [ ]
+      responses:
+        '200':
+          description: Serveur opérationnel
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-02-12T10:00:00Z"
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+  /ready:
+    get:
+      tags:
+        - Health
+      summary: Vérification de disponibilité (readiness)
+      description: |
+        Vérifie que toutes les dépendances sont opérationnelles
+        (PostgreSQL, Redis, FCM). Utilisé pour le routing du load balancer.
+      operationId: readinessCheck
+      security: [ ]
+      responses:
+        '200':
+          description: Toutes les dépendances opérationnelles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        enum: [ ok, error ]
+                        example: ok
+                      redis:
+                        type: string
+                        enum: [ ok, error ]
+                        example: ok
+                      fcm:
+                        type: string
+                        enum: [ ok, error ]
+                        example: ok
+        '503':
+          description: Une ou plusieurs dépendances indisponibles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: ok
+                      redis:
+                        type: string
+                        example: error
+                      fcm:
+                        type: string
+                        example: ok
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT obtenu via `/auth/login` ou `/auth/register`.
+        Format : `Authorization: Bearer <access_token>`
+        
+        Le token expire après 15 minutes. Utiliser `/auth/refresh` pour le renouveler.
+
+  schemas:
+    # =========================================================================
+    # DOMAIN ENTITIES (basées sur le Dictionnaire du Domaine)
+    # =========================================================================
+
+    Loan:
+      type: object
+      description: |
+        Prêt enregistré : un Objet (physique) ou de l'Argent est temporairement
+        transféré d'un Prêteur à un Emprunteur avec expectative de retour.
+        Deux workflows distincts selon la catégorie de l'item :
+        - **OBJECT** (catégories != MONEY) : photo, retour physique
+        - **MONEY** (catégorie = MONEY) : montant, remboursement
+      required:
+        - id
+        - item
+        - lender
+        - borrower
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: loan-7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
+          description: Identifiant unique du prêt
+        item:
+          $ref: '#/components/schemas/Item'
+        lender:
+          $ref: '#/components/schemas/UserSummary'
+        borrower:
+          $ref: '#/components/schemas/Borrower'
+        returnDate:
+          type: string
+          format: date
+          nullable: true
+          example: "2026-03-15"
+          description: Date de retour prévue (null = indéfinie)
+        status:
+          $ref: '#/components/schemas/LoanStatus'
+        confirmationDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-02-08T14:30:00Z"
+          description: Date de confirmation par l'emprunteur (null si non confirmé)
+        returnedDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-03-14T10:00:00Z"
+          description: Date effective du retour (null si non rendu)
+        notes:
+          type: string
+          nullable: true
+          maxLength: 500
+          example: "Perceuse avec 2 batteries et chargeur"
+          description: Notes optionnelles du prêteur
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-02-08T14:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-02-08T14:30:00Z"
+
+    LoanStatus:
+      type: string
+      enum:
+        - PENDING_CONFIRMATION
+        - ACTIVE
+        - ACTIVE_BY_DEFAULT
+        - CONTESTED
+        - AWAITING_RETURN
+        - RETURNED
+        - NOT_RETURNED
+        - ABANDONED
+      description: |
+        Statut du prêt :
+        - **PENDING_CONFIRMATION** : Prêt créé, en attente de confirmation de l'emprunteur
+        - **ACTIVE** : Prêt confirmé par l'emprunteur, en cours
+        - **ACTIVE_BY_DEFAULT** : Non confirmé mais accepté implicitement (timeout 48h)
+        - **CONTESTED** : Prêt refusé/contesté par l'emprunteur
+        - **AWAITING_RETURN** : Date de retour dépassée, rappels automatiques en cours
+        - **RETURNED** : Objet restitué / argent remboursé, prêt clos avec succès
+        - **NOT_RETURNED** : Objet non restitué après les 5 rappels automatiques (J-3, J, J+7, J+14, J+21)
+        - **ABANDONED** : Prêt abandonné manuellement par le prêteur
+      example: ACTIVE
+
+    Item:
+      type: object
+      description: Bien physique ou somme d'argent faisant l'objet d'un Prêt
+      required:
+        - id
+        - name
+        - category
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: item-9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: Perceuse Bosch PSB 1800
+          description: Nom de l'objet (saisie manuelle)
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+          example: Perceuse-visseuse sans fil 18V avec 2 batteries Li-Ion
+        category:
+          $ref: '#/components/schemas/ItemCategory'
+        estimatedValue:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0
+          example: 129.99
+          description: |
+            Valeur estimée de l'objet en euros (optionnelle).
+            **Obligatoire** si category = MONEY (constitue alors le montant prêté).
+        photos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Photo'
+          description: Photos de l'objet (max 5)
+          maxItems: 5
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-02-08T14:00:00Z"
+
+    ItemCategory:
+      type: string
+      enum:
+        - TOOLS
+        - BOOKS
+        - ELECTRONICS
+        - SPORTS
+        - KITCHEN
+        - GARDEN
+        - MONEY
+        - OTHER
+      description: |
+        Catégorie de l'objet sélectionnée manuellement par le prêteur.
+        **MONEY** active le workflow de prêt d'argent (estimatedValue = montant prêté, obligatoire).
+        Les autres catégories concernent des prêts d'objets physiques (workflow standard avec photo).
+      example: TOOLS
+
+    Photo:
+      type: object
+      description: Photo d'un objet stockée sur Cloudflare R2
+      required:
+        - id
+        - url
+        - uploadedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: photo-1a2b3c4d
+        url:
+          type: string
+          format: uri
+          example: https://photos.return.app/loans/loan-123/photo-1.jpg
+          description: URL publique de la photo (signée, expire après 7 jours)
+        thumbnailUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: https://photos.return.app/loans/loan-123/photo-1-thumb.jpg
+          description: URL de la vignette optimisée (150x150px)
+        uploadedAt:
+          type: string
+          format: date-time
+          example: "2026-02-08T14:05:00Z"
+
+    Borrower:
+      type: object
+      description: |
+        Personne physique à qui un objet ou de l'argent est prêté.
+        Doit posséder un compte Return (inscription obligatoire).
+        Si le compte n'existe pas encore lors de la création du prêt, une invitation
+        est envoyée par email. Le prêt reste en PENDING_CONFIRMATION jusqu'à inscription.
+      required:
+        - id
+        - firstName
+        - lastName
+        - email
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: borrower-5d6e7f8a
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: Marie
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: Dupont
+        email:
+          type: string
+          format: email
+          example: marie.dupont@example.com
+          description: Email de l'emprunteur (obligatoire, sert d'identifiant pour le lien de compte)
+        phoneNumber:
+          type: string
+          nullable: true
+          example: "+33612345678"
+          description: Numéro de téléphone (chiffré en base)
+        userId:
+          type: string
+          format: uuid
+          nullable: true
+          example: user-9a8b7c6d
+          description: ID utilisateur Return (null si invitation en attente)
+        statistics:
+          $ref: '#/components/schemas/BorrowerStatistics'
+
+    BorrowerStatistics:
+      type: object
+      description: Statistiques de fiabilité d'un emprunteur
+      properties:
+        totalLoans:
+          type: integer
+          example: 12
+          description: Nombre total de prêts reçus
+        returnedOnTime:
+          type: integer
+          example: 10
+          description: Nombre de prêts rendus à temps
+        returnedLate:
+          type: integer
+          example: 1
+          description: Nombre de prêts rendus en retard
+        notReturned:
+          type: integer
+          example: 1
+          description: Nombre de prêts non rendus (abandonné)
+        averageReturnDelay:
+          type: integer
+          nullable: true
+          example: 2
+          description: Délai moyen de retour en jours (+ = retard, - = avance, null si aucun prêt rendu)
+        trustScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          example: 87.5
+          description: |
+            Score de confiance calculé : 
+            (returnedOnTime * 100 + returnedLate * 50) / totalLoans
+
+    Reminder:
+      type: object
+      description: |
+        Rappel automatique envoyé à l'emprunteur via push notification.
+        Les rappels sont 100% automatiques (pas de rappel manuel) et utilisent
+        des templates prédéfinis avec pool aléatoire de messages diplomatiques.
+      required:
+        - id
+        - loanId
+        - type
+        - status
+        - scheduledFor
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: reminder-3c4d5e6f
+        loanId:
+          type: string
+          format: uuid
+          example: loan-7f3c9a2b
+        type:
+          $ref: '#/components/schemas/ReminderType'
+        status:
+          $ref: '#/components/schemas/ReminderStatus'
+        scheduledFor:
+          type: string
+          format: date-time
+          example: "2026-03-12T09:00:00Z"
+          description: Date/heure programmée d'envoi
+        sentAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-03-12T09:00:15Z"
+          description: Date/heure d'envoi effectif (null si non envoyé)
+        message:
+          type: string
+          example: "Bonjour Marie, petit rappel amical : le retour de Perceuse Bosch PSB 1800 est prévu pour le 15/03/2026."
+          description: Message envoyé (template personnalisé ou par défaut)
+        channel:
+          $ref: '#/components/schemas/NotificationChannel'
+
+    ReminderType:
+      type: string
+      enum:
+        - PREVENTIVE
+        - ON_DUE_DATE
+        - FIRST_OVERDUE
+        - SECOND_OVERDUE
+        - FINAL_OVERDUE
+      description: |
+        Type de rappel (politique fixe, 5 rappels automatiques) :
+        - **PREVENTIVE** : 3 jours avant la date de retour (J-3)
+        - **ON_DUE_DATE** : Le jour de la date de retour (J)
+        - **FIRST_OVERDUE** : 7 jours après la date de retour (J+7)
+        - **SECOND_OVERDUE** : 14 jours après (J+14)
+        - **FINAL_OVERDUE** : 21 jours après (J+21, dernier rappel avant passage en NOT_RETURNED)
+
+        Chaque rappel utilise un template prédéfini avec pool aléatoire de messages
+        diplomatiques, sélectionné automatiquement par tier. Pas de rappel manuel.
+      example: PREVENTIVE
+
+    ReminderStatus:
+      type: string
+      enum:
+        - SCHEDULED
+        - SENT
+        - FAILED
+        - CANCELLED
+      description: |
+        Statut du rappel :
+        - **SCHEDULED** : Planifié, non encore envoyé
+        - **SENT** : Envoyé avec succès
+        - **FAILED** : Échec d'envoi (retry prévu)
+        - **CANCELLED** : Annulé (prêt rendu avant l'envoi)
+      example: SENT
+
+    NotificationChannel:
+      type: string
+      enum:
+        - PUSH
+      description: |
+        Canal de notification (V1 : push uniquement) :
+        - **PUSH** : Notification push mobile via Firebase Cloud Messaging (FCM)
+
+        V2+ ajoutera EMAIL et SMS.
+      example: PUSH
+
+    User:
+      type: object
+      description: Utilisateur inscrit de l'application (peut être Prêteur et/ou Emprunteur)
+      required:
+        - id
+        - email
+        - firstName
+        - lastName
+        - role
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: user-123
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: John
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: Doe
+        role:
+          $ref: '#/components/schemas/UserRole'
+        profilePicture:
+          type: string
+          format: uri
+          nullable: true
+          example: https://photos.return.app/users/user-123/avatar.jpg
+        settings:
+          $ref: '#/components/schemas/UserSettings'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-01-15T10:00:00Z"
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-02-08T14:00:00Z"
+
+    UserRole:
+      type: string
+      enum:
+        - LENDER
+      description: |
+        Rôle de l'utilisateur (V1 : rôle unique) :
+        - **LENDER** : Utilisateur inscrit (peut prêter et emprunter)
+
+        Note : tout utilisateur peut être à la fois Prêteur et Emprunteur selon le contexte.
+        Le rôle ADMIN n'est pas prévu en V1.
+      example: LENDER
+
+    UserSettings:
+      type: object
+      description: Paramètres de notification et préférences utilisateur
+      properties:
+        pushNotificationsEnabled:
+          type: boolean
+          example: true
+          description: Activer/désactiver les notifications push
+        reminderEnabled:
+          type: boolean
+          example: true
+          description: Activer/désactiver les rappels automatiques
+        language:
+          type: string
+          enum: [ fr, en ]
+          example: fr
+          description: Langue de l'interface et des notifications (V1 — FR et EN)
+        timezone:
+          type: string
+          example: Europe/Paris
+          description: Fuseau horaire pour la planification des rappels
+
+    Notification:
+      type: object
+      description: Notification push reçue par l'utilisateur (V1 — push uniquement via FCM)
+      required:
+        - id
+        - type
+        - title
+        - body
+        - isRead
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: notif-1a2b3c4d
+        type:
+          type: string
+          enum:
+            - LOAN_CREATED
+            - LOAN_CONFIRMED
+            - LOAN_AUTO_CONFIRMED
+            - LOAN_CONTESTED
+            - LOAN_RETURNED
+            - REMINDER_SENT
+            - REMINDER_RECEIVED
+          example: LOAN_CONFIRMED
+          description: Type de notification
+        title:
+          type: string
+          example: Prêt confirmé
+        body:
+          type: string
+          example: "Marie Dupont a confirmé avoir emprunté votre Perceuse Bosch PSB 1800."
+        isRead:
+          type: boolean
+          example: false
+        relatedLoanId:
+          type: string
+          format: uuid
+          nullable: true
+          example: loan-7f3c9a2b
+          description: ID du prêt associé (null si notification système)
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-02-08T14:30:00Z"
+
+    PaginationMetadata:
+      type: object
+      description: Métadonnées de pagination pour les listes paginées
+      required:
+        - currentPage
+        - totalPages
+        - totalItems
+        - itemsPerPage
+      properties:
+        currentPage:
+          type: integer
+          example: 1
+          description: Page actuelle (commence à 1)
+        totalPages:
+          type: integer
+          example: 5
+          description: Nombre total de pages
+        totalItems:
+          type: integer
+          example: 87
+          description: Nombre total d'éléments
+        itemsPerPage:
+          type: integer
+          example: 20
+          description: Nombre d'éléments par page
+        hasNextPage:
+          type: boolean
+          example: true
+          description: Y a-t-il une page suivante ?
+        hasPreviousPage:
+          type: boolean
+          example: false
+          description: Y a-t-il une page précédente ?
+
+    UserSummary:
+      type: object
+      description: Version résumée d'un utilisateur (pour les relations)
+      required:
+        - id
+        - firstName
+        - lastName
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: user-456
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        profilePicture:
+          type: string
+          format: uri
+          nullable: true
+          example: https://photos.return.app/users/user-456/avatar.jpg
+
+    # =========================================================================
+    # DATA TRANSFER OBJECTS (DTOs)
+    # =========================================================================
+
+    RegisterDto:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+          example: SecureP@ssw0rd!
+          description: |
+            Minimum 8 caractères avec :
+            - Au moins 1 majuscule
+            - Au moins 1 minuscule
+            - Au moins 1 chiffre
+            - Au moins 1 caractère spécial (@$!%*?&)
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: John
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: Doe
+
+    LoginDto:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          type: string
+          format: password
+          example: SecureP@ssw0rd!
+
+    RefreshTokenDto:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+          description: Refresh token obtenu lors du login
+
+    AuthResponse:
+      type: object
+      description: Réponse d'authentification avec tokens JWT
+      required:
+        - accessToken
+        - refreshToken
+        - expiresIn
+        - tokenType
+        - user
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsInJvbGUiOiJMRU5ERVIiLCJpYXQiOjE2MDk0NTkyMDAsImV4cCI6MTYwOTQ2MDEwMH0.signature
+          description: JWT access token (expire après 15 min)
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNjA5NDU5MjAwLCJleHAiOjE2MTIwNTEyMDB9.signature
+          description: JWT refresh token (expire après 30 jours)
+        expiresIn:
+          type: integer
+          example: 900
+          description: Durée de validité de l'access token en secondes (15 min = 900s)
+        tokenType:
+          type: string
+          example: Bearer
+          description: Type de token (toujours "Bearer")
+        user:
+          $ref: '#/components/schemas/User'
+
+    CreateLoanDto:
+      type: object
+      required:
+        - item
+        - borrower
+      properties:
+        item:
+          oneOf:
+            - $ref: '#/components/schemas/CreateItemDto'
+            - type: string
+              format: uuid
+              description: ID d'un objet existant
+        borrower:
+          oneOf:
+            - $ref: '#/components/schemas/CreateBorrowerDto'
+            - type: string
+              format: uuid
+              description: ID d'un emprunteur existant
+        returnDate:
+          type: string
+          format: date
+          nullable: true
+          example: "2026-03-15"
+          description: Date de retour prévue (null = indéfinie)
+        notes:
+          type: string
+          nullable: true
+          maxLength: 500
+          example: "Avec 2 batteries et chargeur"
+
+    CreateItemDto:
+      type: object
+      required:
+        - name
+        - category
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: Perceuse Bosch PSB 1800
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+          example: Perceuse-visseuse sans fil 18V
+        category:
+          $ref: '#/components/schemas/ItemCategory'
+        estimatedValue:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0
+          example: 129.99
+
+    CreateBorrowerDto:
+      type: object
+      description: |
+        Ajouter un emprunteur à son carnet de contacts.
+        L'email est obligatoire car il sert d'identifiant pour le lien vers le compte Return.
+        Si l'emprunteur n'a pas encore de compte, une invitation lui sera envoyée.
+      required:
+        - firstName
+        - lastName
+        - email
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: Marie
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: Dupont
+        email:
+          type: string
+          format: email
+          example: marie.dupont@example.com
+          description: Email obligatoire (identifiant de compte Return)
+        phoneNumber:
+          type: string
+          nullable: true
+          example: "+33612345678"
+
+    UpdateLoanStatusDto:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/LoanStatus'
+        notes:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Raison du changement de statut (optionnel)
+
+    # =========================================================================
+    # ERROR RESPONSES (RFC 7807)
+    # =========================================================================
+
+    ProblemDetails:
+      type: object
+      description: |
+        Format standardisé RFC 7807 pour toutes les erreurs API.
+        Documentation : https://tools.ietf.org/html/rfc7807
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - instance
+        - timestamp
+        - requestId
+      properties:
+        type:
+          type: string
+          format: uri
+          example: https://api.return.app/errors/loan-not-found
+          description: URI identifiant le type d'erreur
+        title:
+          type: string
+          example: Loan Not Found
+          description: Titre court lisible par un humain
+        status:
+          type: integer
+          example: 404
+          description: Code HTTP de l'erreur
+        detail:
+          type: string
+          example: "The loan with ID 'loan-123' does not exist or you don't have access to it."
+          description: Explication détaillée de l'erreur
+        instance:
+          type: string
+          example: /v1/loans/loan-123
+          description: URI de la requête ayant causé l'erreur
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-02-08T14:32:00Z"
+          description: Date/heure de l'erreur
+        requestId:
+          type: string
+          example: req-7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
+          description: ID unique de la requête (pour traçabilité)
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+          description: Liste des erreurs de validation (optionnel)
+
+    ErrorDetail:
+      type: object
+      description: Détail d'une erreur de validation sur un champ spécifique
+      required:
+        - field
+        - code
+        - message
+      properties:
+        field:
+          type: string
+          example: returnDate
+          description: Nom du champ en erreur
+        code:
+          type: string
+          example: INVALID_DATE
+          description: Code d'erreur (utilisable pour i18n)
+        message:
+          type: string
+          example: Return date must be in the future
+          description: Message d'erreur lisible
+
+  # ===========================================================================
+  # REUSABLE RESPONSES
+  # ===========================================================================
+
+  responses:
+    Unauthorized:
+      description: Non authentifié (token manquant ou invalide)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            missingToken:
+              value:
+                type: https://api.return.app/errors/unauthorized
+                title: Unauthorized
+                status: 401
+                detail: No authorization token was found in the request headers.
+                instance: /v1/loans
+                timestamp: 2026-02-08T14:32:00Z
+                requestId: req-9b8c7d6e
+            invalidToken:
+              value:
+                type: https://api.return.app/errors/invalid-token
+                title: Invalid Token
+                status: 401
+                detail: The provided token is invalid or has expired.
+                instance: /v1/loans
+                timestamp: 2026-02-08T14:35:00Z
+                requestId: req-1a2b3c4d
+
+    Forbidden:
+      description: Non autorisé (permissions insuffisantes)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            notOwner:
+              value:
+                type: https://api.return.app/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: You can only access or modify loans you created.
+                instance: /v1/loans/loan-123
+                timestamp: 2026-02-08T14:40:00Z
+                requestId: req-5e6f7a8b
+
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            loanNotFound:
+              value:
+                type: https://api.return.app/errors/loan-not-found
+                title: Loan Not Found
+                status: 404
+                detail: "The loan with ID 'loan-999' does not exist."
+                instance: /v1/loans/loan-999
+                timestamp: 2026-02-08T14:45:00Z
+                requestId: req-9c8d7e6f
+
+    ValidationError:
+      description: Erreur de validation des données d'entrée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            multipleErrors:
+              value:
+                type: https://api.return.app/errors/validation-failed
+                title: Validation Failed
+                status: 400
+                detail: The request contains invalid data.
+                instance: /v1/auth/register
+                timestamp: 2026-02-08T14:50:00Z
+                requestId: req-1f2e3d4c
+                errors:
+                  - field: email
+                    code: INVALID_EMAIL
+                    message: Email format is invalid
+                  - field: password
+                    code: TOO_SHORT
+                    message: Password must be at least 8 characters
+
+    RateLimitExceeded:
+      description: Limite de taux dépassée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            tooManyRequests:
+              value:
+                type: https://api.return.app/errors/rate-limit-exceeded
+                title: Rate Limit Exceeded
+                status: 429
+                detail: You have exceeded the limit of 10 login attempts per 15 minutes.
+                instance: /v1/auth/login
+                timestamp: 2026-02-08T15:00:00Z
+                requestId: req-6a7b8c9d
+      headers:
+        Retry-After:
+          description: Nombre de secondes avant de pouvoir réessayer
+          schema:
+            type: integer
+            example: 900
+        X-RateLimit-Limit:
+          description: Limite totale de requêtes
+          schema:
+            type: integer
+            example: 10
+        X-RateLimit-Remaining:
+          description: Nombre de requêtes restantes
+          schema:
+            type: integer
+            example: 0
+        X-RateLimit-Reset:
+          description: Timestamp de réinitialisation du compteur
+          schema:
+            type: integer
+            example: 1675869600
+
+    InternalServerError:
+      description: Erreur interne du serveur
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            generic:
+              value:
+                type: https://api.return.app/errors/internal-server-error
+                title: Internal Server Error
+                status: 500
+                detail: An unexpected error occurred while processing your request.
+                instance: /v1/loans
+                timestamp: 2026-02-08T15:10:00Z
+                requestId: req-2b3c4d5e
