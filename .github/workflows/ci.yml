@@ -92,4 +92,3 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - run: npm install -g @stoplight/spectral-cli
       - run: spectral lint docs/openapi.yaml --ruleset docs/.spectral.yaml
-        continue-on-error: true
