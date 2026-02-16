@@ -169,7 +169,7 @@ L'emprunteur doit avoir un compte pour recevoir les notifications push et intera
 | **BORR-002** | Ajouter index unique sur le couple `(userId, email)` et index sur `borrowers.userId`   | BORR-001   | Index créés         | 15min |
 
 > **Note** : L'unicite est sur le couple `(userId, email)` -- un même email peut exister comme emprunteur chez
-> plusieurs prêteurs différénts.
+> plusieurs prêteurs différents.
 
 ### Phase 2.2 : TDD -- Borrower Service
 
