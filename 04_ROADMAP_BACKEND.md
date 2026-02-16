@@ -230,7 +230,7 @@ d'objets via Google Cloud Vision est reportee à la V2+ (hors scope MVP).
 | **ITEM-003** | Ajouter index sur `items.userId` et `items.category`                                   | ITEM-002   | Index créés                  | 15min |
 | **ITEM-004** | Configurer Cloudflare R2 SDK (stockage photos)                                         | SETUP-001  | Upload de test fonctionne    | 1h    |
 
-> **Note** : R2 est configuré ici (just-in-time) plutot qu'au Sprint 0, car c'est le premier sprint qui en à besoin.
+> **Note** : R2 est configuré ici (just-in-time) plutot qu'au Sprint 0, car c'est le premier sprint qui en a besoin.
 
 ### Phase 3.2 : TDD -- Item Service
 
