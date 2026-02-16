@@ -1,0 +1,6 @@
+#\!/bin/sh
+if [ -d "frontend" ]; then
+  cd frontend
+fi
+export PATH="$PWD/node_modules/.bin:$PATH"
+lint-staged
