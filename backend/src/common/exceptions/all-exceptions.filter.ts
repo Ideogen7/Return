@@ -4,19 +4,15 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
-  Inject,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger } from 'winston';
 import { ProblemDetailsException, ProblemDetails } from './problem-details.exception.js';
 import { getRequestId } from '../middleware/request-context.middleware.js';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  constructor(
-    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
-  ) {}
+  private readonly logger = new Logger(AllExceptionsFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -74,12 +70,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     // Unhandled exception
-    this.logger.error('Unhandled exception', {
-      error: exception instanceof Error ? exception.message : String(exception),
-      stack: exception instanceof Error ? exception.stack : undefined,
-      path: request.url,
-      requestId: getRequestId(),
-    });
+    this.logger.error(
+      `Unhandled exception on ${request.url}: ${exception instanceof Error ? exception.message : String(exception)}`,
+      exception instanceof Error ? exception.stack : undefined,
+    );
 
     const body: ProblemDetails = {
       type: 'https://api.return.app/errors/internal-server-error',
