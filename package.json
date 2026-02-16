@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "name": "return-monorepo",
+  "description": "Return — Personal loan tracking app",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0"
+  }
+}

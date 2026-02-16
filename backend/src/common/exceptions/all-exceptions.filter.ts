@@ -7,7 +7,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { ProblemDetailsException, ProblemDetails } from './problem-details.exception.js';
+import {
+  ProblemDetailsException,
+  ProblemDetails,
+} from './problem-details.exception.js';
 import { getRequestId } from '../middleware/request-context.middleware.js';
 
 @Catch()
@@ -21,7 +24,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (exception instanceof ProblemDetailsException) {
       const body = exception.getResponse() as ProblemDetails;
-      response.status(body.status).json(body);
+      response
+        .status(body.status)
+        .setHeader('Content-Type', 'application/problem+json')
+        .json(body);
       return;
     }
 
@@ -30,28 +36,39 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const exceptionResponse = exception.getResponse();
 
       // Handle class-validator errors
-      if (typeof exceptionResponse === 'object' && 'message' in (exceptionResponse as Record<string, unknown>)) {
+      if (
+        typeof exceptionResponse === 'object' &&
+        'message' in (exceptionResponse as Record<string, unknown>)
+      ) {
         const messages = (exceptionResponse as Record<string, unknown>).message;
         const errors = Array.isArray(messages)
-          ? messages.map((msg: string) => ({
-              field: 'unknown',
-              code: 'VALIDATION_ERROR',
-              message: msg,
-            }))
+          ? messages.map((msg: string) => {
+              const match = /^(\w+)\s/.exec(msg);
+              return {
+                field: match?.[1] ?? 'unknown',
+                code: 'VALIDATION_ERROR',
+                message: msg,
+              };
+            })
           : undefined;
 
         const body: ProblemDetails = {
           type: 'https://api.return.app/errors/validation-error',
           title: 'Validation Error',
           status,
-          detail: Array.isArray(messages) ? messages.join('; ') : String(messages),
+          detail: Array.isArray(messages)
+            ? messages.join('; ')
+            : String(messages),
           instance: request.url,
           timestamp: new Date().toISOString(),
           requestId: getRequestId(),
           errors,
         };
 
-        response.status(status).json(body);
+        response
+          .status(status)
+          .setHeader('Content-Type', 'application/problem+json')
+          .json(body);
         return;
       }
 
@@ -65,7 +82,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
         requestId: getRequestId(),
       };
 
-      response.status(status).json(body);
+      response
+        .status(status)
+        .setHeader('Content-Type', 'application/problem+json')
+        .json(body);
       return;
     }
 
@@ -85,6 +105,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       requestId: getRequestId(),
     };
 
-    response.status(HttpStatus.INTERNAL_SERVER_ERROR).json(body);
+    response
+      .status(HttpStatus.INTERNAL_SERVER_ERROR)
+      .setHeader('Content-Type', 'application/problem+json')
+      .json(body);
   }
 }

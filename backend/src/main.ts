@@ -16,7 +16,10 @@ async function bootstrap(): Promise<void> {
 
   // Security
   app.use(helmet());
-  app.enableCors();
+  app.enableCors({
+    origin: config.get<string>('CORS_ORIGIN', 'http://localhost:8081'),
+    credentials: true,
+  });
 
   // Global prefix
   const prefix = config.get<string>('API_PREFIX', 'v1');
@@ -40,7 +43,9 @@ async function bootstrap(): Promise<void> {
   const port = config.get<number>('PORT', 3000);
   await app.listen(port);
 
-  logger.log(`Return API running on port ${port} [${config.get<string>('NODE_ENV')}] prefix=/${prefix}`);
+  logger.log(
+    `Return API running on port ${port} [${config.get<string>('NODE_ENV')}] prefix=/${prefix}`,
+  );
 }
 
-bootstrap();
+void bootstrap();

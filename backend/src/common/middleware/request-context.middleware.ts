@@ -27,11 +27,11 @@ export function setUserId(userId: string): void {
 
 @Injectable()
 export class RequestContextMiddleware implements NestMiddleware {
-  use(req: Request, _res: Response, next: NextFunction): void {
-    const requestId =
-      (req.headers['x-request-id'] as string) || randomUUID();
+  use(req: Request, res: Response, next: NextFunction): void {
+    const requestId = (req.headers['x-request-id'] as string) || randomUUID();
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     (req as any)['requestId'] = requestId;
+    res.setHeader('X-Request-Id', requestId);
 
     requestStorage.run({ requestId }, () => {
       next();

@@ -40,4 +40,7 @@ export class EnvironmentVariables {
 
   @IsString()
   LOG_LEVEL: string = 'info';
+
+  @IsString()
+  CORS_ORIGIN: string = 'http://localhost:8081';
 }

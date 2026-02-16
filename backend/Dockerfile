@@ -11,6 +11,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN npx prisma generate
 
 COPY tsconfig.json tsconfig.build.json nest-cli.json ./
@@ -32,6 +33,7 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 
 EXPOSE 3000
 

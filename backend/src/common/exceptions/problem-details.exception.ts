@@ -51,7 +51,13 @@ export class NotFoundException extends ProblemDetailsException {
       `${resource} Not Found`,
       `The ${resource.toLowerCase()} with ID '${id}' does not exist or you don't have access to it.`,
       path,
-      [{ field: `${resource.toLowerCase()}Id`, code: 'NOT_FOUND', message: `${resource} does not exist` }],
+      [
+        {
+          field: `${resource.toLowerCase()}Id`,
+          code: 'NOT_FOUND',
+          message: `${resource} does not exist`,
+        },
+      ],
     );
   }
 }
@@ -76,6 +82,12 @@ export class UnauthorizedException extends ProblemDetailsException {
 
 export class RateLimitException extends ProblemDetailsException {
   constructor(detail: string, path: string) {
-    super(HttpStatus.TOO_MANY_REQUESTS, 'too-many-requests', 'Too Many Requests', detail, path);
+    super(
+      HttpStatus.TOO_MANY_REQUESTS,
+      'too-many-requests',
+      'Too Many Requests',
+      detail,
+      path,
+    );
   }
 }
