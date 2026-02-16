@@ -29,8 +29,7 @@ export function setUserId(userId: string): void {
 export class RequestContextMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
     const requestId = (req.headers['x-request-id'] as string) || randomUUID();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    (req as any)['requestId'] = requestId;
+    Object.defineProperty(req, 'requestId', { value: requestId });
     res.setHeader('X-Request-Id', requestId);
 
     requestStorage.run({ requestId }, () => {
