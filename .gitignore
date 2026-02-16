@@ -1,4 +1,25 @@
-# Copilot instructions
-copilot-instructions.md
+# Dependencies
+node_modules/
 
-.idea
+# Build output
+dist/
+coverage/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+postgres_data/
+redis_data/
