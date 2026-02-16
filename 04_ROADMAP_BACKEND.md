@@ -528,7 +528,6 @@ Cyclé TDD par comportement.
 | **HIST-011** | RED : Test `GET /borrowers/{id}/loans` (liste des prêts filtrée par statut)             | LOAN-010   | Test écrit, échoue     | 20min |
 | **HIST-012** | GREEN : Implémenter `BorrowerService.getLoans()` (filtre status via Prisma)             | HIST-011   | Test HIST-011 passe    | 1h    |
 | **HIST-013** | Ajouter endpoint `BorrowersController.getLoans()` (GET /borrowers/{id}/loans)           | HIST-012   | Test HIST-011 passe    | 30min |
-| **HIST-010** | Ajouter endpoint `BorrowersController.getStatistics()` (GET /borrowers/{id}/statistics) | HIST-007   | Test HIST-006 passe    | 30min |
 
 ### Phase 6.4 : Tests E2E + Finalisation
 
