@@ -1,0 +1,24 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "confirm": "Confirm"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email address",
+    "password": "Password"
+  },
+  "navigation": {
+    "loans": "Loans",
+    "contacts": "Contacts",
+    "items": "Items",
+    "history": "History",
+    "profile": "Profile"
+  }
+}
