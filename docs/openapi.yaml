@@ -98,11 +98,12 @@ paths:
                     expiresIn: 900
                     tokenType: Bearer
                     user:
-                      id: user-123
+                      id: a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d
                       email: john.doe@example.com
                       firstName: John
                       lastName: Doe
                       role: LENDER
+                      createdAt: "2026-01-15T10:00:00Z"
         '400':
           $ref: '#/components/responses/ValidationError'
         '409':
@@ -245,14 +246,14 @@ paths:
               $ref: '#/components/schemas/LoanStatus'
           style: form
           explode: false
-          example: ACTIVE,AWAITING_RETURN
+          example: [ACTIVE, AWAITING_RETURN]
         - name: borrowerId
           in: query
           description: Filtrer par emprunteur
           schema:
             type: string
             format: uuid
-          example: borrower-5d6e7f8a
+          example: 5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
         - name: includeArchived
           in: query
           description: Inclure les prêts archivés (rendus ou non rendus)
@@ -350,7 +351,7 @@ paths:
                     name: "Livre : Clean Code"
                     category: BOOKS
                     estimatedValue: 35.00
-                  borrower: borrower-5d6e7f8a
+                  borrower: 5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
                   returnDate: "2026-03-01"
               moneyLoan:
                 summary: Prêt d'argent
@@ -374,7 +375,7 @@ paths:
               schema:
                 type: string
                 format: uri
-                example: /v1/loans/loan-7f3c9a2b
+                example: https://api.return.app/v1/loans/7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
           content:
             application/json:
               schema:
@@ -397,6 +398,8 @@ paths:
                 instance: /v1/loans
                 timestamp: 2026-02-08T16:00:00Z
                 requestId: req-1a2b3c4d
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /loans/{loanId}:
     parameters:
@@ -407,7 +410,7 @@ paths:
         schema:
           type: string
           format: uuid
-        example: loan-7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
+        example: 7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
 
     get:
       tags:
@@ -759,7 +762,7 @@ paths:
               schema:
                 type: string
                 format: uri
-                example: /v1/items/item-9a1b2c3d
+                example: https://api.return.app/v1/items/9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d
           content:
             application/json:
               schema:
@@ -782,6 +785,7 @@ paths:
       tags:
         - Items
       summary: Récupérer les détails d'un objet
+      description: Retourne toutes les informations d'un objet, y compris ses photos et son historique de prêts.
       operationId: getItemById
       responses:
         '200':
@@ -801,6 +805,7 @@ paths:
       tags:
         - Items
       summary: Mettre à jour un objet
+      description: Permet de modifier le nom, la description, la catégorie ou la valeur estimée d'un objet existant.
       operationId: updateItem
       requestBody:
         required: true
@@ -909,7 +914,7 @@ paths:
               schema:
                 type: string
                 format: uri
-                example: /v1/items/item-123/photos/photo-4d5e
+                example: https://api.return.app/v1/items/9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d/photos/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
           content:
             application/json:
               schema:
@@ -1014,7 +1019,7 @@ paths:
               schema:
                 type: string
                 format: uri
-                example: /v1/borrowers/borrower-5d6e7f8a
+                example: https://api.return.app/v1/borrowers/5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
           content:
             application/json:
               schema:
@@ -1051,6 +1056,7 @@ paths:
       tags:
         - Borrowers
       summary: Récupérer les détails d'un emprunteur
+      description: Retourne les informations d'un emprunteur ainsi que ses statistiques de fiabilité.
       operationId: getBorrowerById
       responses:
         '200':
@@ -1070,6 +1076,7 @@ paths:
       tags:
         - Borrowers
       summary: Mettre à jour un contact
+      description: Permet de modifier les informations d'un emprunteur (nom, email, téléphone).
       operationId: updateBorrower
       requestBody:
         required: true
@@ -1146,6 +1153,7 @@ paths:
       tags:
         - Borrowers
       summary: Récupérer les statistiques de fiabilité d'un emprunteur
+      description: Retourne les statistiques détaillées de fiabilité d'un emprunteur, incluant le score de confiance et les délais moyens de retour.
       operationId: getBorrowerStatistics
       responses:
         '200':
@@ -1251,6 +1259,7 @@ paths:
       tags:
         - Reminders
       summary: Récupérer les détails d'un rappel
+      description: Retourne les informations complètes d'un rappel, y compris son statut d'envoi et son message.
       operationId: getReminderById
       responses:
         '200':
@@ -1369,6 +1378,7 @@ paths:
       tags:
         - Notifications
       summary: Marquer une notification comme lue
+      description: Met à jour le statut d'une notification pour la marquer comme lue.
       operationId: markNotificationAsRead
       responses:
         '204':
@@ -1385,6 +1395,7 @@ paths:
       tags:
         - Notifications
       summary: Marquer toutes les notifications comme lues
+      description: Met à jour le statut de toutes les notifications non lues de l'utilisateur pour les marquer comme lues.
       operationId: markAllNotificationsAsRead
       responses:
         '204':
@@ -1417,6 +1428,7 @@ paths:
       tags:
         - Users
       summary: Mettre à jour le profil utilisateur
+      description: Permet de modifier les informations du profil (nom, prénom, email) de l'utilisateur authentifié.
       operationId: updateUserProfile
       requestBody:
         required: true
@@ -1512,6 +1524,7 @@ paths:
       tags:
         - Users
       summary: Récupérer les paramètres utilisateur
+      description: Retourne les paramètres de notification et les préférences de l'utilisateur authentifié.
       operationId: getUserSettings
       responses:
         '200':
@@ -1527,6 +1540,7 @@ paths:
       tags:
         - Users
       summary: Mettre à jour les paramètres
+      description: Permet de modifier les paramètres de notification, la langue et le fuseau horaire de l'utilisateur.
       operationId: updateUserSettings
       requestBody:
         required: true
@@ -1551,6 +1565,7 @@ paths:
       tags:
         - Users
       summary: Mettre à jour la photo de profil
+      description: Upload ou remplace la photo de profil de l'utilisateur authentifié (JPEG ou PNG, max 2MB).
       operationId: updateUserAvatar
       requestBody:
         required: true
@@ -1591,6 +1606,7 @@ paths:
       tags:
         - Users
       summary: Changer le mot de passe
+      description: Permet de changer le mot de passe de l'utilisateur authentifié en fournissant le mot de passe actuel et le nouveau.
       operationId: changePassword
       requestBody:
         required: true
@@ -1922,7 +1938,7 @@ components:
         id:
           type: string
           format: uuid
-          example: loan-7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
+          example: 7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
           description: Identifiant unique du prêt
         item:
           $ref: '#/components/schemas/Item'
@@ -1999,7 +2015,7 @@ components:
         id:
           type: string
           format: uuid
-          example: item-9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d
+          example: 9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d
         name:
           type: string
           minLength: 3
@@ -2061,7 +2077,7 @@ components:
         id:
           type: string
           format: uuid
-          example: photo-1a2b3c4d
+          example: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
         url:
           type: string
           format: uri
@@ -2094,7 +2110,7 @@ components:
         id:
           type: string
           format: uuid
-          example: borrower-5d6e7f8a
+          example: 5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
         firstName:
           type: string
           minLength: 1
@@ -2119,7 +2135,7 @@ components:
           type: string
           format: uuid
           nullable: true
-          example: user-9a8b7c6d
+          example: 9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d
           description: ID utilisateur Return (null si invitation en attente)
         statistics:
           $ref: '#/components/schemas/BorrowerStatistics'
@@ -2175,11 +2191,11 @@ components:
         id:
           type: string
           format: uuid
-          example: reminder-3c4d5e6f
+          example: 3c4d5e6f-7a8b-4c9d-ae1f-2a3b4c5d6e7f
         loanId:
           type: string
           format: uuid
-          example: loan-7f3c9a2b
+          example: 7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
         type:
           $ref: '#/components/schemas/ReminderType'
         status:
@@ -2262,7 +2278,7 @@ components:
         id:
           type: string
           format: uuid
-          example: user-123
+          example: a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d
         email:
           type: string
           format: email
@@ -2344,7 +2360,7 @@ components:
         id:
           type: string
           format: uuid
-          example: notif-1a2b3c4d
+          example: d1e2f3a4-b5c6-4d7e-8f9a-0b1c2d3e4f5a
         type:
           type: string
           enum:
@@ -2370,7 +2386,7 @@ components:
           type: string
           format: uuid
           nullable: true
-          example: loan-7f3c9a2b
+          example: 7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
           description: ID du prêt associé (null si notification système)
         createdAt:
           type: string
@@ -2422,7 +2438,7 @@ components:
         id:
           type: string
           format: uuid
-          example: user-456
+          example: b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e
         firstName:
           type: string
           example: John
