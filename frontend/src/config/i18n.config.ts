@@ -11,7 +11,7 @@ i18n.use(initReactI18next).init({
     fr: { translation: fr },
     en: { translation: en },
   },
-  lng: deviceLanguage === 'fr' ? 'fr' : 'en',
+  lng: deviceLanguage.startsWith('fr') ? 'fr' : 'en',
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
 });

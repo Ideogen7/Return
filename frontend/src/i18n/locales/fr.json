@@ -12,7 +12,12 @@
     "login": "Connexion",
     "register": "Inscription",
     "email": "Adresse email",
-    "password": "Mot de passe"
+    "password": "Mot de passe",
+    "submit": "Envoyer",
+    "emailRequired": "L'email est requis",
+    "emailInvalid": "Email invalide",
+    "passwordRequired": "Le mot de passe est requis",
+    "passwordMinLength": "Minimum 8 caractères"
   },
   "navigation": {
     "loans": "Prêts",

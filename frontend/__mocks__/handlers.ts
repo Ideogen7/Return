@@ -17,7 +17,7 @@ export const handlers = [
           email: 'test@example.com',
           firstName: 'John',
           lastName: 'Doe',
-          createdAt: '2026-01-15T10:00:00Z',
+          createdAt: '2026-02-01T10:00:00Z',
         },
       },
       { status: 200 },

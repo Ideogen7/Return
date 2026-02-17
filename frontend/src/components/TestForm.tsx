@@ -1,5 +1,7 @@
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { TextInput, Button, HelperText } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 
 interface FormData {
   email: string;
@@ -7,6 +9,7 @@ interface FormData {
 }
 
 export function TestForm({ onSubmit }: { onSubmit?: (data: FormData) => void }) {
+  const { t } = useTranslation();
   const {
     control,
     handleSubmit,
@@ -19,49 +22,63 @@ export function TestForm({ onSubmit }: { onSubmit?: (data: FormData) => void }) 
         control={control}
         name="email"
         rules={{
-          required: 'Email is required',
-          pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Invalid email' },
+          required: t('auth.emailRequired'),
+          pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('auth.emailInvalid') },
         }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
-            placeholder="Email"
+            label={t('auth.email')}
+            mode="outlined"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
-            style={styles.input}
+            error={!!errors.email}
             testID="email-input"
+            style={styles.input}
           />
         )}
       />
-      {errors.email ? <Text testID="email-error">{errors.email.message}</Text> : null}
+      {errors.email ? (
+        <HelperText type="error" testID="email-error">
+          {errors.email.message}
+        </HelperText>
+      ) : null}
 
       <Controller
         control={control}
         name="password"
         rules={{
-          required: 'Password is required',
-          minLength: { value: 8, message: 'Minimum 8 characters' },
+          required: t('auth.passwordRequired'),
+          minLength: { value: 8, message: t('auth.passwordMinLength') },
         }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
-            placeholder="Password"
+            label={t('auth.password')}
+            mode="outlined"
             secureTextEntry
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
-            style={styles.input}
+            error={!!errors.password}
             testID="password-input"
+            style={styles.input}
           />
         )}
       />
-      {errors.password ? <Text testID="password-error">{errors.password.message}</Text> : null}
+      {errors.password ? (
+        <HelperText type="error" testID="password-error">
+          {errors.password.message}
+        </HelperText>
+      ) : null}
 
-      <Button title="Submit" onPress={handleSubmit(onSubmit ?? (() => {}))} testID="submit-btn" />
+      <Button mode="contained" onPress={handleSubmit(onSubmit ?? (() => {}))} testID="submit-btn">
+        {t('auth.submit')}
+      </Button>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { padding: 16 },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 8, marginBottom: 8, borderRadius: 4 },
+  input: { marginBottom: 4 },
 });

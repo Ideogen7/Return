@@ -12,7 +12,12 @@
     "login": "Login",
     "register": "Register",
     "email": "Email address",
-    "password": "Password"
+    "password": "Password",
+    "submit": "Submit",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Invalid email",
+    "passwordRequired": "Password is required",
+    "passwordMinLength": "Minimum 8 characters"
   },
   "navigation": {
     "loans": "Loans",

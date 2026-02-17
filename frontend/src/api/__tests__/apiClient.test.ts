@@ -3,9 +3,12 @@ import { server } from '../../../__mocks__/server';
 import { setAccessToken, setRefreshToken, getAccessToken, clearTokens } from '../../utils/storage';
 import apiClient from '../apiClient';
 
-beforeEach(async () => {
+beforeAll(() => server.listen());
+afterEach(async () => {
+  server.resetHandlers();
   await clearTokens();
 });
+afterAll(() => server.close());
 
 describe('apiClient', () => {
   it('should add Bearer token to request headers', async () => {
@@ -18,10 +21,8 @@ describe('apiClient', () => {
       }),
     );
 
-    server.listen();
     const response = await apiClient.get('/loans');
     expect(response.data.authHeader).toBe('Bearer test-token');
-    server.close();
   });
 
   it('should refresh token on 401 and retry the request', async () => {
@@ -50,14 +51,12 @@ describe('apiClient', () => {
       }),
     );
 
-    server.listen();
     const response = await apiClient.get('/loans');
     expect(response.data.authHeader).toBe('Bearer new-access-token');
     expect(callCount).toBe(2);
 
     const storedToken = await getAccessToken();
     expect(storedToken).toBe('new-access-token');
-    server.close();
   });
 
   it('should clear tokens if refresh fails', async () => {
@@ -79,17 +78,14 @@ describe('apiClient', () => {
       }),
     );
 
-    server.listen();
     await expect(apiClient.get('/loans')).rejects.toThrow();
 
     const storedToken = await getAccessToken();
     expect(storedToken).toBeNull();
-    server.close();
   });
 
   it('should clear tokens if no refresh token is available on 401', async () => {
     await setAccessToken('expired-token');
-    // Pas de refresh token
 
     server.use(
       http.get('http://localhost:3000/loans', () => {
@@ -100,11 +96,9 @@ describe('apiClient', () => {
       }),
     );
 
-    server.listen();
     await expect(apiClient.get('/loans')).rejects.toThrow();
 
     const storedToken = await getAccessToken();
     expect(storedToken).toBeNull();
-    server.close();
   });
 });

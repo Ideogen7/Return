@@ -59,7 +59,7 @@ export default tseslint.config(
       'react-native/no-unused-styles': 'warn',
       'react-native/no-inline-styles': 'warn',
 
-      // Interdiction console.log (utiliser logger.ts)
+      // Interdiction console.log en production
       'no-console': 'error',
 
       // TypeScript
