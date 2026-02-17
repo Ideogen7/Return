@@ -1,18 +1,12 @@
-# IDE
-.idea
-
-# Sprint tracking (temporary)
-SPRINT0_PROGRESS.md
-
-# Copilot instructions
-copilot-instructions.md
-
 # Dependencies
 node_modules/
 
+# Build output
+dist/
+coverage/
+
 # Expo
 .expo/
-dist/
 web-build/
 expo-env.d.ts
 
@@ -33,17 +27,35 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
-*.pem
-
-# Local env files
+# Environment
 .env
+.env.local
 .env*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+*.pem
 
 # TypeScript
 *.tsbuildinfo
 
+# Docker volumes
+postgres_data/
+redis_data/
+
 # Generated native folders
 frontend/ios
 frontend/android
+
+# Copilot instructions
+copilot-instructions.md
+
+# Sprint tracking (temporary)
+SPRINT0_PROGRESS.md
