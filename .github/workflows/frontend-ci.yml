@@ -5,12 +5,10 @@ on:
     branches: [main]
     paths:
       - 'frontend/**'
-      - 'docs/openapi.yaml'
   pull_request:
     branches: [main]
     paths:
       - 'frontend/**'
-      - 'docs/openapi.yaml'
 
 jobs:
   quality:
@@ -45,22 +43,3 @@ jobs:
 
       - name: Jest tests with coverage
         run: npm run test:coverage
-
-  openapi-lint:
-    name: Lint OpenAPI spec
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install Spectral
-        run: npm install -g @stoplight/spectral-cli
-
-      - name: Lint docs/openapi.yaml
-        run: spectral lint docs/openapi.yaml

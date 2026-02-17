@@ -13,7 +13,7 @@ export const handlers = [
         expiresIn: 900,
         tokenType: 'Bearer',
         user: {
-          id: 'user-123',
+          id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
           email: 'test@example.com',
           firstName: 'John',
           lastName: 'Doe',
@@ -33,7 +33,7 @@ export const handlers = [
         expiresIn: 900,
         tokenType: 'Bearer',
         user: {
-          id: 'user-456',
+          id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',
           email: 'new@example.com',
           firstName: 'Jane',
           lastName: 'Doe',
@@ -63,11 +63,15 @@ export const handlers = [
       {
         data: [
           {
-            id: 'loan-1',
+            id: '7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d',
             type: 'OBJECT',
             status: 'ACTIVE',
-            item: { id: 'item-1', name: 'Perceuse Bosch' },
-            borrower: { id: 'borrower-1', firstName: 'Marie', lastName: 'Dupont' },
+            item: { id: '9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d', name: 'Perceuse Bosch' },
+            borrower: {
+              id: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
+              firstName: 'Marie',
+              lastName: 'Dupont',
+            },
             returnDate: '2026-04-15',
             createdAt: '2026-02-01T10:00:00Z',
           },
@@ -100,8 +104,12 @@ export const handlers = [
         id: params.id,
         type: 'OBJECT',
         status: 'ACTIVE',
-        item: { id: 'item-1', name: 'Perceuse Bosch' },
-        borrower: { id: 'borrower-1', firstName: 'Marie', lastName: 'Dupont' },
+        item: { id: '9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d', name: 'Perceuse Bosch' },
+        borrower: {
+          id: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
+          firstName: 'Marie',
+          lastName: 'Dupont',
+        },
         returnDate: '2026-04-15',
         createdAt: '2026-02-01T10:00:00Z',
       },
