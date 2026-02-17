@@ -18,6 +18,18 @@ export default tseslint.config(
     ],
   },
 
+  // Fichiers de config CommonJS (jest.config.js, commitlint.config.js)
+  {
+    files: ['*.config.js'],
+    languageOptions: {
+      globals: {
+        module: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+      },
+    },
+  },
+
   // Regles de base JS
   js.configs.recommended,
 
