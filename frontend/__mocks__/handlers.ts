@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 
-const API_BASE = 'http://localhost:3000/v1';
+// Prism ignore le basePath — les routes sont directement /auth/login, /loans, etc.
+const API_BASE = 'http://localhost:3000';
 
 export const handlers = [
   // POST /auth/login
