@@ -5,12 +5,12 @@ on:
     branches: [main]
     paths:
       - 'frontend/**'
-      - 'openapi.yaml'
+      - 'docs/openapi.yaml'
   pull_request:
     branches: [main]
     paths:
       - 'frontend/**'
-      - 'openapi.yaml'
+      - 'docs/openapi.yaml'
 
 jobs:
   quality:
@@ -62,5 +62,5 @@ jobs:
       - name: Install Spectral
         run: npm install -g @stoplight/spectral-cli
 
-      - name: Lint openapi.yaml
-        run: spectral lint openapi.yaml
+      - name: Lint docs/openapi.yaml
+        run: spectral lint docs/openapi.yaml

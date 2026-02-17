@@ -17,6 +17,7 @@ module.exports = {
         'i18n',
         'ui',
         'navigation',
+        'ci',
       ],
     ],
   },
