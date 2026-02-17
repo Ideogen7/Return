@@ -15,12 +15,15 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "mock:api": "prism mock ../openapi.yaml --host 0.0.0.0 --port 3000 --cors"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.14.0",
     "@react-navigation/native": "^7.1.28",
     "@react-navigation/native-stack": "^7.13.0",
+    "axios": "^1.13.5",
     "expo": "~54.0.33",
     "expo-localization": "~17.0.8",
     "expo-status-bar": "~3.0.9",
@@ -39,6 +42,7 @@
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@eslint/js": "^9.39.2",
+    "@stoplight/prism-cli": "^5.14.2",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
