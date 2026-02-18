@@ -5,10 +5,32 @@ node_modules/
 dist/
 coverage/
 
+# Expo
+.expo/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
 # Environment
 .env
 .env.local
-.env.*.local
+.env*.local
 
 # IDE
 .idea/
@@ -19,10 +41,21 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
+*.pem
+
+# TypeScript
+*.tsbuildinfo
 
 # Docker volumes
 postgres_data/
 redis_data/
 
+# Generated native folders
+frontend/ios
+frontend/android
+
 # Copilot instructions
 copilot-instructions.md
+
+# Sprint tracking (temporary)
+SPRINT0_PROGRESS.md

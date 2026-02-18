@@ -1,2 +1,11 @@
 #!/usr/bin/env sh
-cd backend && npx lint-staged
+
+# Lint frontend staged files
+if git diff --cached --name-only | grep -q '^frontend/'; then
+  cd frontend && npx lint-staged && cd ..
+fi
+
+# Lint backend staged files
+if git diff --cached --name-only | grep -q '^backend/'; then
+  cd backend && npx lint-staged
+fi
