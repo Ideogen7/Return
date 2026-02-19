@@ -251,6 +251,17 @@ describe('AuthService', () => {
         expect(body.type).toContain('email-already-exists');
       }
     });
+
+    it('should emit user.registered event with userId and email', async () => {
+      // Act
+      await service.register(REGISTER_DTO);
+
+      // Assert — Événement métier émis pour découplage inter-modules (OCP)
+      expect(eventEmitter.emit).toHaveBeenCalledWith('user.registered', {
+        userId: MOCK_USER.id,
+        email: MOCK_USER.email,
+      });
+    });
   });
 
   // ===========================================================================
@@ -349,6 +360,16 @@ describe('AuthService', () => {
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: MOCK_USER.id },
         data: { lastLoginAt: expect.any(Date) },
+      });
+    });
+
+    it('should emit user.logged-in event with userId', async () => {
+      // Act
+      await service.login(LOGIN_DTO);
+
+      // Assert — Événement métier émis pour découplage inter-modules (OCP)
+      expect(eventEmitter.emit).toHaveBeenCalledWith('user.logged-in', {
+        userId: MOCK_USER.id,
       });
     });
   });

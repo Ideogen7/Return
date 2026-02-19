@@ -13,9 +13,10 @@ import {
   ConflictException,
   UnauthorizedException,
 } from '../common/exceptions/problem-details.exception.js';
+import { toSafeUser } from '../common/mappers/user.mapper.js';
+import { isPrismaUniqueConstraintError } from '../common/utils/prisma-errors.util.js';
 import type {
   AuthResponse,
-  SafeUser,
   TokenPair,
 } from './interfaces/auth-response.interface.js';
 import type { User } from '@prisma/client';
@@ -84,7 +85,7 @@ export class AuthService {
       });
     } catch (error: unknown) {
       // Prisma P2002 = violation de contrainte unique (email)
-      if (this.isPrismaUniqueError(error)) {
+      if (isPrismaUniqueConstraintError(error)) {
         throw new ConflictException(
           'email-already-exists',
           `An account with email '${dto.email}' already exists.`,
@@ -331,7 +332,7 @@ export class AuthService {
 
   /**
    * Construit l'objet AuthResponse à partir d'un User et d'une paire de tokens.
-   * Le mot de passe est systématiquement exclu (SafeUser).
+   * Le mot de passe est systématiquement exclu (SafeUser via toSafeUser).
    */
   private buildAuthResponse(user: User, tokens: TokenPair): AuthResponse {
     return {
@@ -339,31 +340,7 @@ export class AuthService {
       refreshToken: tokens.refreshToken,
       expiresIn: this.getAccessExpirationSeconds(),
       tokenType: 'Bearer',
-      user: this.sanitizeUser(user),
-    };
-  }
-
-  /**
-   * Supprime les champs sensibles de l'objet User.
-   * Retourne un SafeUser conforme au schéma OpenAPI
-   * (pas de password, pas de updatedAt, settings imbriqué).
-   */
-  private sanitizeUser(user: User): SafeUser {
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      profilePicture: user.profilePicture,
-      settings: {
-        pushNotificationsEnabled: user.pushNotificationsEnabled,
-        reminderEnabled: user.reminderEnabled,
-        language: user.language,
-        timezone: user.timezone,
-      },
-      createdAt: user.createdAt,
-      lastLoginAt: user.lastLoginAt,
+      user: toSafeUser(user),
     };
   }
 
@@ -408,21 +385,5 @@ export class AuthService {
     };
 
     return value * (multipliers[unit] ?? fallback);
-  }
-
-  // --- Helpers Prisma ---
-
-  /**
-   * Vérifie si une erreur Prisma est une violation de contrainte unique (P2002).
-   */
-  private isPrismaUniqueError(
-    error: unknown,
-  ): error is Error & { code: string } {
-    return (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      (error as { code: string }).code === 'P2002'
-    );
   }
 }

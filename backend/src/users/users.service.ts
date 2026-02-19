@@ -12,10 +12,9 @@ import {
   ConflictException,
   UnauthorizedException,
 } from '../common/exceptions/problem-details.exception.js';
-import type {
-  SafeUser,
-  UserSettings,
-} from '../auth/interfaces/auth-response.interface.js';
+import { toSafeUser } from '../common/mappers/user.mapper.js';
+import { isPrismaUniqueConstraintError } from '../common/utils/prisma-errors.util.js';
+import type { UserSettings } from '../auth/interfaces/auth-response.interface.js';
 import type { User } from '@prisma/client';
 
 // =============================================================================
@@ -52,9 +51,9 @@ export class UsersService {
    *
    * @throws NotFoundException (404) si l'utilisateur n'existe plus
    */
-  async getProfile(userId: string): Promise<SafeUser> {
+  async getProfile(userId: string) {
     const user = await this.findUserOrThrow(userId);
-    return this.sanitizeUser(user);
+    return toSafeUser(user);
   }
 
   /**
@@ -65,15 +64,15 @@ export class UsersService {
    *
    * @throws ConflictException (409) si l'email est déjà pris
    */
-  async updateProfile(userId: string, dto: UpdateUserDto): Promise<SafeUser> {
+  async updateProfile(userId: string, dto: UpdateUserDto) {
     try {
       const updated = await this.prisma.user.update({
         where: { id: userId },
         data: dto,
       });
-      return this.sanitizeUser(updated);
+      return toSafeUser(updated);
     } catch (error: unknown) {
-      if (this.isPrismaUniqueError(error)) {
+      if (isPrismaUniqueConstraintError(error)) {
         throw new ConflictException(
           'email-already-exists',
           'This email address is already associated with another account.',
@@ -235,28 +234,6 @@ export class UsersService {
   }
 
   /**
-   * Retire le password et regroupe les settings (SafeUser conforme OpenAPI).
-   */
-  private sanitizeUser(user: User): SafeUser {
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      profilePicture: user.profilePicture,
-      settings: {
-        pushNotificationsEnabled: user.pushNotificationsEnabled,
-        reminderEnabled: user.reminderEnabled,
-        language: user.language,
-        timezone: user.timezone,
-      },
-      createdAt: user.createdAt,
-      lastLoginAt: user.lastLoginAt,
-    };
-  }
-
-  /**
    * Extrait les champs de préférences d'un User.
    */
   private extractSettings(user: User): UserSettings {
@@ -266,19 +243,5 @@ export class UsersService {
       language: user.language,
       timezone: user.timezone,
     };
-  }
-
-  /**
-   * Vérifie si une erreur Prisma est une violation unique (P2002).
-   */
-  private isPrismaUniqueError(
-    error: unknown,
-  ): error is Error & { code: string } {
-    return (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      (error as { code: string }).code === 'P2002'
-    );
   }
 }
