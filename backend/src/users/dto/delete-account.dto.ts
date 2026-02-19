@@ -1,4 +1,4 @@
-import { IsString, Equals } from 'class-validator';
+import { IsString, IsNotEmpty, Equals } from 'class-validator';
 
 /**
  * DTO pour la suppression de compte.
@@ -10,6 +10,7 @@ import { IsString, Equals } from 'class-validator';
  */
 export class DeleteAccountDto {
   @IsString()
+  @IsNotEmpty({ message: 'Password must not be empty' })
   password!: string;
 
   @IsString()

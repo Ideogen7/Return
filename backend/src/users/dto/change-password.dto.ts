@@ -1,4 +1,10 @@
-import { IsString, MinLength, MaxLength, Matches } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  MinLength,
+  MaxLength,
+  Matches,
+} from 'class-validator';
 
 /**
  * DTO pour le changement de mot de passe.
@@ -11,6 +17,7 @@ import { IsString, MinLength, MaxLength, Matches } from 'class-validator';
  */
 export class ChangePasswordDto {
   @IsString()
+  @IsNotEmpty({ message: 'Current password must not be empty' })
   currentPassword!: string;
 
   @IsString()
