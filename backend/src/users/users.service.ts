@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RedisService } from '../redis/redis.service.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
@@ -11,19 +12,11 @@ import {
   ConflictException,
   UnauthorizedException,
 } from '../common/exceptions/problem-details.exception.js';
-import type { SafeUser } from '../auth/interfaces/auth-response.interface.js';
+import type {
+  SafeUser,
+  UserSettings,
+} from '../auth/interfaces/auth-response.interface.js';
 import type { User } from '@prisma/client';
-
-// =============================================================================
-// Retour spécifique pour les endpoints Settings
-// =============================================================================
-
-export interface UserSettings {
-  pushNotificationsEnabled: boolean;
-  reminderEnabled: boolean;
-  language: string;
-  timezone: string;
-}
 
 // =============================================================================
 // UsersService — Gestion du profil et des préférences utilisateur
@@ -45,7 +38,10 @@ export class UsersService {
   private readonly BCRYPT_ROUNDS = 12;
   private readonly logger = new Logger(UsersService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   // ===========================================================================
   // PROFIL
@@ -130,21 +126,34 @@ export class UsersService {
    * 1. Vérifie l'ancien mot de passe (bcrypt.compare)
    * 2. Hache le nouveau mot de passe (bcrypt, 12 rounds)
    * 3. Met à jour en base
+   * 4. Invalide TOUS les tokens actifs (ADR-004 — sécurité)
+   *    - Blackliste le jti de l'access token courant dans Redis
+   *    - Supprime tous les refresh tokens en base
+   *
+   * @param userId - ID de l'utilisateur (depuis le JWT)
+   * @param dto - Contient currentPassword et newPassword
+   * @param jti - JWT ID de l'access token courant (pour blacklist Redis)
+   * @param tokenExp - Timestamp d'expiration de l'access token courant
    *
    * @throws NotFoundException (404) si l'utilisateur n'existe plus
    * @throws UnauthorizedException (401) si l'ancien mot de passe est incorrect
    */
-  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+    jti: string,
+    tokenExp: number,
+  ): Promise<void> {
     const user = await this.findUserOrThrow(userId);
 
     // Vérification de l'ancien mot de passe
     const isPasswordValid = await bcrypt.compare(
-      dto.oldPassword,
+      dto.currentPassword,
       user.password,
     );
     if (!isPasswordValid) {
       throw new UnauthorizedException(
-        'invalid-password',
+        'invalid-current-password',
         'The current password is incorrect.',
         '/v1/users/me/password',
       );
@@ -160,7 +169,20 @@ export class UsersService {
       data: { password: hashedPassword },
     });
 
-    this.logger.log(`Password changed for user: ${userId}`);
+    // Invalidation de TOUS les tokens (ADR-004)
+    // 1. Blacklist du jti de l'access token courant dans Redis
+    const ttl = tokenExp - Math.floor(Date.now() / 1000);
+    if (ttl > 0) {
+      await this.redis.blacklistToken(jti, ttl);
+    }
+    // 2. Suppression de tous les refresh tokens en base
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+
+    this.logger.log(
+      `Password changed for user: ${userId} — all tokens revoked`,
+    );
   }
 
   // ===========================================================================
@@ -213,7 +235,7 @@ export class UsersService {
   }
 
   /**
-   * Retire le password de l'objet User (SafeUser).
+   * Retire le password et regroupe les settings (SafeUser conforme OpenAPI).
    */
   private sanitizeUser(user: User): SafeUser {
     return {
@@ -223,8 +245,13 @@ export class UsersService {
       lastName: user.lastName,
       role: user.role,
       profilePicture: user.profilePicture,
+      settings: {
+        pushNotificationsEnabled: user.pushNotificationsEnabled,
+        reminderEnabled: user.reminderEnabled,
+        language: user.language,
+        timezone: user.timezone,
+      },
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
       lastLoginAt: user.lastLoginAt,
     };
   }

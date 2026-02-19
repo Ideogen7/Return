@@ -2,8 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller.js';
 import { UsersService } from './users.service.js';
 import { UserRole } from '@prisma/client';
-import type { SafeUser } from '../auth/interfaces/auth-response.interface.js';
-import type { UserSettings } from './users.service.js';
+import type {
+  SafeUser,
+  UserSettings,
+} from '../auth/interfaces/auth-response.interface.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
 
 // =============================================================================
@@ -17,8 +19,13 @@ const MOCK_SAFE_USER: SafeUser = {
   lastName: 'Doe',
   role: UserRole.LENDER,
   profilePicture: null,
+  settings: {
+    pushNotificationsEnabled: true,
+    reminderEnabled: true,
+    language: 'fr',
+    timezone: 'Europe/Paris',
+  },
   createdAt: new Date('2025-01-01T00:00:00Z'),
-  updatedAt: new Date('2025-01-01T00:00:00Z'),
   lastLoginAt: null,
 };
 
@@ -32,6 +39,7 @@ const MOCK_SETTINGS: UserSettings = {
 const MOCK_AUTH_USER: AuthenticatedUser = {
   userId: '550e8400-e29b-41d4-a716-446655440000',
   email: 'john@example.com',
+  role: 'LENDER',
   jti: 'mock-jti',
   tokenExp: Math.floor(Date.now() / 1000) + 600,
 };
@@ -132,14 +140,19 @@ describe('UsersController', () => {
   // ===========================================================================
 
   describe('changePassword', () => {
-    it('should delegate to UsersService.changePassword and return void', async () => {
-      const dto = { oldPassword: 'StrongPass1!', newPassword: 'NewPass1!' };
+    it('should delegate to UsersService.changePassword with jti/tokenExp and return void', async () => {
+      const dto = {
+        currentPassword: 'StrongPass1!',
+        newPassword: 'NewPass1!',
+      };
 
       const result = await controller.changePassword(mockRequest, dto);
 
       expect(usersService.changePassword).toHaveBeenCalledWith(
         MOCK_AUTH_USER.userId,
         dto,
+        MOCK_AUTH_USER.jti,
+        MOCK_AUTH_USER.tokenExp,
       );
       expect(result).toBeUndefined();
     });

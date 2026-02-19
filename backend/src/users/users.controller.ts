@@ -9,13 +9,16 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { UsersService, type UserSettings } from './users.service.js';
+import { UsersService } from './users.service.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 import { DeleteAccountDto } from './dto/delete-account.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import type { SafeUser } from '../auth/interfaces/auth-response.interface.js';
+import type {
+  SafeUser,
+  UserSettings,
+} from '../auth/interfaces/auth-response.interface.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
 
 // =============================================================================
@@ -90,10 +93,11 @@ export class UsersController {
   /**
    * PATCH /v1/users/me/password
    *
-   * Change le mot de passe. Requiert l'ancien mot de passe.
+   * Change le mot de passe. Requiert le mot de passe actuel.
+   * Invalide TOUS les tokens actifs après le changement (ADR-004).
    *
    * @returns 204 No Content
-   * @throws 401 Unauthorized — Ancien mot de passe incorrect
+   * @throws 401 Unauthorized — Mot de passe actuel incorrect
    */
   @Patch('me/password')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -101,7 +105,12 @@ export class UsersController {
     @Request() req: { user: AuthenticatedUser },
     @Body() dto: ChangePasswordDto,
   ): Promise<void> {
-    await this.usersService.changePassword(req.user.userId, dto);
+    await this.usersService.changePassword(
+      req.user.userId,
+      dto,
+      req.user.jti,
+      req.user.tokenExp,
+    );
   }
 
   /**

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash, randomBytes, randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 
@@ -47,6 +48,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly redis: RedisService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ===========================================================================
@@ -94,8 +96,15 @@ export class AuthService {
 
     this.logger.log(`User registered: ${user.id}`);
 
+    // Événement métier (découplage inter-modules — SRP/OCP)
+    // Les listeners (notifications, analytics...) seront ajoutés dans les sprints suivants
+    this.eventEmitter.emit('user.registered', {
+      userId: user.id,
+      email: user.email,
+    });
+
     // 3-4. Génération et stockage des tokens
-    const tokens = await this.generateTokenPair(user.id, user.email);
+    const tokens = await this.generateTokenPair(user.id, user.email, user.role);
     await this.storeRefreshToken(user.id, tokens.refreshToken);
 
     // 5. Réponse
@@ -147,8 +156,11 @@ export class AuthService {
 
     this.logger.log(`User logged in: ${user.id}`);
 
+    // Événement métier (découplage inter-modules)
+    this.eventEmitter.emit('user.logged-in', { userId: user.id });
+
     // 4-5. Tokens + réponse
-    const tokens = await this.generateTokenPair(user.id, user.email);
+    const tokens = await this.generateTokenPair(user.id, user.email, user.role);
     await this.storeRefreshToken(user.id, tokens.refreshToken);
 
     return this.buildAuthResponse(user, tokens);
@@ -216,7 +228,7 @@ export class AuthService {
     }
 
     // 4-5. Nouveaux tokens + réponse
-    const tokens = await this.generateTokenPair(user.id, user.email);
+    const tokens = await this.generateTokenPair(user.id, user.email, user.role);
     await this.storeRefreshToken(user.id, tokens.refreshToken);
 
     return this.buildAuthResponse(user, tokens);
@@ -225,37 +237,28 @@ export class AuthService {
   /**
    * Déconnecte un utilisateur.
    *
-   * Flux :
+   * Flux (conforme à l'OpenAPI — POST /auth/logout sans body) :
    * 1. Blackliste le jti de l'access token dans Redis (TTL = durée restante)
-   * 2. Supprime le refresh token de la base de données
+   * 2. Supprime TOUS les refresh tokens de l'utilisateur en base
    *
    * Le blacklisting Redis garantit que même si le client conserve l'access token,
    * il sera rejeté par le JwtStrategy à chaque requête.
+   * La suppression de tous les refresh tokens force une reconnexion complète.
    *
    * @param userId - ID de l'utilisateur (depuis le JWT validé)
    * @param jti    - Identifiant unique de l'access token (claim JWT `jti`)
    * @param exp    - Timestamp d'expiration de l'access token (claim JWT `exp`)
-   * @param rawRefreshToken - Refresh token brut envoyé par le client
    */
-  async logout(
-    userId: string,
-    jti: string,
-    exp: number,
-    rawRefreshToken: string,
-  ): Promise<void> {
+  async logout(userId: string, jti: string, exp: number): Promise<void> {
     // 1. Blacklist de l'access token avec TTL = temps restant
     const ttl = exp - Math.floor(Date.now() / 1000);
     if (ttl > 0) {
       await this.redis.blacklistToken(jti, ttl);
     }
 
-    // 2. Suppression du refresh token en base (par hash + userId)
-    const hashedToken = this.hashToken(rawRefreshToken);
+    // 2. Suppression de TOUS les refresh tokens de l'utilisateur
     await this.prisma.refreshToken.deleteMany({
-      where: {
-        token: hashedToken,
-        userId,
-      },
+      where: { userId },
     });
 
     this.logger.log(`User logged out: ${userId}`);
@@ -270,10 +273,12 @@ export class AuthService {
    *
    * L'access token inclut un claim `jti` (JWT ID) unique pour permettre
    * la révocation individuelle via la blacklist Redis.
+   * Le claim `role` évite un appel DB par requête pour vérifier le rôle.
    */
   private async generateTokenPair(
     userId: string,
     email: string,
+    role: string,
   ): Promise<TokenPair> {
     const jti = randomUUID();
 
@@ -281,6 +286,7 @@ export class AuthService {
     const accessToken = await this.jwt.signAsync({
       sub: userId,
       email,
+      role,
       jti,
     });
 
@@ -339,7 +345,8 @@ export class AuthService {
 
   /**
    * Supprime les champs sensibles de l'objet User.
-   * Retourne un SafeUser conforme au schéma OpenAPI.
+   * Retourne un SafeUser conforme au schéma OpenAPI
+   * (pas de password, pas de updatedAt, settings imbriqué).
    */
   private sanitizeUser(user: User): SafeUser {
     return {
@@ -349,8 +356,13 @@ export class AuthService {
       lastName: user.lastName,
       role: user.role,
       profilePicture: user.profilePicture,
+      settings: {
+        pushNotificationsEnabled: user.pushNotificationsEnabled,
+        reminderEnabled: user.reminderEnabled,
+        language: user.language,
+        timezone: user.timezone,
+      },
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
       lastLoginAt: user.lastLoginAt,
     };
   }

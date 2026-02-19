@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RedisService } from '../redis/redis.service.js';
@@ -72,6 +73,7 @@ describe('AuthService', () => {
     blacklistToken: jest.Mock;
     isTokenBlacklisted: jest.Mock;
   };
+  let eventEmitter: { emit: jest.Mock };
 
   beforeEach(async () => {
     // Reset tous les mocks entre chaque test pour éviter les effets de bord
@@ -102,6 +104,9 @@ describe('AuthService', () => {
       blacklistToken: jest.fn().mockResolvedValue(undefined),
       isTokenBlacklisted: jest.fn().mockResolvedValue(false),
     };
+    eventEmitter = {
+      emit: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -110,6 +115,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useValue: configService },
         { provide: RedisService, useValue: redisService },
+        { provide: EventEmitter2, useValue: eventEmitter },
       ],
     }).compile();
 
@@ -159,15 +165,16 @@ describe('AuthService', () => {
       });
     });
 
-    it('should generate a JWT access token with sub, email, and jti claims', async () => {
+    it('should generate a JWT access token with sub, email, role, and jti claims', async () => {
       // Act
       await service.register(REGISTER_DTO);
 
-      // Assert — Le JWT contient les claims nécessaires (jti pour la blacklist)
+      // Assert — Le JWT contient les claims nécessaires (jti pour la blacklist, role pour éviter un appel DB)
       expect(jwtService.signAsync).toHaveBeenCalledWith(
         expect.objectContaining({
           sub: MOCK_USER.id,
           email: MOCK_USER.email,
+          role: MOCK_USER.role,
           jti: expect.any(String),
         }),
       );
@@ -204,11 +211,19 @@ describe('AuthService', () => {
             firstName: MOCK_USER.firstName,
             lastName: MOCK_USER.lastName,
             role: UserRole.LENDER,
+            settings: expect.objectContaining({
+              pushNotificationsEnabled: true,
+              reminderEnabled: true,
+              language: 'fr',
+              timezone: 'Europe/Paris',
+            }),
           }),
         }),
       );
       // Le password ne doit JAMAIS fuiter dans la réponse
       expect(result.user).not.toHaveProperty('password');
+      // updatedAt ne fait pas partie du schéma OpenAPI User
+      expect(result.user).not.toHaveProperty('updatedAt');
     });
 
     it('should throw ConflictException (409) if email already exists', async () => {
@@ -470,13 +485,12 @@ describe('AuthService', () => {
   // ===========================================================================
 
   describe('logout', () => {
-    const RAW_REFRESH_TOKEN = 'b'.repeat(64);
     const JTI = 'mock-jti-uuid';
     const TOKEN_EXP = Math.floor(Date.now() / 1000) + 600; // expire dans 10 min
 
     it('should blacklist the access token jti in Redis with remaining TTL', async () => {
       // Act
-      await service.logout(MOCK_USER.id, JTI, TOKEN_EXP, RAW_REFRESH_TOKEN);
+      await service.logout(MOCK_USER.id, JTI, TOKEN_EXP);
 
       // Assert — Le jti est blacklisté avec un TTL ≈ 600 secondes
       expect(redisService.blacklistToken).toHaveBeenCalledWith(
@@ -494,22 +508,19 @@ describe('AuthService', () => {
       const expiredExp = Math.floor(Date.now() / 1000) - 10;
 
       // Act
-      await service.logout(MOCK_USER.id, JTI, expiredExp, RAW_REFRESH_TOKEN);
+      await service.logout(MOCK_USER.id, JTI, expiredExp);
 
       // Assert — Pas de blacklist si le token est déjà expiré (inutile)
       expect(redisService.blacklistToken).not.toHaveBeenCalled();
     });
 
-    it('should delete the refresh token from database', async () => {
+    it('should delete ALL refresh tokens for the user from database', async () => {
       // Act
-      await service.logout(MOCK_USER.id, JTI, TOKEN_EXP, RAW_REFRESH_TOKEN);
+      await service.logout(MOCK_USER.id, JTI, TOKEN_EXP);
 
-      // Assert — Le refresh token est supprimé par son hash + userId
+      // Assert — Tous les refresh tokens de l'utilisateur sont supprimés
       expect(prisma.refreshToken.deleteMany).toHaveBeenCalledWith({
-        where: {
-          token: expect.stringMatching(/^[a-f0-9]{64}$/),
-          userId: MOCK_USER.id,
-        },
+        where: { userId: MOCK_USER.id },
       });
     });
   });

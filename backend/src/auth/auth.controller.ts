@@ -7,6 +7,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -53,12 +54,15 @@ export class AuthController {
    * POST /v1/auth/login
    *
    * Authentifie un utilisateur existant par email + mot de passe.
+   * Rate limiting renforcé : 10 tentatives / 15 min (protège contre le brute-force).
    *
    * @returns 200 OK — AuthResponse
    * @throws 401 Unauthorized — Si les identifiants sont invalides
+   * @throws 429 Too Many Requests — Si le rate limit est atteint
    */
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 900_000, limit: 10 } })
   async login(@Body() dto: LoginDto): Promise<AuthResponse> {
     return this.authService.login(dto);
   }
@@ -81,9 +85,9 @@ export class AuthController {
   /**
    * POST /v1/auth/logout
    *
-   * Déconnecte l'utilisateur :
+   * Déconnecte l'utilisateur (conforme OpenAPI — pas de body) :
    * - Blackliste l'access token (claim jti) dans Redis
-   * - Supprime le refresh token de la base de données
+   * - Supprime TOUS les refresh tokens de l'utilisateur en base
    *
    * Requiert un Bearer token valide (JwtAuthGuard).
    *
@@ -92,15 +96,11 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async logout(
-    @Request() req: { user: AuthenticatedUser },
-    @Body() dto: RefreshTokenDto,
-  ): Promise<void> {
+  async logout(@Request() req: { user: AuthenticatedUser }): Promise<void> {
     await this.authService.logout(
       req.user.userId,
       req.user.jti,
       req.user.tokenExp,
-      dto.refreshToken,
     );
   }
 }

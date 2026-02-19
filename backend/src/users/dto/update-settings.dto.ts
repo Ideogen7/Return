@@ -1,4 +1,10 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 /**
  * DTO pour la mise à jour partielle des préférences utilisateur.
@@ -15,9 +21,13 @@ export class UpdateSettingsDto {
   @IsBoolean()
   reminderEnabled?: boolean;
 
+  /**
+   * Langue de l'application.
+   * Valeurs autorisées : 'fr' (français) ou 'en' (anglais) — conforme OpenAPI enum.
+   */
   @IsOptional()
   @IsString()
-  @MaxLength(5)
+  @IsIn(['fr', 'en'], { message: "Language must be either 'fr' or 'en'." })
   language?: string;
 
   @IsOptional()

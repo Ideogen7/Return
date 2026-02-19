@@ -24,8 +24,13 @@ const MOCK_AUTH_RESPONSE: AuthResponse = {
     lastName: 'Doe',
     role: UserRole.LENDER,
     profilePicture: null,
+    settings: {
+      pushNotificationsEnabled: true,
+      reminderEnabled: true,
+      language: 'fr',
+      timezone: 'Europe/Paris',
+    },
     createdAt: new Date('2025-01-01T00:00:00Z'),
-    updatedAt: new Date('2025-01-01T00:00:00Z'),
     lastLoginAt: null,
   },
 };
@@ -33,6 +38,7 @@ const MOCK_AUTH_RESPONSE: AuthResponse = {
 const MOCK_AUTHENTICATED_USER: AuthenticatedUser = {
   userId: '550e8400-e29b-41d4-a716-446655440000',
   email: 'john@example.com',
+  role: 'LENDER',
   jti: 'mock-jti',
   tokenExp: Math.floor(Date.now() / 1000) + 600,
 };
@@ -142,27 +148,23 @@ describe('AuthController', () => {
   // ===========================================================================
 
   describe('logout', () => {
-    const dto: RefreshTokenDto = {
-      refreshToken: 'raw-refresh-token',
-    };
     const mockRequest = { user: MOCK_AUTHENTICATED_USER };
 
-    it('should delegate to AuthService.logout with user context and refresh token', async () => {
+    it('should delegate to AuthService.logout with user context (no body)', async () => {
       // Act
-      await controller.logout(mockRequest, dto);
+      await controller.logout(mockRequest);
 
-      // Assert — Le controller transmet userId, jti, exp et refreshToken
+      // Assert — Le controller transmet userId, jti, exp (pas de refreshToken — OpenAPI)
       expect(authService.logout).toHaveBeenCalledWith(
         MOCK_AUTHENTICATED_USER.userId,
         MOCK_AUTHENTICATED_USER.jti,
         MOCK_AUTHENTICATED_USER.tokenExp,
-        dto.refreshToken,
       );
     });
 
     it('should return void (204 No Content)', async () => {
       // Act
-      const result = await controller.logout(mockRequest, dto);
+      const result = await controller.logout(mockRequest);
 
       // Assert — 204 = pas de body
       expect(result).toBeUndefined();

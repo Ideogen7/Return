@@ -3,13 +3,15 @@ import { IsString, MinLength, MaxLength, Matches } from 'class-validator';
 /**
  * DTO pour le changement de mot de passe.
  *
- * - oldPassword : mot de passe actuel (vérifié via bcrypt.compare)
+ * - currentPassword : mot de passe actuel (vérifié via bcrypt.compare)
  * - newPassword : nouveau mot de passe avec les mêmes règles que l'inscription
  *                 (8-100 chars, 1 maj, 1 min, 1 chiffre, 1 spécial)
+ *
+ * Nom du champ conforme au schéma OpenAPI `ChangePasswordDto`.
  */
 export class ChangePasswordDto {
   @IsString()
-  oldPassword!: string;
+  currentPassword!: string;
 
   @IsString()
   @MinLength(8)

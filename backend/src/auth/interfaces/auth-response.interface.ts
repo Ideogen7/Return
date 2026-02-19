@@ -5,10 +5,29 @@ import { UserRole } from '@prisma/client';
 // =============================================================================
 
 /**
+ * Préférences utilisateur (conforme au schéma OpenAPI `UserSettings`).
+ *
+ * Renvoyé en tant que champ imbriqué `settings` dans SafeUser,
+ * et utilisé directement par GET/PATCH /users/me/settings.
+ */
+export interface UserSettings {
+  pushNotificationsEnabled: boolean;
+  reminderEnabled: boolean;
+  language: string;
+  timezone: string;
+}
+
+/**
  * Utilisateur sans données sensibles (password exclu).
  *
  * Correspond au schéma OpenAPI `User` renvoyé dans AuthResponse
  * et dans les endpoints /users/me.
+ *
+ * Différences vs le modèle Prisma :
+ *   - Pas de `password` (jamais exposé)
+ *   - Pas de `updatedAt` (absent du schéma OpenAPI)
+ *   - `settings` imbriqué (les champs settings sont à plat en base, mais
+ *     regroupés en objet dans la réponse API — conforme à l'OpenAPI)
  */
 export interface SafeUser {
   id: string;
@@ -17,8 +36,8 @@ export interface SafeUser {
   lastName: string;
   role: UserRole;
   profilePicture: string | null;
+  settings: UserSettings;
   createdAt: Date;
-  updatedAt: Date;
   lastLoginAt: Date | null;
 }
 

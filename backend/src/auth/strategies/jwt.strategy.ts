@@ -10,12 +10,14 @@ import { UnauthorizedException } from '../../common/exceptions/problem-details.e
  *
  * - `sub` : ID utilisateur (UUID)
  * - `email` : Email de l'utilisateur
+ * - `role` : Rôle de l'utilisateur (LENDER/BORROWER) — évite un appel DB
  * - `jti` : JWT ID unique — utilisé pour la blacklist Redis
  * - `iat` / `exp` : Timestamps auto-générés par jsonwebtoken
  */
 export interface JwtPayload {
   sub: string;
   email: string;
+  role: string;
   jti: string;
   iat?: number;
   exp?: number;
@@ -30,6 +32,7 @@ export interface JwtPayload {
 export interface AuthenticatedUser {
   userId: string;
   email: string;
+  role: string;
   jti: string;
   tokenExp: number;
 }
@@ -67,6 +70,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return {
       userId: payload.sub,
       email: payload.email,
+      role: payload.role,
       jti: payload.jti,
       tokenExp: payload.exp ?? 0,
     };

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpStatus } from '@nestjs/common';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RedisService } from '../redis/redis.service.js';
 import { UsersService } from './users.service.js';
 import { UserRole } from '@prisma/client';
 import type { ProblemDetails } from '../common/exceptions/problem-details.exception.js';
@@ -49,14 +50,26 @@ const MOCK_USER = {
 describe('UsersService', () => {
   let service: UsersService;
   let prisma: DeepMockProxy<PrismaService>;
+  let redisService: {
+    blacklistToken: jest.Mock;
+    isTokenBlacklisted: jest.Mock;
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
 
     prisma = mockDeep<PrismaService>();
+    redisService = {
+      blacklistToken: jest.fn().mockResolvedValue(undefined),
+      isTokenBlacklisted: jest.fn().mockResolvedValue(false),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        UsersService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: RedisService, useValue: redisService },
+      ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
@@ -67,7 +80,7 @@ describe('UsersService', () => {
   // ===========================================================================
 
   describe('getProfile', () => {
-    it('should return SafeUser without password', async () => {
+    it('should return SafeUser without password, with nested settings', async () => {
       // Arrange
       prisma.user.findUnique.mockResolvedValue(MOCK_USER);
 
@@ -81,9 +94,16 @@ describe('UsersService', () => {
           email: MOCK_USER.email,
           firstName: MOCK_USER.firstName,
           lastName: MOCK_USER.lastName,
+          settings: expect.objectContaining({
+            pushNotificationsEnabled: true,
+            reminderEnabled: true,
+            language: 'fr',
+            timezone: 'Europe/Paris',
+          }),
         }),
       );
       expect(result).not.toHaveProperty('password');
+      expect(result).not.toHaveProperty('updatedAt');
     });
 
     it('should throw NotFoundException if user does not exist', async () => {
@@ -261,18 +281,23 @@ describe('UsersService', () => {
   // ===========================================================================
 
   describe('changePassword', () => {
+    const JTI = 'mock-jti-uuid';
+    const TOKEN_EXP = Math.floor(Date.now() / 1000) + 600;
+
     beforeEach(() => {
       prisma.user.findUnique.mockResolvedValue(MOCK_USER);
       bcrypt.compare.mockResolvedValue(true);
       bcrypt.hash.mockResolvedValue('$2b$12$newHashedPassword');
     });
 
-    it('should verify old password, hash new one, and update', async () => {
+    it('should verify current password, hash new one, and update', async () => {
       // Act
-      await service.changePassword(MOCK_USER.id, {
-        oldPassword: 'StrongPass1!',
-        newPassword: 'NewPass1!',
-      });
+      await service.changePassword(
+        MOCK_USER.id,
+        { currentPassword: 'StrongPass1!', newPassword: 'NewPass1!' },
+        JTI,
+        TOKEN_EXP,
+      );
 
       // Assert
       expect(bcrypt.compare).toHaveBeenCalledWith(
@@ -286,16 +311,18 @@ describe('UsersService', () => {
       });
     });
 
-    it('should throw UnauthorizedException for wrong old password', async () => {
+    it('should throw UnauthorizedException for wrong current password', async () => {
       // Arrange
       bcrypt.compare.mockResolvedValue(false);
 
       // Act & Assert
       try {
-        await service.changePassword(MOCK_USER.id, {
-          oldPassword: 'wrong',
-          newPassword: 'NewPass1!',
-        });
+        await service.changePassword(
+          MOCK_USER.id,
+          { currentPassword: 'wrong', newPassword: 'NewPass1!' },
+          JTI,
+          TOKEN_EXP,
+        );
         fail('Should have thrown');
       } catch (error) {
         const exception = error as {
@@ -305,8 +332,28 @@ describe('UsersService', () => {
         expect(exception.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
 
         const body = exception.getResponse();
-        expect(body.type).toContain('invalid-password');
+        expect(body.type).toContain('invalid-current-password');
       }
+    });
+
+    it('should revoke ALL tokens after password change (ADR-004)', async () => {
+      // Act
+      await service.changePassword(
+        MOCK_USER.id,
+        { currentPassword: 'StrongPass1!', newPassword: 'NewPass1!' },
+        JTI,
+        TOKEN_EXP,
+      );
+
+      // Assert — Blacklist du jti courant dans Redis
+      expect(redisService.blacklistToken).toHaveBeenCalledWith(
+        JTI,
+        expect.any(Number),
+      );
+      // Assert — Suppression de TOUS les refresh tokens
+      expect(prisma.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: MOCK_USER.id },
+      });
     });
   });
 
