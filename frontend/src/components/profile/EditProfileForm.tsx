@@ -34,7 +34,7 @@ export function EditProfileForm({ user, onSubmit, isLoading }: EditProfileFormPr
           <TextInput
             label={t('auth.firstName')}
             mode="outlined"
-            left={<TextInput.Icon icon="account-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="account-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -59,7 +59,7 @@ export function EditProfileForm({ user, onSubmit, isLoading }: EditProfileFormPr
           <TextInput
             label={t('auth.lastName')}
             mode="outlined"
-            left={<TextInput.Icon icon="account-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="account-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}

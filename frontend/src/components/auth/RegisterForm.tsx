@@ -57,7 +57,7 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
               <TextInput
                 label={t('auth.firstName')}
                 mode="outlined"
-                left={<TextInput.Icon icon="account-outline" color="#9ca3af" />}
+                left={<TextInput.Icon icon="account-outline" color="#A8B5BF" />}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -83,7 +83,7 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
               <TextInput
                 label={t('auth.lastName')}
                 mode="outlined"
-                left={<TextInput.Icon icon="account-outline" color="#9ca3af" />}
+                left={<TextInput.Icon icon="account-outline" color="#A8B5BF" />}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -115,7 +115,7 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
             mode="outlined"
             keyboardType="email-address"
             autoCapitalize="none"
-            left={<TextInput.Icon icon="email-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="email-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -145,7 +145,7 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
             label={t('auth.password')}
             mode="outlined"
             secureTextEntry
-            left={<TextInput.Icon icon="lock-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="lock-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -174,7 +174,7 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
             label={t('auth.confirmPassword')}
             mode="outlined"
             secureTextEntry
-            left={<TextInput.Icon icon="lock-check-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="lock-check-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}

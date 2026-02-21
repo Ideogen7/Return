@@ -46,7 +46,7 @@ export function DeleteAccountScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.warningCard}>
         <View style={styles.warningHeader}>
-          <Icon source="alert-circle-outline" size={22} color="#ef4444" />
+          <Icon source="alert-circle-outline" size={22} color="#D97A6B" />
           <Text variant="titleMedium" style={styles.warningTitle}>
             {t('profile.confirmDelete')}
           </Text>
@@ -65,7 +65,7 @@ export function DeleteAccountScreen() {
             label={t('auth.password')}
             mode="outlined"
             secureTextEntry
-            left={<TextInput.Icon icon="lock-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="lock-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -94,7 +94,7 @@ export function DeleteAccountScreen() {
           <TextInput
             label={t('profile.confirmationText')}
             mode="outlined"
-            left={<TextInput.Icon icon="text-box-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="text-box-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -120,7 +120,7 @@ export function DeleteAccountScreen() {
       <Button
         mode="contained"
         icon="trash-can-outline"
-        buttonColor="#ef4444"
+        buttonColor="#D97A6B"
         onPress={handleSubmit(handleDelete)}
         loading={isLoading}
         disabled={isLoading}
@@ -138,16 +138,16 @@ export function DeleteAccountScreen() {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 16 },
   warningCard: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: '#FAEAE7',
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#fee2e2',
+    borderColor: '#FAEAE7',
   },
   warningHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  warningTitle: { color: '#dc2626', fontWeight: '700' },
-  warningText: { color: '#991b1b', lineHeight: 22 },
+  warningTitle: { color: '#C46A5D', fontWeight: '700' },
+  warningText: { color: '#9B4E44', lineHeight: 22 },
   input: { marginBottom: 8, marginHorizontal: 16 },
   outline: { borderRadius: 12 },
   button: { marginTop: 20, marginHorizontal: 16, borderRadius: 12 },

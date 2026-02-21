@@ -34,7 +34,7 @@ export function LoginForm({ onSubmit, isLoading, error }: LoginFormProps) {
             mode="outlined"
             keyboardType="email-address"
             autoCapitalize="none"
-            left={<TextInput.Icon icon="email-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="email-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -63,7 +63,7 @@ export function LoginForm({ onSubmit, isLoading, error }: LoginFormProps) {
             label={t('auth.password')}
             mode="outlined"
             secureTextEntry
-            left={<TextInput.Icon icon="lock-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="lock-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}

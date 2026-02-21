@@ -44,7 +44,7 @@ export function ChangePasswordForm({ onSubmit, isLoading, error }: ChangePasswor
             label={t('profile.currentPassword')}
             mode="outlined"
             secureTextEntry
-            left={<TextInput.Icon icon="lock-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="lock-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -74,7 +74,7 @@ export function ChangePasswordForm({ onSubmit, isLoading, error }: ChangePasswor
             label={t('profile.newPassword')}
             mode="outlined"
             secureTextEntry
-            left={<TextInput.Icon icon="lock-plus-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="lock-plus-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -103,7 +103,7 @@ export function ChangePasswordForm({ onSubmit, isLoading, error }: ChangePasswor
             label={t('profile.confirmNewPassword')}
             mode="outlined"
             secureTextEntry
-            left={<TextInput.Icon icon="lock-check-outline" color="#9ca3af" />}
+            left={<TextInput.Icon icon="lock-check-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}

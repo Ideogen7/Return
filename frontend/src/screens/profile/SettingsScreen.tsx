@@ -51,7 +51,7 @@ export function SettingsScreen() {
   if (isLoading || !settings) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#4f46e5" testID="loading" />
+        <ActivityIndicator size="large" color="#6B8E7B" testID="loading" />
       </View>
     );
   }
@@ -61,7 +61,7 @@ export function SettingsScreen() {
       <View style={[styles.settingsCard, ui.card]}>
         <View style={styles.row}>
           <View style={styles.rowLeft}>
-            <Icon source="bell-outline" size={20} color="#818cf8" />
+            <Icon source="bell-outline" size={20} color="#4A6355" />
             <Text variant="bodyLarge" style={styles.label}>
               {t('settings.pushNotifications')}
             </Text>
@@ -70,7 +70,7 @@ export function SettingsScreen() {
             value={settings.pushNotificationsEnabled}
             onValueChange={(value) => setSettings({ ...settings, pushNotificationsEnabled: value })}
             testID="push-switch"
-            color="#4f46e5"
+            color="#6B8E7B"
           />
         </View>
 
@@ -78,7 +78,7 @@ export function SettingsScreen() {
 
         <View style={styles.row}>
           <View style={styles.rowLeft}>
-            <Icon source="clock-outline" size={20} color="#818cf8" />
+            <Icon source="clock-outline" size={20} color="#4A6355" />
             <Text variant="bodyLarge" style={styles.label}>
               {t('settings.reminders')}
             </Text>
@@ -87,14 +87,14 @@ export function SettingsScreen() {
             value={settings.reminderEnabled}
             onValueChange={(value) => setSettings({ ...settings, reminderEnabled: value })}
             testID="reminder-switch"
-            color="#4f46e5"
+            color="#6B8E7B"
           />
         </View>
       </View>
 
       <View style={[styles.settingsCard, ui.card]}>
         <View style={styles.sectionHeader}>
-          <Icon source="translate" size={20} color="#818cf8" />
+          <Icon source="translate" size={20} color="#4A6355" />
           <Text variant="bodyLarge" style={styles.sectionLabel}>
             {t('settings.language')}
           </Text>
@@ -132,7 +132,7 @@ export function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, gap: 16, backgroundColor: '#f9fafb' },
+  container: { flexGrow: 1, padding: 16, gap: 16, backgroundColor: '#F7F4EF' },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   settingsCard: { padding: 16 },
   row: {
@@ -144,12 +144,12 @@ const styles = StyleSheet.create({
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   divider: {
     height: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#EDE9E2',
     marginVertical: 4,
   },
-  label: { color: '#1f2937' },
+  label: { color: '#2D3748' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  sectionLabel: { color: '#1f2937' },
+  sectionLabel: { color: '#2D3748' },
   segmented: { marginTop: 4 },
   button: { marginTop: 8, borderRadius: 12 },
   buttonLabel: { fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },

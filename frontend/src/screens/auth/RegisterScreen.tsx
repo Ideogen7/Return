@@ -51,7 +51,7 @@ export function RegisterScreen({ navigation }: Props) {
         mode="text"
         onPress={() => navigation.navigate('Login')}
         testID="go-login"
-        textColor="#4f46e5"
+        textColor="#6B8E7B"
         labelStyle={styles.linkLabel}
       >
         {t('auth.hasAccount')}
@@ -61,7 +61,7 @@ export function RegisterScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, justifyContent: 'center', padding: 24, backgroundColor: '#f9fafb' },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 24, backgroundColor: '#F7F4EF' },
   logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   logoBadge: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#6B8E7B',
     width: 40,
     height: 40,
     borderRadius: 10,
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
-  logoText: { color: '#111827', fontWeight: '700', letterSpacing: -0.5 },
-  title: { textAlign: 'center', marginBottom: 24, color: '#6b7280' },
+  logoText: { color: '#2D3748', fontWeight: '700', letterSpacing: -0.5 },
+  title: { textAlign: 'center', marginBottom: 24, color: '#6B7A8D' },
   linkLabel: { fontSize: 14, letterSpacing: 0.3 },
 });

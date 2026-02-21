@@ -19,7 +19,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
     <View style={[styles.card, ui.card]} testID="profile-card">
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <Icon source="account" size={32} color="#4f46e5" />
+          <Icon source="account" size={32} color="#6B8E7B" />
         </View>
         <View style={styles.headerText}>
           <Text variant="headlineSmall" style={styles.name} testID="profile-name">
@@ -35,7 +35,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
 
       <View style={styles.row}>
         <View style={styles.rowLeft}>
-          <Icon source="shield-account-outline" size={16} color="#9ca3af" />
+          <Icon source="shield-account-outline" size={16} color="#A8B5BF" />
           <Text variant="bodySmall" style={styles.label}>
             {t('profile.role')}
           </Text>
@@ -47,7 +47,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
 
       <View style={styles.row}>
         <View style={styles.rowLeft}>
-          <Icon source="calendar-outline" size={16} color="#9ca3af" />
+          <Icon source="calendar-outline" size={16} color="#A8B5BF" />
           <Text variant="bodySmall" style={styles.label}>
             {t('profile.memberSince')}
           </Text>
@@ -60,7 +60,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
       {user.lastLoginAt && (
         <View style={styles.row}>
           <View style={styles.rowLeft}>
-            <Icon source="clock-outline" size={16} color="#9ca3af" />
+            <Icon source="clock-outline" size={16} color="#A8B5BF" />
             <Text variant="bodySmall" style={styles.label}>
               {t('profile.lastLogin')}
             </Text>
@@ -81,17 +81,17 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#e0e7ff',
+    backgroundColor: '#D0E4DB',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
     borderWidth: 1,
-    borderColor: '#c7d2fe',
+    borderColor: '#B3D4C4',
   },
   headerText: { flex: 1 },
-  name: { color: '#111827', fontWeight: '700' },
-  email: { color: '#6b7280', marginTop: 2 },
-  divider: { marginVertical: 16, backgroundColor: '#e5e7eb' },
+  name: { color: '#2D3748', fontWeight: '700' },
+  email: { color: '#6B7A8D', marginTop: 2 },
+  divider: { marginVertical: 16, backgroundColor: '#C9C4BB' },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -99,6 +99,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  label: { color: '#6b7280' },
-  value: { color: '#374151', fontWeight: '500' },
+  label: { color: '#6B7A8D' },
+  value: { color: '#3D4F5C', fontWeight: '500' },
 });
