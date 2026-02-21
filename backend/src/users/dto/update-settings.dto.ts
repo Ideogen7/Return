@@ -1,10 +1,4 @@
-import {
-  IsBoolean,
-  IsIn,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
 /**
  * DTO pour la mise à jour partielle des préférences utilisateur.

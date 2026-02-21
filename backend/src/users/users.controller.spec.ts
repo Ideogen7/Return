@@ -2,10 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller.js';
 import { UsersService } from './users.service.js';
 import { UserRole } from '@prisma/client';
-import type {
-  SafeUser,
-  UserSettings,
-} from '../auth/interfaces/auth-response.interface.js';
+import type { SafeUser, UserSettings } from '../auth/interfaces/auth-response.interface.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
 
 // =============================================================================
@@ -89,9 +86,7 @@ describe('UsersController', () => {
     it('should delegate to UsersService.getProfile with userId from JWT', async () => {
       const result = await controller.getProfile(mockRequest);
 
-      expect(usersService.getProfile).toHaveBeenCalledWith(
-        MOCK_AUTH_USER.userId,
-      );
+      expect(usersService.getProfile).toHaveBeenCalledWith(MOCK_AUTH_USER.userId);
       expect(result).toEqual(MOCK_SAFE_USER);
     });
   });
@@ -106,10 +101,7 @@ describe('UsersController', () => {
 
       const result = await controller.updateProfile(mockRequest, dto);
 
-      expect(usersService.updateProfile).toHaveBeenCalledWith(
-        MOCK_AUTH_USER.userId,
-        dto,
-      );
+      expect(usersService.updateProfile).toHaveBeenCalledWith(MOCK_AUTH_USER.userId, dto);
       expect(result).toEqual(MOCK_SAFE_USER);
     });
   });
@@ -127,10 +119,7 @@ describe('UsersController', () => {
 
       const result = await controller.deleteAccount(mockRequest, dto);
 
-      expect(usersService.deleteAccount).toHaveBeenCalledWith(
-        MOCK_AUTH_USER.userId,
-        dto,
-      );
+      expect(usersService.deleteAccount).toHaveBeenCalledWith(MOCK_AUTH_USER.userId, dto);
       expect(result).toBeUndefined();
     });
   });
@@ -166,9 +155,7 @@ describe('UsersController', () => {
     it('should return user settings', async () => {
       const result = await controller.getSettings(mockRequest);
 
-      expect(usersService.getSettings).toHaveBeenCalledWith(
-        MOCK_AUTH_USER.userId,
-      );
+      expect(usersService.getSettings).toHaveBeenCalledWith(MOCK_AUTH_USER.userId);
       expect(result).toEqual(MOCK_SETTINGS);
     });
   });
@@ -183,10 +170,7 @@ describe('UsersController', () => {
 
       const result = await controller.updateSettings(mockRequest, dto);
 
-      expect(usersService.updateSettings).toHaveBeenCalledWith(
-        MOCK_AUTH_USER.userId,
-        dto,
-      );
+      expect(usersService.updateSettings).toHaveBeenCalledWith(MOCK_AUTH_USER.userId, dto);
       expect(result).toEqual(MOCK_SETTINGS);
     });
   });

@@ -14,7 +14,10 @@ import {
 } from '../common/exceptions/problem-details.exception.js';
 import { toSafeUser } from '../common/mappers/user.mapper.js';
 import { isPrismaUniqueConstraintError } from '../common/utils/prisma-errors.util.js';
-import type { UserSettings } from '../auth/interfaces/auth-response.interface.js';
+import type {
+  UserSettings,
+  SupportedLanguage,
+} from '../auth/interfaces/auth-response.interface.js';
 import type { User } from '@prisma/client';
 
 // =============================================================================
@@ -229,7 +232,7 @@ export class UsersService {
     return {
       pushNotificationsEnabled: user.pushNotificationsEnabled,
       reminderEnabled: user.reminderEnabled,
-      language: user.language,
+      language: user.language as SupportedLanguage,
       timezone: user.timezone,
     };
   }
