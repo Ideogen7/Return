@@ -1,7 +1,9 @@
 import { http, HttpResponse } from 'msw';
 
-// Prism ignore le basePath — les routes sont directement /auth/login, /loans, etc.
-const API_BASE = 'http://localhost:3000';
+// Modules réels (auth, users) → /v1 prefix (getBaseUrl retourne http://localhost:3000/v1)
+// Modules mockés (loans, etc.) → pas de /v1 (getBaseUrl retourne http://localhost:3000)
+const API_REAL = 'http://localhost:3000/v1';
+const API_MOCK = 'http://localhost:3000';
 
 // --- Données mock réutilisables ---
 
@@ -29,7 +31,7 @@ export const handlers = [
   // =========================================================================
 
   // POST /auth/login
-  http.post(`${API_BASE}/auth/login`, () => {
+  http.post(`${API_REAL}/auth/login`, () => {
     return HttpResponse.json(
       {
         accessToken: 'mock-access-token',
@@ -43,7 +45,7 @@ export const handlers = [
   }),
 
   // POST /auth/register
-  http.post(`${API_BASE}/auth/register`, () => {
+  http.post(`${API_REAL}/auth/register`, () => {
     return HttpResponse.json(
       {
         accessToken: 'mock-access-token',
@@ -64,7 +66,7 @@ export const handlers = [
   }),
 
   // POST /auth/refresh
-  http.post(`${API_BASE}/auth/refresh`, () => {
+  http.post(`${API_REAL}/auth/refresh`, () => {
     return HttpResponse.json(
       {
         accessToken: 'mock-new-access-token',
@@ -78,7 +80,7 @@ export const handlers = [
   }),
 
   // POST /auth/logout
-  http.post(`${API_BASE}/auth/logout`, () => {
+  http.post(`${API_REAL}/auth/logout`, () => {
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -87,18 +89,18 @@ export const handlers = [
   // =========================================================================
 
   // GET /users/me
-  http.get(`${API_BASE}/users/me`, () => {
+  http.get(`${API_REAL}/users/me`, () => {
     return HttpResponse.json({ ...mockUser, settings: { ...mockSettings } }, { status: 200 });
   }),
 
   // PATCH /users/me
-  http.patch(`${API_BASE}/users/me`, async ({ request }) => {
+  http.patch(`${API_REAL}/users/me`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json({ ...mockUser, ...body }, { status: 200 });
   }),
 
   // DELETE /users/me
-  http.delete(`${API_BASE}/users/me`, () => {
+  http.delete(`${API_REAL}/users/me`, () => {
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -107,7 +109,7 @@ export const handlers = [
   // =========================================================================
 
   // PATCH /users/me/password
-  http.patch(`${API_BASE}/users/me/password`, () => {
+  http.patch(`${API_REAL}/users/me/password`, () => {
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -116,12 +118,12 @@ export const handlers = [
   // =========================================================================
 
   // GET /users/me/settings
-  http.get(`${API_BASE}/users/me/settings`, () => {
+  http.get(`${API_REAL}/users/me/settings`, () => {
     return HttpResponse.json({ ...mockSettings }, { status: 200 });
   }),
 
   // PATCH /users/me/settings
-  http.patch(`${API_BASE}/users/me/settings`, async ({ request }) => {
+  http.patch(`${API_REAL}/users/me/settings`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json({ ...mockSettings, ...body }, { status: 200 });
   }),
@@ -131,7 +133,7 @@ export const handlers = [
   // =========================================================================
 
   // GET /loans
-  http.get(`${API_BASE}/loans`, () => {
+  http.get(`${API_MOCK}/loans`, () => {
     return HttpResponse.json(
       {
         data: [
@@ -163,7 +165,7 @@ export const handlers = [
   }),
 
   // GET /loans/:id — 404 example
-  http.get(`${API_BASE}/loans/:id`, ({ params }) => {
+  http.get(`${API_MOCK}/loans/:id`, ({ params }) => {
     if (params.id === 'not-found') {
       return HttpResponse.json(
         {

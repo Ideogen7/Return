@@ -47,8 +47,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
           : undefined;
 
         const body: ProblemDetails = {
-          type: 'https://api.return.app/errors/validation-error',
-          title: 'Validation Error',
+          type: 'https://api.return.app/errors/validation-failed',
+          title: 'Validation Failed',
           status,
           detail: Array.isArray(messages) ? messages.join('; ') : String(messages),
           instance: request.url,

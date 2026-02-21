@@ -43,7 +43,7 @@ describe('apiClient', () => {
         }
         return HttpResponse.json({ data: [], authHeader });
       }),
-      http.post('http://localhost:3000/auth/refresh', () => {
+      http.post('http://localhost:3000/v1/auth/refresh', () => {
         return HttpResponse.json({
           accessToken: 'new-access-token',
           refreshToken: 'new-refresh-token',
@@ -70,7 +70,7 @@ describe('apiClient', () => {
           { status: 401 },
         );
       }),
-      http.post('http://localhost:3000/auth/refresh', () => {
+      http.post('http://localhost:3000/v1/auth/refresh', () => {
         return HttpResponse.json(
           { type: 'https://api.return.app/errors/invalid-refresh-token', status: 401 },
           { status: 401 },

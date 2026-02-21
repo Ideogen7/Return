@@ -20,6 +20,7 @@ module.exports = {
         'ci',
         'docs',
         'deps',
+        'integration',
       ],
     ],
     'subject-case': [2, 'never', ['start-case', 'pascal-case', 'upper-case']],

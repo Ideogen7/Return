@@ -103,7 +103,7 @@ export class UsersService {
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException(
-        'invalid-password',
+        'invalid-current-password',
         'The provided password is incorrect.',
         '/v1/users/me',
       );
@@ -146,10 +146,7 @@ export class UsersService {
     const user = await this.findUserOrThrow(userId);
 
     // Vérification de l'ancien mot de passe
-    const isPasswordValid = await bcrypt.compare(
-      dto.currentPassword,
-      user.password,
-    );
+    const isPasswordValid = await bcrypt.compare(dto.currentPassword, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException(
         'invalid-current-password',
@@ -159,10 +156,7 @@ export class UsersService {
     }
 
     // Hachage et mise à jour
-    const hashedPassword = await bcrypt.hash(
-      dto.newPassword,
-      this.BCRYPT_ROUNDS,
-    );
+    const hashedPassword = await bcrypt.hash(dto.newPassword, this.BCRYPT_ROUNDS);
     await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
@@ -179,9 +173,7 @@ export class UsersService {
       where: { userId },
     });
 
-    this.logger.log(
-      `Password changed for user: ${userId} — all tokens revoked`,
-    );
+    this.logger.log(`Password changed for user: ${userId} — all tokens revoked`);
   }
 
   // ===========================================================================
@@ -203,10 +195,7 @@ export class UsersService {
    *
    * Les champs absents du DTO ne sont pas modifiés (PATCH sémantique).
    */
-  async updateSettings(
-    userId: string,
-    dto: UpdateSettingsDto,
-  ): Promise<UserSettings> {
+  async updateSettings(userId: string, dto: UpdateSettingsDto): Promise<UserSettings> {
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: dto,

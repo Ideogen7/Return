@@ -17,6 +17,7 @@ const ERROR_TYPE_MAP: Record<string, string> = {
   'https://api.return.app/errors/email-already-exists': 'errors.emailAlreadyExists',
   'https://api.return.app/errors/active-loans-exist': 'errors.activeLoansExist',
   'https://api.return.app/errors/invalid-current-password': 'errors.invalidCurrentPassword',
+  'https://api.return.app/errors/validation-failed': 'errors.validationFailed',
   'https://api.return.app/errors/network-error': 'errors.networkError',
 };
 

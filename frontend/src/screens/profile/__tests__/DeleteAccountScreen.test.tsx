@@ -53,7 +53,7 @@ describe('DeleteAccountScreen', () => {
 
   it('should show API error on 409 (active loans)', async () => {
     server.use(
-      http.delete('http://localhost:3000/users/me', () => {
+      http.delete('http://localhost:3000/v1/users/me', () => {
         return HttpResponse.json(
           {
             type: 'https://api.return.app/errors/active-loans-exist',

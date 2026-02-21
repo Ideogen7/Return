@@ -269,10 +269,17 @@ describe('AuthService', () => {
   // ===========================================================================
 
   describe('login', () => {
+    const UPDATED_USER = {
+      ...MOCK_USER,
+      lastLoginAt: new Date(),
+    };
+
     beforeEach(() => {
       // Par défaut : l'utilisateur existe et le mot de passe est correct
       prisma.user.findUnique.mockResolvedValue(MOCK_USER);
       bcrypt.compare.mockResolvedValue(true);
+      // update retourne l'utilisateur avec lastLoginAt mis à jour
+      prisma.user.update.mockResolvedValue(UPDATED_USER);
       prisma.refreshToken.create.mockResolvedValue({
         id: 'rt-uuid',
         token: 'hashed-refresh-token',
@@ -306,10 +313,7 @@ describe('AuthService', () => {
       await service.login(LOGIN_DTO);
 
       // Assert — Compare le mot de passe brut avec le hash stocké
-      expect(bcrypt.compare).toHaveBeenCalledWith(
-        LOGIN_DTO.password,
-        MOCK_USER.password,
-      );
+      expect(bcrypt.compare).toHaveBeenCalledWith(LOGIN_DTO.password, MOCK_USER.password);
     });
 
     it('should throw UnauthorizedException (401) for non-existent email', async () => {
@@ -514,10 +518,7 @@ describe('AuthService', () => {
       await service.logout(MOCK_USER.id, JTI, TOKEN_EXP);
 
       // Assert — Le jti est blacklisté avec un TTL ≈ 600 secondes
-      expect(redisService.blacklistToken).toHaveBeenCalledWith(
-        JTI,
-        expect.any(Number),
-      );
+      expect(redisService.blacklistToken).toHaveBeenCalledWith(JTI, expect.any(Number));
       // Le TTL doit être positif et proche de 600
       const ttl = redisService.blacklistToken.mock.calls[0][1] as number;
       expect(ttl).toBeGreaterThan(0);

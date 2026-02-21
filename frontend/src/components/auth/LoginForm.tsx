@@ -17,7 +17,12 @@ export function LoginForm({ onSubmit, isLoading, error }: LoginFormProps) {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginDto>();
+  } = useForm<LoginDto>({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
   return (
     <View style={styles.container}>
