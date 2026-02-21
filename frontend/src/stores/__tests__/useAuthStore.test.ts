@@ -9,7 +9,7 @@ import {
   clearTokens,
 } from '../../utils/storage';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:3000/v1';
 
 beforeAll(() => server.listen());
 afterEach(async () => {

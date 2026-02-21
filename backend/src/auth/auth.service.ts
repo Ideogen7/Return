@@ -15,10 +15,7 @@ import {
 } from '../common/exceptions/problem-details.exception.js';
 import { toSafeUser } from '../common/mappers/user.mapper.js';
 import { isPrismaUniqueConstraintError } from '../common/utils/prisma-errors.util.js';
-import type {
-  AuthResponse,
-  TokenPair,
-} from './interfaces/auth-response.interface.js';
+import type { AuthResponse, TokenPair } from './interfaces/auth-response.interface.js';
 import type { User } from '@prisma/client';
 
 // =============================================================================
@@ -149,22 +146,26 @@ export class AuthService {
       );
     }
 
-    // 3. Mise à jour du dernier login
-    await this.prisma.user.update({
+    // 3. Mise à jour du dernier login (on récupère le résultat pour la réponse)
+    const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
 
-    this.logger.log(`User logged in: ${user.id}`);
+    this.logger.log(`User logged in: ${updatedUser.id}`);
 
     // Événement métier (découplage inter-modules)
-    this.eventEmitter.emit('user.logged-in', { userId: user.id });
+    this.eventEmitter.emit('user.logged-in', { userId: updatedUser.id });
 
     // 4-5. Tokens + réponse
-    const tokens = await this.generateTokenPair(user.id, user.email, user.role);
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
+    const tokens = await this.generateTokenPair(
+      updatedUser.id,
+      updatedUser.email,
+      updatedUser.role,
+    );
+    await this.storeRefreshToken(updatedUser.id, tokens.refreshToken);
 
-    return this.buildAuthResponse(user, tokens);
+    return this.buildAuthResponse(updatedUser, tokens);
   }
 
   /**
@@ -276,11 +277,7 @@ export class AuthService {
    * la révocation individuelle via la blacklist Redis.
    * Le claim `role` évite un appel DB par requête pour vérifier le rôle.
    */
-  private async generateTokenPair(
-    userId: string,
-    email: string,
-    role: string,
-  ): Promise<TokenPair> {
+  private async generateTokenPair(userId: string, email: string, role: string): Promise<TokenPair> {
     const jti = randomUUID();
 
     // Access token — JWT signé avec le secret configuré
@@ -304,10 +301,7 @@ export class AuthService {
    * @param userId - ID de l'utilisateur propriétaire
    * @param rawToken - Token brut (avant hachage)
    */
-  private async storeRefreshToken(
-    userId: string,
-    rawToken: string,
-  ): Promise<void> {
+  private async storeRefreshToken(userId: string, rawToken: string): Promise<void> {
     const hashedToken = this.hashToken(rawToken);
     const expiresAt = new Date(Date.now() + this.getRefreshExpirationMs());
 

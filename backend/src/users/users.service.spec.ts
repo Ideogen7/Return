@@ -224,10 +224,7 @@ describe('UsersService', () => {
       });
 
       // Assert
-      expect(bcrypt.compare).toHaveBeenCalledWith(
-        'StrongPass1!',
-        MOCK_USER.password,
-      );
+      expect(bcrypt.compare).toHaveBeenCalledWith('StrongPass1!', MOCK_USER.password);
       expect(prisma.user.delete).toHaveBeenCalledWith({
         where: { id: MOCK_USER.id },
       });
@@ -252,7 +249,7 @@ describe('UsersService', () => {
         expect(exception.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
 
         const body = exception.getResponse();
-        expect(body.type).toContain('invalid-password');
+        expect(body.type).toContain('invalid-current-password');
       }
     });
 
@@ -300,10 +297,7 @@ describe('UsersService', () => {
       );
 
       // Assert
-      expect(bcrypt.compare).toHaveBeenCalledWith(
-        'StrongPass1!',
-        MOCK_USER.password,
-      );
+      expect(bcrypt.compare).toHaveBeenCalledWith('StrongPass1!', MOCK_USER.password);
       expect(bcrypt.hash).toHaveBeenCalledWith('NewPass1!', 12);
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: MOCK_USER.id },
@@ -346,10 +340,7 @@ describe('UsersService', () => {
       );
 
       // Assert — Blacklist du jti courant dans Redis
-      expect(redisService.blacklistToken).toHaveBeenCalledWith(
-        JTI,
-        expect.any(Number),
-      );
+      expect(redisService.blacklistToken).toHaveBeenCalledWith(JTI, expect.any(Number));
       // Assert — Suppression de TOUS les refresh tokens
       expect(prisma.refreshToken.deleteMany).toHaveBeenCalledWith({
         where: { userId: MOCK_USER.id },

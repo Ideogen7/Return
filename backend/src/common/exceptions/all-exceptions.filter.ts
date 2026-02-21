@@ -29,28 +29,26 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
-      // Handle class-validator errors
-      if (
-        typeof exceptionResponse === 'object' &&
-        'message' in (exceptionResponse as Record<string, unknown>)
-      ) {
-        const messages = (exceptionResponse as Record<string, unknown>).message;
-        const errors = Array.isArray(messages)
-          ? messages.map((msg: string) => {
-              const match = /^(\w+)\s/.exec(msg);
-              return {
-                field: match?.[1] ?? 'unknown',
-                code: 'VALIDATION_ERROR',
-                message: msg,
-              };
-            })
+      // Handle class-validator errors (Bad Request with array of messages)
+      const messages =
+        typeof exceptionResponse === 'object'
+          ? (exceptionResponse as Record<string, unknown>).message
           : undefined;
 
+      if (status === 400 && Array.isArray(messages)) {
+        const errors = messages.map((msg: string) => {
+          const match = /^(\w+)\s/.exec(msg);
+          return {
+            field: match?.[1] ?? 'unknown',
+            code: 'VALIDATION_ERROR',
+            message: msg,
+          };
+        });
         const body: ProblemDetails = {
-          type: 'https://api.return.app/errors/validation-error',
-          title: 'Validation Error',
+          type: 'https://api.return.app/errors/validation-failed',
+          title: 'Validation Failed',
           status,
-          detail: Array.isArray(messages) ? messages.join('; ') : String(messages),
+          detail: messages.join('; '),
           instance: request.url,
           timestamp: new Date().toISOString(),
           requestId: getRequestId(),

@@ -68,6 +68,7 @@
     "emailAlreadyExists": "Cet email est déjà utilisé",
     "activeLoansExist": "Impossible de supprimer votre compte tant que des prêts sont actifs",
     "invalidCurrentPassword": "Mot de passe actuel incorrect",
+    "validationFailed": "Les données envoyées sont invalides. Vérifiez les champs.",
     "unknownError": "Une erreur inattendue est survenue",
     "networkError": "Erreur réseau. Vérifiez votre connexion."
   },

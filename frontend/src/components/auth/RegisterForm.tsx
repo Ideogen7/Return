@@ -32,7 +32,15 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
     handleSubmit,
     formState: { errors },
     watch,
-  } = useForm<RegisterFormData>();
+  } = useForm<RegisterFormData>({
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
   const password = watch('password');
 

@@ -47,7 +47,7 @@ describe('LoginScreen', () => {
 
   it('should show error on invalid credentials', async () => {
     server.use(
-      http.post('http://localhost:3000/auth/login', () => {
+      http.post('http://localhost:3000/v1/auth/login', () => {
         return HttpResponse.json(
           {
             type: 'https://api.return.app/errors/invalid-credentials',

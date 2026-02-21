@@ -1,12 +1,12 @@
 // Basculement progressif mock → backend réel, module par module
 const MOCK_MODULES: Record<string, boolean> = {
-  auth: true,
+  auth: false,
   borrowers: true,
   items: true,
   loans: true,
   reminders: true,
   notifications: true,
-  users: true,
+  users: false,
   history: true,
 };
 
@@ -18,5 +18,5 @@ export function getBaseUrl(endpoint: string): string {
     return 'http://localhost:3000'; // Prism mock server (pas de /v1)
   }
 
-  return __DEV__ ? 'http://localhost:3001/v1' : 'https://api.return.app/v1';
+  return __DEV__ ? 'http://localhost:3000/v1' : 'https://api.return.app/v1';
 }
