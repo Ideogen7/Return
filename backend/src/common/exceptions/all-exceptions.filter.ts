@@ -7,10 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import {
-  ProblemDetailsException,
-  ProblemDetails,
-} from './problem-details.exception.js';
+import { ProblemDetailsException, ProblemDetails } from './problem-details.exception.js';
 import { getRequestId } from '../middleware/request-context.middleware.js';
 
 @Catch()
@@ -24,10 +21,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (exception instanceof ProblemDetailsException) {
       const body = exception.getResponse() as ProblemDetails;
-      response
-        .status(body.status)
-        .setHeader('Content-Type', 'application/problem+json')
-        .json(body);
+      response.status(body.status).setHeader('Content-Type', 'application/problem+json').json(body);
       return;
     }
 
@@ -56,19 +50,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
           type: 'https://api.return.app/errors/validation-error',
           title: 'Validation Error',
           status,
-          detail: Array.isArray(messages)
-            ? messages.join('; ')
-            : String(messages),
+          detail: Array.isArray(messages) ? messages.join('; ') : String(messages),
           instance: request.url,
           timestamp: new Date().toISOString(),
           requestId: getRequestId(),
           errors,
         };
 
-        response
-          .status(status)
-          .setHeader('Content-Type', 'application/problem+json')
-          .json(body);
+        response.status(status).setHeader('Content-Type', 'application/problem+json').json(body);
         return;
       }
 
@@ -82,10 +71,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         requestId: getRequestId(),
       };
 
-      response
-        .status(status)
-        .setHeader('Content-Type', 'application/problem+json')
-        .json(body);
+      response.status(status).setHeader('Content-Type', 'application/problem+json').json(body);
       return;
     }
 

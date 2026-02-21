@@ -18,6 +18,8 @@ module.exports = {
         'ui',
         'navigation',
         'ci',
+        'docs',
+        'deps',
       ],
     ],
     'subject-case': [2, 'never', ['start-case', 'pascal-case', 'upper-case']],

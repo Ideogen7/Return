@@ -3,7 +3,31 @@ import { http, HttpResponse } from 'msw';
 // Prism ignore le basePath — les routes sont directement /auth/login, /loans, etc.
 const API_BASE = 'http://localhost:3000';
 
+// --- Données mock réutilisables ---
+
+const mockUser = {
+  id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+  email: 'test@example.com',
+  firstName: 'John',
+  lastName: 'Doe',
+  role: 'LENDER' as const,
+  profilePicture: null,
+  createdAt: '2026-02-01T10:00:00Z',
+  lastLoginAt: '2026-02-18T08:00:00Z',
+};
+
+const mockSettings = {
+  pushNotificationsEnabled: true,
+  reminderEnabled: true,
+  language: 'fr' as const,
+  timezone: 'Europe/Paris',
+};
+
 export const handlers = [
+  // =========================================================================
+  // AUTHENTICATION
+  // =========================================================================
+
   // POST /auth/login
   http.post(`${API_BASE}/auth/login`, () => {
     return HttpResponse.json(
@@ -12,13 +36,7 @@ export const handlers = [
         refreshToken: 'mock-refresh-token',
         expiresIn: 900,
         tokenType: 'Bearer',
-        user: {
-          id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-          email: 'test@example.com',
-          firstName: 'John',
-          lastName: 'Doe',
-          createdAt: '2026-02-01T10:00:00Z',
-        },
+        user: { ...mockUser },
       },
       { status: 200 },
     );
@@ -33,11 +51,12 @@ export const handlers = [
         expiresIn: 900,
         tokenType: 'Bearer',
         user: {
+          ...mockUser,
           id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',
           email: 'new@example.com',
           firstName: 'Jane',
-          lastName: 'Doe',
           createdAt: '2026-02-16T10:00:00Z',
+          lastLoginAt: null,
         },
       },
       { status: 201 },
@@ -52,10 +71,64 @@ export const handlers = [
         refreshToken: 'mock-new-refresh-token',
         expiresIn: 900,
         tokenType: 'Bearer',
+        user: { ...mockUser },
       },
       { status: 200 },
     );
   }),
+
+  // POST /auth/logout
+  http.post(`${API_BASE}/auth/logout`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // =========================================================================
+  // USERS — Profil
+  // =========================================================================
+
+  // GET /users/me
+  http.get(`${API_BASE}/users/me`, () => {
+    return HttpResponse.json({ ...mockUser, settings: { ...mockSettings } }, { status: 200 });
+  }),
+
+  // PATCH /users/me
+  http.patch(`${API_BASE}/users/me`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ ...mockUser, ...body }, { status: 200 });
+  }),
+
+  // DELETE /users/me
+  http.delete(`${API_BASE}/users/me`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // =========================================================================
+  // USERS — Mot de passe
+  // =========================================================================
+
+  // PATCH /users/me/password
+  http.patch(`${API_BASE}/users/me/password`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // =========================================================================
+  // USERS — Settings
+  // =========================================================================
+
+  // GET /users/me/settings
+  http.get(`${API_BASE}/users/me/settings`, () => {
+    return HttpResponse.json({ ...mockSettings }, { status: 200 });
+  }),
+
+  // PATCH /users/me/settings
+  http.patch(`${API_BASE}/users/me/settings`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ ...mockSettings, ...body }, { status: 200 });
+  }),
+
+  // =========================================================================
+  // LOANS
+  // =========================================================================
 
   // GET /loans
   http.get(`${API_BASE}/loans`, () => {
@@ -76,7 +149,14 @@ export const handlers = [
             createdAt: '2026-02-01T10:00:00Z',
           },
         ],
-        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+        pagination: {
+          currentPage: 1,
+          itemsPerPage: 20,
+          totalItems: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
       },
       { status: 200 },
     );
