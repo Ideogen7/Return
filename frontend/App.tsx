@@ -1,4 +1,4 @@
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { PaperProvider } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import { lightTheme } from './src/config/theme.config';
@@ -15,7 +15,7 @@ const navTheme = {
     border: '#e5e7eb',
     notification: lightTheme.colors.error,
   },
-  fonts: NavigationContainer.defaultProps?.theme?.fonts ?? {},
+  fonts: DefaultTheme.fonts,
 };
 
 export default function App() {
