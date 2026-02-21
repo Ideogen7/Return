@@ -1,19 +1,32 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { TestScreenA } from '../screens/TestScreenA';
-import { TestScreenB } from '../screens/TestScreenB';
-
-export type RootStackParamList = {
-  ScreenA: undefined;
-  ScreenB: undefined;
-};
-
-const Stack = createNativeStackNavigator<RootStackParamList>();
+import { useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useAuthStore } from '../stores/useAuthStore';
+import { AuthNavigator } from './AuthNavigator';
+import { AppNavigator } from './AppNavigator';
 
 export function RootNavigator() {
-  return (
-    <Stack.Navigator initialRouteName="ScreenA">
-      <Stack.Screen name="ScreenA" component={TestScreenA} options={{ title: 'Screen A' }} />
-      <Stack.Screen name="ScreenB" component={TestScreenB} options={{ title: 'Screen B' }} />
-    </Stack.Navigator>
-  );
+  const { isAuthenticated, isLoading, hydrate } = useAuthStore();
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.splash} testID="splash-screen">
+        <ActivityIndicator size="large" color="#4f46e5" />
+      </View>
+    );
+  }
+
+  return isAuthenticated ? <AppNavigator /> : <AuthNavigator />;
 }
+
+const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+  },
+});

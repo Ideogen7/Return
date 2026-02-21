@@ -6,7 +6,8 @@
     "cancel": "Cancel",
     "save": "Save",
     "delete": "Delete",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "back": "Back"
   },
   "auth": {
     "login": "Login",
@@ -17,7 +18,58 @@
     "emailRequired": "Email is required",
     "emailInvalid": "Invalid email",
     "passwordRequired": "Password is required",
-    "passwordMinLength": "Minimum 8 characters"
+    "passwordMinLength": "Minimum 8 characters",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "firstNameRequired": "First name is required",
+    "lastNameRequired": "Last name is required",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordRequired": "Confirmation is required",
+    "passwordsMismatch": "Passwords do not match",
+    "passwordStrength": "Password must contain an uppercase, a lowercase, a digit and a special character",
+    "loginTitle": "Login",
+    "registerTitle": "Register",
+    "noAccount": "No account? Register",
+    "hasAccount": "Already have an account? Login",
+    "logout": "Logout"
+  },
+  "profile": {
+    "title": "My profile",
+    "editProfile": "Edit profile",
+    "changePassword": "Change password",
+    "deleteAccount": "Delete my account",
+    "settings": "Settings",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "confirmDelete": "Confirm deletion",
+    "deleteWarning": "This action is irreversible. All your data will be permanently deleted (loans, items, contacts). GDPR compliant (right to erasure).",
+    "confirmationText": "Type DELETE MY ACCOUNT to confirm",
+    "confirmationTextInvalid": "You must type exactly DELETE MY ACCOUNT",
+    "activeLoansError": "Cannot delete your account while active loans exist",
+    "wrongPassword": "Current password is incorrect",
+    "profileUpdated": "Profile updated",
+    "passwordChanged": "Password changed successfully",
+    "memberSince": "Member since",
+    "lastLogin": "Last login",
+    "role": "Role",
+    "lender": "Lender"
+  },
+  "settings": {
+    "title": "Settings",
+    "pushNotifications": "Push notifications",
+    "reminders": "Automatic reminders",
+    "language": "Language",
+    "timezone": "Timezone",
+    "saved": "Settings saved"
+  },
+  "errors": {
+    "invalidCredentials": "Invalid email or password",
+    "emailAlreadyExists": "This email is already in use",
+    "activeLoansExist": "Cannot delete your account while active loans exist",
+    "invalidCurrentPassword": "Current password is incorrect",
+    "unknownError": "An unexpected error occurred",
+    "networkError": "Network error. Check your connection."
   },
   "navigation": {
     "loans": "Loans",

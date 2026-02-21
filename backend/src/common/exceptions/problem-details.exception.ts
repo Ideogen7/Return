@@ -82,12 +82,6 @@ export class UnauthorizedException extends ProblemDetailsException {
 
 export class RateLimitException extends ProblemDetailsException {
   constructor(detail: string, path: string) {
-    super(
-      HttpStatus.TOO_MANY_REQUESTS,
-      'too-many-requests',
-      'Too Many Requests',
-      detail,
-      path,
-    );
+    super(HttpStatus.TOO_MANY_REQUESTS, 'too-many-requests', 'Too Many Requests', detail, path);
   }
 }

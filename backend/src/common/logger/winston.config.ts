@@ -1,9 +1,6 @@
 import * as winston from 'winston';
 import { WinstonModule } from 'nest-winston';
-import {
-  getRequestId,
-  getUserId,
-} from '../middleware/request-context.middleware.js';
+import { getRequestId, getUserId } from '../middleware/request-context.middleware.js';
 
 const injectContext = winston.format((info) => {
   info['requestId'] = getRequestId();
@@ -23,9 +20,7 @@ export const loggerConfig = WinstonModule.createLogger({
       : winston.format.combine(
           winston.format.colorize(),
           winston.format.printf(({ timestamp, level, message, ...meta }) => {
-            const metaStr = Object.keys(meta).length
-              ? ` ${JSON.stringify(meta)}`
-              : '';
+            const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
             return `${timestamp as string} [${level}] ${message as string}${metaStr}`;
           }),
         ),

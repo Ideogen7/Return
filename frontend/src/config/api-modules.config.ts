@@ -6,6 +6,7 @@ const MOCK_MODULES: Record<string, boolean> = {
   loans: true,
   reminders: true,
   notifications: true,
+  users: true,
   history: true,
 };
 

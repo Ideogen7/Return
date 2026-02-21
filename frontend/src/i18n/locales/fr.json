@@ -6,7 +6,8 @@
     "cancel": "Annuler",
     "save": "Sauvegarder",
     "delete": "Supprimer",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "back": "Retour"
   },
   "auth": {
     "login": "Connexion",
@@ -17,7 +18,58 @@
     "emailRequired": "L'email est requis",
     "emailInvalid": "Email invalide",
     "passwordRequired": "Le mot de passe est requis",
-    "passwordMinLength": "Minimum 8 caractères"
+    "passwordMinLength": "Minimum 8 caractères",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "firstNameRequired": "Le prénom est requis",
+    "lastNameRequired": "Le nom est requis",
+    "confirmPassword": "Confirmer le mot de passe",
+    "confirmPasswordRequired": "La confirmation est requise",
+    "passwordsMismatch": "Les mots de passe ne correspondent pas",
+    "passwordStrength": "Le mot de passe doit contenir une majuscule, une minuscule, un chiffre et un caractère spécial",
+    "loginTitle": "Connexion",
+    "registerTitle": "Inscription",
+    "noAccount": "Pas de compte ? S'inscrire",
+    "hasAccount": "Déjà un compte ? Se connecter",
+    "logout": "Se déconnecter"
+  },
+  "profile": {
+    "title": "Mon profil",
+    "editProfile": "Modifier le profil",
+    "changePassword": "Changer le mot de passe",
+    "deleteAccount": "Supprimer mon compte",
+    "settings": "Paramètres",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmNewPassword": "Confirmer le nouveau mot de passe",
+    "confirmDelete": "Confirmer la suppression",
+    "deleteWarning": "Cette action est irréversible. Toutes vos données seront définitivement supprimées (prêts, objets, contacts). Conforme au RGPD (droit à l'effacement).",
+    "confirmationText": "Tapez DELETE MY ACCOUNT pour confirmer",
+    "confirmationTextInvalid": "Vous devez taper exactement DELETE MY ACCOUNT",
+    "activeLoansError": "Impossible de supprimer votre compte tant que des prêts sont actifs",
+    "wrongPassword": "Mot de passe actuel incorrect",
+    "profileUpdated": "Profil mis à jour",
+    "passwordChanged": "Mot de passe changé avec succès",
+    "memberSince": "Membre depuis",
+    "lastLogin": "Dernière connexion",
+    "role": "Rôle",
+    "lender": "Prêteur"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "pushNotifications": "Notifications push",
+    "reminders": "Rappels automatiques",
+    "language": "Langue",
+    "timezone": "Fuseau horaire",
+    "saved": "Paramètres sauvegardés"
+  },
+  "errors": {
+    "invalidCredentials": "Email ou mot de passe incorrect",
+    "emailAlreadyExists": "Cet email est déjà utilisé",
+    "activeLoansExist": "Impossible de supprimer votre compte tant que des prêts sont actifs",
+    "invalidCurrentPassword": "Mot de passe actuel incorrect",
+    "unknownError": "Une erreur inattendue est survenue",
+    "networkError": "Erreur réseau. Vérifiez votre connexion."
   },
   "navigation": {
     "loans": "Prêts",
