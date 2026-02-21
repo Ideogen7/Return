@@ -60,11 +60,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Vérification de la blacklist Redis (logout révoque le jti)
     const isBlacklisted = await this.redis.isTokenBlacklisted(payload.jti);
     if (isBlacklisted) {
-      throw new UnauthorizedException(
-        'token-revoked',
-        'This token has been revoked.',
-        '',
-      );
+      throw new UnauthorizedException('token-revoked', 'This token has been revoked.', '');
     }
 
     return {
