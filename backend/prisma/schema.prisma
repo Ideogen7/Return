@@ -10,3 +10,56 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// =============================================================================
+// AUTH & USERS
+// =============================================================================
+
+/// Rôle utilisateur (V1 : rôle unique LENDER)
+enum UserRole {
+  LENDER
+}
+
+/// Utilisateur inscrit pouvant prêter et/ou emprunter
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  password  String   // Hashed via bcrypt (12 rounds)
+  firstName String   @map("first_name") @db.VarChar(50)
+  lastName  String   @map("last_name") @db.VarChar(50)
+  role      UserRole @default(LENDER)
+
+  // Profil optionnel
+  profilePicture String? @map("profile_picture")
+
+  // Préférences (embarquées dans la même table pour simplifier le MVP)
+  pushNotificationsEnabled Boolean @default(true) @map("push_notifications_enabled")
+  reminderEnabled          Boolean @default(true) @map("reminder_enabled")
+  language                 String  @default("fr") @db.VarChar(5)
+  timezone                 String  @default("Europe/Paris") @db.VarChar(50)
+
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  lastLoginAt DateTime? @map("last_login_at")
+
+  // Relations
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+/// Token de rafraîchissement JWT (1-N avec User)
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique // Hashed refresh token
+  userId    String   @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
