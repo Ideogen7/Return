@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { PaperProvider } from 'react-native-paper';
 import { server } from '../../../../__mocks__/server';
 import { http, HttpResponse } from 'msw';
+import { Text } from 'react-native';
 import { BorrowerListScreen } from '../BorrowerListScreen';
 import { useBorrowerStore } from '../../../stores/useBorrowerStore';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -10,18 +11,17 @@ import type { BorrowerStackParamList } from '../../../navigation/types';
 
 const Stack = createNativeStackNavigator<BorrowerStackParamList>();
 
-const mockNavigate = jest.fn();
+function DummyCreateBorrower() {
+  return <Text>CreateBorrowerScreen</Text>;
+}
 
-jest.mock('@react-navigation/native', () => {
-  const actual = jest.requireActual('@react-navigation/native');
-  return {
-    ...actual,
-    useNavigation: () => ({
-      navigate: mockNavigate,
-      goBack: jest.fn(),
-    }),
-  };
-});
+function DummyBorrowerDetail() {
+  return <Text>BorrowerDetailScreen</Text>;
+}
+
+function DummyEditBorrower() {
+  return <Text>EditBorrowerScreen</Text>;
+}
 
 function renderListScreen() {
   return render(
@@ -29,6 +29,9 @@ function renderListScreen() {
       <NavigationContainer>
         <Stack.Navigator>
           <Stack.Screen name="BorrowerList" component={BorrowerListScreen} />
+          <Stack.Screen name="CreateBorrower" component={DummyCreateBorrower} />
+          <Stack.Screen name="BorrowerDetail" component={DummyBorrowerDetail} />
+          <Stack.Screen name="EditBorrower" component={DummyEditBorrower} />
         </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>,
@@ -39,7 +42,6 @@ beforeAll(() => server.listen());
 afterEach(() => {
   server.resetHandlers();
   useBorrowerStore.getState().reset();
-  mockNavigate.mockClear();
 });
 afterAll(() => server.close());
 
@@ -90,8 +92,8 @@ describe('BorrowerListScreen', () => {
 
     fireEvent.press(screen.getByTestId('borrower-card-5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f'));
 
-    expect(mockNavigate).toHaveBeenCalledWith('BorrowerDetail', {
-      id: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
+    await waitFor(() => {
+      expect(screen.getByText('BorrowerDetailScreen')).toBeTruthy();
     });
   });
 
@@ -104,6 +106,8 @@ describe('BorrowerListScreen', () => {
 
     fireEvent.press(screen.getByTestId('add-borrower-fab'));
 
-    expect(mockNavigate).toHaveBeenCalledWith('CreateBorrower');
+    await waitFor(() => {
+      expect(screen.getByText('CreateBorrowerScreen')).toBeTruthy();
+    });
   });
 });

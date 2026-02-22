@@ -18,8 +18,8 @@ describe('useBorrowerStore', () => {
 
       const state = useBorrowerStore.getState();
       expect(state.borrowers).toHaveLength(1);
-      expect(state.borrowers[0].firstName).toBe('Marie');
-      expect(state.borrowers[0].lastName).toBe('Dupont');
+      expect(state.borrowers[0]!.firstName).toBe('Marie');
+      expect(state.borrowers[0]!.lastName).toBe('Dupont');
       expect(state.isLoading).toBe(false);
       expect(state.error).toBeNull();
     });
@@ -104,7 +104,7 @@ describe('useBorrowerStore', () => {
       // First fetch to populate list
       await useBorrowerStore.getState().fetchBorrowers();
 
-      const borrowerId = useBorrowerStore.getState().borrowers[0].id;
+      const borrowerId = useBorrowerStore.getState().borrowers[0]!.id;
       const updated = await useBorrowerStore.getState().updateBorrower(borrowerId, {
         firstName: 'Marie-Claire',
       });
@@ -112,7 +112,7 @@ describe('useBorrowerStore', () => {
       expect(updated.firstName).toBe('Marie-Claire');
 
       const state = useBorrowerStore.getState();
-      expect(state.borrowers[0].firstName).toBe('Marie-Claire');
+      expect(state.borrowers[0]!.firstName).toBe('Marie-Claire');
       expect(state.isLoading).toBe(false);
     });
   });
@@ -123,7 +123,7 @@ describe('useBorrowerStore', () => {
       await useBorrowerStore.getState().fetchBorrowers();
       expect(useBorrowerStore.getState().borrowers).toHaveLength(1);
 
-      const borrowerId = useBorrowerStore.getState().borrowers[0].id;
+      const borrowerId = useBorrowerStore.getState().borrowers[0]!.id;
       await useBorrowerStore.getState().deleteBorrower(borrowerId);
 
       const state = useBorrowerStore.getState();

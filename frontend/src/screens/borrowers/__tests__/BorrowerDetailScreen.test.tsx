@@ -3,26 +3,22 @@ import { NavigationContainer } from '@react-navigation/native';
 import { PaperProvider } from 'react-native-paper';
 import { server } from '../../../../__mocks__/server';
 import { http, HttpResponse } from 'msw';
+import { Text } from 'react-native';
 import { BorrowerDetailScreen } from '../BorrowerDetailScreen';
+import { BorrowerListScreen } from '../BorrowerListScreen';
 import { useBorrowerStore } from '../../../stores/useBorrowerStore';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { BorrowerStackParamList } from '../../../navigation/types';
 
 const Stack = createNativeStackNavigator<BorrowerStackParamList>();
 
-const mockGoBack = jest.fn();
-const mockNavigate = jest.fn();
+function DummyCreateBorrower() {
+  return <Text>CreateBorrowerScreen</Text>;
+}
 
-jest.mock('@react-navigation/native', () => {
-  const actual = jest.requireActual('@react-navigation/native');
-  return {
-    ...actual,
-    useNavigation: () => ({
-      navigate: mockNavigate,
-      goBack: mockGoBack,
-    }),
-  };
-});
+function DummyEditBorrower() {
+  return <Text>EditBorrowerScreen</Text>;
+}
 
 function renderDetailScreen() {
   return render(
@@ -34,6 +30,9 @@ function renderDetailScreen() {
             component={BorrowerDetailScreen}
             initialParams={{ id: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f' }}
           />
+          <Stack.Screen name="BorrowerList" component={BorrowerListScreen} />
+          <Stack.Screen name="CreateBorrower" component={DummyCreateBorrower} />
+          <Stack.Screen name="EditBorrower" component={DummyEditBorrower} />
         </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>,
@@ -44,8 +43,6 @@ beforeAll(() => server.listen());
 afterEach(() => {
   server.resetHandlers();
   useBorrowerStore.getState().reset();
-  mockGoBack.mockClear();
-  mockNavigate.mockClear();
 });
 afterAll(() => server.close());
 
@@ -92,8 +89,9 @@ describe('BorrowerDetailScreen', () => {
 
     fireEvent.press(screen.getByTestId('confirm-delete-btn'));
 
+    // goBack() on a single-screen stack unmounts => detail disappears
     await waitFor(() => {
-      expect(mockGoBack).toHaveBeenCalled();
+      expect(screen.queryByTestId('borrower-detail')).toBeNull();
     });
   });
 

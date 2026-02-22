@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Icon } from 'react-native-paper';
 import { BorrowerNavigator } from './BorrowerNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
 import type { AppTabParamList } from './types';
@@ -28,7 +28,7 @@ export function AppNavigator() {
         options={{
           title: t('navigation.contacts'),
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-group-outline" color={color} size={size} />
+            <Icon source="account-group-outline" color={color} size={size} />
           ),
         }}
       />
@@ -38,7 +38,7 @@ export function AppNavigator() {
         options={{
           title: t('navigation.profile'),
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-circle-outline" color={color} size={size} />
+            <Icon source="account-circle-outline" color={color} size={size} />
           ),
         }}
       />
