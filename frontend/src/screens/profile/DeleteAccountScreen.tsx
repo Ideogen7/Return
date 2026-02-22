@@ -59,7 +59,14 @@ export function DeleteAccountScreen() {
       <Controller
         control={control}
         name="password"
-        rules={{ required: t('auth.passwordRequired') }}
+        rules={{
+          required: t('auth.passwordRequired'),
+          minLength: { value: 8, message: t('auth.passwordMinLength') },
+          pattern: {
+            value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
+            message: t('auth.passwordStrength'),
+          },
+        }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
             label={t('auth.password')}

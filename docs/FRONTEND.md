@@ -123,12 +123,14 @@ Requête API avec token expiré (401)
 
 L'app utilise Material Design 3 via React Native Paper avec détection automatique du mode système (light/dark).
 
-| Rôle             | Light     | Dark      |
-|------------------|-----------|-----------|
-| Primary (Indigo) | `#4338CA` | `#A5B4FC` |
-| Secondary (Teal) | `#0D9488` | `#5EEAD4` |
-| Tertiary (Ambre) | `#D97706` | `#FCD34D` |
-| Error            | `#DC2626` | `#FCA5A5` |
+| Rôle                   | Light     | Dark      |
+|------------------------|-----------|-----------|
+| Primary (Sage)         | `#6B8E7B` | `#A3C4B1` |
+| Secondary (Terracotta) | `#D97A6B` | `#E8A89C` |
+| Tertiary (Sage foncé)  | `#4A6355` | `#7BA692` |
+| Error (Terracotta)     | `#D97A6B` | `#E8A89C` |
+| Background (Beige)     | `#F7F4EF` | `#1C1B1F` |
+| Surface                | `#FFFFFF` | `#1C1B1F` |
 
 Les couleurs de statuts de prêt sont définis dans `STATUS_COLORS` (utilisés à partir du Sprint 4).
 

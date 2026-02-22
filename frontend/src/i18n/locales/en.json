@@ -27,6 +27,8 @@
     "confirmPasswordRequired": "Confirmation is required",
     "passwordsMismatch": "Passwords do not match",
     "passwordStrength": "Password must contain an uppercase, a lowercase, a digit and a special character",
+    "nameMaxLength": "Maximum 50 characters",
+    "passwordMaxLength": "Maximum 100 characters",
     "loginTitle": "Login",
     "registerTitle": "Register",
     "noAccount": "No account? Register",

@@ -60,7 +60,10 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
           <Controller
             control={control}
             name="firstName"
-            rules={{ required: t('auth.firstNameRequired') }}
+            rules={{
+              required: t('auth.firstNameRequired'),
+              maxLength: { value: 50, message: t('auth.nameMaxLength') },
+            }}
             render={({ field: { onChange, onBlur, value } }) => (
               <TextInput
                 label={t('auth.firstName')}
@@ -86,7 +89,10 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
           <Controller
             control={control}
             name="lastName"
-            rules={{ required: t('auth.lastNameRequired') }}
+            rules={{
+              required: t('auth.lastNameRequired'),
+              maxLength: { value: 50, message: t('auth.nameMaxLength') },
+            }}
             render={({ field: { onChange, onBlur, value } }) => (
               <TextInput
                 label={t('auth.lastName')}
@@ -146,6 +152,7 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
         rules={{
           required: t('auth.passwordRequired'),
           minLength: { value: 8, message: t('auth.passwordMinLength') },
+          maxLength: { value: 100, message: t('auth.passwordMaxLength') },
           pattern: { value: PASSWORD_REGEX, message: t('auth.passwordStrength') },
         }}
         render={({ field: { onChange, onBlur, value } }) => (
