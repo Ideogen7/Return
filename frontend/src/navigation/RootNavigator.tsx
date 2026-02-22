@@ -1,15 +1,23 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import i18n from '../config/i18n.config';
 import { useAuthStore } from '../stores/useAuthStore';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 
 export function RootNavigator() {
-  const { isAuthenticated, isLoading, hydrate } = useAuthStore();
+  const { isAuthenticated, isLoading, user, hydrate } = useAuthStore();
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Synchronise i18n avec la langue sauvegardée côté serveur
+  useEffect(() => {
+    if (user?.settings?.language && user.settings.language !== i18n.language) {
+      i18n.changeLanguage(user.settings.language);
+    }
+  }, [user?.settings?.language]);
 
   if (isLoading) {
     return (
