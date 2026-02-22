@@ -27,6 +27,8 @@
     "confirmPasswordRequired": "La confirmation est requise",
     "passwordsMismatch": "Les mots de passe ne correspondent pas",
     "passwordStrength": "Le mot de passe doit contenir une majuscule, une minuscule, un chiffre et un caractère spécial",
+    "nameMaxLength": "Maximum 50 caractères",
+    "passwordMaxLength": "Maximum 100 caractères",
     "loginTitle": "Connexion",
     "registerTitle": "Inscription",
     "noAccount": "Pas de compte ? S'inscrire",

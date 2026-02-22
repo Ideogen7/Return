@@ -21,6 +21,7 @@ export function EditProfileForm({ user, onSubmit, isLoading }: EditProfileFormPr
     defaultValues: {
       firstName: user.firstName,
       lastName: user.lastName,
+      email: user.email,
     },
   });
 
@@ -29,7 +30,10 @@ export function EditProfileForm({ user, onSubmit, isLoading }: EditProfileFormPr
       <Controller
         control={control}
         name="firstName"
-        rules={{ required: t('auth.firstNameRequired') }}
+        rules={{
+          required: t('auth.firstNameRequired'),
+          maxLength: { value: 50, message: t('auth.nameMaxLength') },
+        }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
             label={t('auth.firstName')}
@@ -54,7 +58,10 @@ export function EditProfileForm({ user, onSubmit, isLoading }: EditProfileFormPr
       <Controller
         control={control}
         name="lastName"
-        rules={{ required: t('auth.lastNameRequired') }}
+        rules={{
+          required: t('auth.lastNameRequired'),
+          maxLength: { value: 50, message: t('auth.nameMaxLength') },
+        }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
             label={t('auth.lastName')}
@@ -73,6 +80,35 @@ export function EditProfileForm({ user, onSubmit, isLoading }: EditProfileFormPr
       {errors.lastName && (
         <HelperText type="error" testID="lastName-error">
           {errors.lastName.message}
+        </HelperText>
+      )}
+
+      <Controller
+        control={control}
+        name="email"
+        rules={{
+          pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('auth.emailInvalid') },
+        }}
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label={t('auth.email')}
+            mode="outlined"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            left={<TextInput.Icon icon="email-outline" color="#A8B5BF" />}
+            onBlur={onBlur}
+            onChangeText={onChange}
+            value={value}
+            error={!!errors.email}
+            testID="email-input"
+            style={[styles.input, ui.input]}
+            outlineStyle={styles.outline}
+          />
+        )}
+      />
+      {errors.email && (
+        <HelperText type="error" testID="email-error">
+          {errors.email.message}
         </HelperText>
       )}
 

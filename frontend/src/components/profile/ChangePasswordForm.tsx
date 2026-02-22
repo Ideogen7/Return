@@ -67,6 +67,7 @@ export function ChangePasswordForm({ onSubmit, isLoading, error }: ChangePasswor
         rules={{
           required: t('auth.passwordRequired'),
           minLength: { value: 8, message: t('auth.passwordMinLength') },
+          maxLength: { value: 100, message: t('auth.passwordMaxLength') },
           pattern: { value: PASSWORD_REGEX, message: t('auth.passwordStrength') },
         }}
         render={({ field: { onChange, onBlur, value } }) => (

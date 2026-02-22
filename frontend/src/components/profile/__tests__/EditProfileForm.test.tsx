@@ -30,6 +30,7 @@ describe('EditProfileForm', () => {
 
     expect(screen.getByTestId('firstName-input').props.value).toBe('John');
     expect(screen.getByTestId('lastName-input').props.value).toBe('Doe');
+    expect(screen.getByTestId('email-input').props.value).toBe('test@example.com');
   });
 
   it('should call onSubmit with updated values', async () => {
@@ -45,6 +46,25 @@ describe('EditProfileForm', () => {
       expect(mockOnSubmit.mock.calls[0][0]).toEqual({
         firstName: 'Johnny',
         lastName: 'Doe',
+        email: 'test@example.com',
+      });
+    });
+  });
+
+  it('should call onSubmit with updated email', async () => {
+    renderWithProvider(
+      <EditProfileForm user={mockUser} onSubmit={mockOnSubmit} isLoading={false} />,
+    );
+
+    fireEvent.changeText(screen.getByTestId('email-input'), 'new@example.com');
+    fireEvent.press(screen.getByTestId('save-btn'));
+
+    await waitFor(() => {
+      expect(mockOnSubmit).toHaveBeenCalled();
+      expect(mockOnSubmit.mock.calls[0][0]).toEqual({
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'new@example.com',
       });
     });
   });
