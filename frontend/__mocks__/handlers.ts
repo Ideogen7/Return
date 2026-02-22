@@ -18,6 +18,24 @@ const mockUser = {
   lastLoginAt: '2026-02-18T08:00:00Z',
 };
 
+const mockBorrower = {
+  id: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
+  firstName: 'Marie',
+  lastName: 'Dupont',
+  email: 'marie.dupont@example.com',
+  phoneNumber: '+33612345678',
+  userId: null,
+};
+
+const mockBorrowerStats = {
+  totalLoans: 5,
+  returnedOnTime: 3,
+  returnedLate: 1,
+  notReturned: 1,
+  averageReturnDelay: 2.5,
+  trustScore: 75,
+};
+
 const mockSettings = {
   pushNotificationsEnabled: true,
   reminderEnabled: true,
@@ -126,6 +144,82 @@ export const handlers = [
   http.patch(`${API_REAL}/users/me/settings`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json({ ...mockSettings, ...body }, { status: 200 });
+  }),
+
+  // =========================================================================
+  // BORROWERS
+  // =========================================================================
+
+  // GET /borrowers
+  http.get(`${API_MOCK}/borrowers`, () => {
+    return HttpResponse.json(
+      {
+        data: [{ ...mockBorrower }],
+        pagination: {
+          currentPage: 1,
+          itemsPerPage: 20,
+          totalItems: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+      { status: 200 },
+    );
+  }),
+
+  // POST /borrowers
+  http.post(`${API_MOCK}/borrowers`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        ...mockBorrower,
+        id: 'c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f',
+        ...body,
+      },
+      { status: 201 },
+    );
+  }),
+
+  // GET /borrowers/:id
+  http.get(`${API_MOCK}/borrowers/:id`, ({ params }) => {
+    if (params.id === 'not-found') {
+      return HttpResponse.json(
+        {
+          type: 'https://api.return.app/errors/borrower-not-found',
+          title: 'Borrower Not Found',
+          status: 404,
+          detail: `The borrower with ID '${params.id}' does not exist.`,
+          instance: `/v1/borrowers/${params.id}`,
+          timestamp: new Date().toISOString(),
+          requestId: 'req-mock',
+        },
+        { status: 404 },
+      );
+    }
+
+    return HttpResponse.json({ ...mockBorrower, id: params.id }, { status: 200 });
+  }),
+
+  // PATCH /borrowers/:id
+  http.patch(`${API_MOCK}/borrowers/:id`, async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ ...mockBorrower, id: params.id, ...body }, { status: 200 });
+  }),
+
+  // DELETE /borrowers/:id
+  http.delete(`${API_MOCK}/borrowers/:id`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // GET /borrowers/:id/statistics
+  http.get(`${API_MOCK}/borrowers/:id/statistics`, () => {
+    return HttpResponse.json({ ...mockBorrowerStats }, { status: 200 });
+  }),
+
+  // GET /borrowers/:id/loans
+  http.get(`${API_MOCK}/borrowers/:id/loans`, () => {
+    return HttpResponse.json([], { status: 200 });
   }),
 
   // =========================================================================
