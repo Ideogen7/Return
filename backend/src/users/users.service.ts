@@ -78,6 +78,7 @@ export class UsersService {
       if (isPrismaUniqueConstraintError(error)) {
         throw new ConflictException(
           'email-already-exists',
+          'Email Already Exists',
           'This email address is already associated with another account.',
           '/v1/users/me',
         );
@@ -107,6 +108,7 @@ export class UsersService {
     if (!isPasswordValid) {
       throw new UnauthorizedException(
         'invalid-current-password',
+        'Invalid Current Password',
         'The provided password is incorrect.',
         '/v1/users/me',
       );
@@ -153,6 +155,7 @@ export class UsersService {
     if (!isPasswordValid) {
       throw new UnauthorizedException(
         'invalid-current-password',
+        'Invalid Current Password',
         'The current password is incorrect.',
         '/v1/users/me/password',
       );

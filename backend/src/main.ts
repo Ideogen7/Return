@@ -24,9 +24,7 @@ async function bootstrap(): Promise<void> {
 
   // Global prefix
   const prefix = config.get<string>('API_PREFIX', 'v1');
-  app.setGlobalPrefix(prefix, {
-    exclude: ['health', 'health/ready'],
-  });
+  app.setGlobalPrefix(prefix);
 
   // Validation — avec exceptionFactory pour conserver les noms de champs structurés
   app.useGlobalPipes(

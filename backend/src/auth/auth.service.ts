@@ -85,7 +85,8 @@ export class AuthService {
       if (isPrismaUniqueConstraintError(error)) {
         throw new ConflictException(
           'email-already-exists',
-          `An account with email '${dto.email}' already exists.`,
+          'Email Already Exists',
+          `The email '${dto.email}' is already registered.`,
           '/v1/auth/register',
         );
       }
@@ -131,7 +132,8 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException(
         'invalid-credentials',
-        'Invalid email or password.',
+        'Invalid Credentials',
+        'Email or password is incorrect.',
         '/v1/auth/login',
       );
     }
@@ -141,7 +143,8 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException(
         'invalid-credentials',
-        'Invalid email or password.',
+        'Invalid Credentials',
+        'Email or password is incorrect.',
         '/v1/auth/login',
       );
     }
@@ -191,6 +194,7 @@ export class AuthService {
     if (!storedToken) {
       throw new UnauthorizedException(
         'invalid-refresh-token',
+        'Invalid Token',
         'The refresh token is invalid or has been revoked.',
         '/v1/auth/refresh',
       );
@@ -205,6 +209,7 @@ export class AuthService {
 
       throw new UnauthorizedException(
         'invalid-refresh-token',
+        'Invalid Token',
         'The refresh token has expired.',
         '/v1/auth/refresh',
       );
@@ -224,6 +229,7 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException(
         'invalid-refresh-token',
+        'Invalid Token',
         'The user associated with this token no longer exists.',
         '/v1/auth/refresh',
       );

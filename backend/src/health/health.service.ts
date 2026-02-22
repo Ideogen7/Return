@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export interface HealthStatus {
   status: 'ok';
   timestamp: string;
-  uptime: number;
+  version: string;
 }
 
 export interface ReadinessStatus {
@@ -23,7 +23,7 @@ export class HealthService {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
+      version: process.env.npm_package_version ?? '0.1.0',
     };
   }
 
