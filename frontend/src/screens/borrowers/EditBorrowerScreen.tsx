@@ -7,7 +7,7 @@ import { BorrowerForm } from '../../components/borrowers/BorrowerForm';
 import { useBorrowerStore } from '../../stores/useBorrowerStore';
 import { parseProblemDetails, getErrorMessage } from '../../utils/error';
 import type { BorrowerStackParamList } from '../../navigation/types';
-import type { CreateBorrowerDto, UpdateBorrowerDto } from '../../types/api.types';
+import type { UpdateBorrowerDto } from '../../types/api.types';
 import type { AxiosError } from 'axios';
 
 type Props = NativeStackScreenProps<BorrowerStackParamList, 'EditBorrower'>;
