@@ -80,6 +80,28 @@ describe('BorrowerForm', () => {
     });
   });
 
+  it('should not require fields in edit mode', async () => {
+    renderWithProvider(
+      <BorrowerForm
+        mode="edit"
+        defaultValues={{ firstName: 'Marie', lastName: 'Dupont', email: 'marie@example.com' }}
+        onSubmit={mockOnSubmit}
+        isLoading={false}
+        submitLabel="Save"
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId('borrower-submit-btn'));
+
+    await waitFor(() => {
+      expect(mockOnSubmit).toHaveBeenCalled();
+    });
+
+    expect(screen.queryByTestId('firstName-error')).toBeNull();
+    expect(screen.queryByTestId('lastName-error')).toBeNull();
+    expect(screen.queryByTestId('email-error')).toBeNull();
+  });
+
   it('should display error prop', () => {
     renderWithProvider(
       <BorrowerForm

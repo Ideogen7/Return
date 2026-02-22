@@ -6,6 +6,7 @@ import { ui } from '../../config/theme.config';
 import type { CreateBorrowerDto } from '../../types/api.types';
 
 interface BorrowerFormProps {
+  mode?: 'create' | 'edit';
   defaultValues?: Partial<CreateBorrowerDto>;
   onSubmit: (data: CreateBorrowerDto) => void;
   isLoading: boolean;
@@ -14,6 +15,7 @@ interface BorrowerFormProps {
 }
 
 export function BorrowerForm({
+  mode = 'create',
   defaultValues,
   onSubmit,
   isLoading,
@@ -21,6 +23,7 @@ export function BorrowerForm({
   submitLabel,
 }: BorrowerFormProps) {
   const { t } = useTranslation();
+  const isCreate = mode === 'create';
   const {
     control,
     handleSubmit,
@@ -40,7 +43,7 @@ export function BorrowerForm({
         control={control}
         name="firstName"
         rules={{
-          required: t('auth.firstNameRequired'),
+          ...(isCreate && { required: t('auth.firstNameRequired') }),
           minLength: { value: 1, message: t('auth.firstNameRequired') },
           maxLength: { value: 50, message: t('auth.nameMaxLength') },
         }}
@@ -69,7 +72,7 @@ export function BorrowerForm({
         control={control}
         name="lastName"
         rules={{
-          required: t('auth.lastNameRequired'),
+          ...(isCreate && { required: t('auth.lastNameRequired') }),
           minLength: { value: 1, message: t('auth.lastNameRequired') },
           maxLength: { value: 50, message: t('auth.nameMaxLength') },
         }}
@@ -98,7 +101,7 @@ export function BorrowerForm({
         control={control}
         name="email"
         rules={{
-          required: t('auth.emailRequired'),
+          ...(isCreate && { required: t('auth.emailRequired') }),
           pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('auth.emailInvalid') },
         }}
         render={({ field: { onChange, onBlur, value } }) => (

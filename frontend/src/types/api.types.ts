@@ -92,7 +92,7 @@ export interface CreateBorrowerDto {
   firstName: string;
   lastName: string;
   email: string;
-  phoneNumber?: string;
+  phoneNumber?: string | null;
 }
 
 export interface UpdateBorrowerDto {

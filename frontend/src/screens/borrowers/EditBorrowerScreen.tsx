@@ -7,7 +7,7 @@ import { BorrowerForm } from '../../components/borrowers/BorrowerForm';
 import { useBorrowerStore } from '../../stores/useBorrowerStore';
 import { parseProblemDetails, getErrorMessage } from '../../utils/error';
 import type { BorrowerStackParamList } from '../../navigation/types';
-import type { CreateBorrowerDto } from '../../types/api.types';
+import type { CreateBorrowerDto, UpdateBorrowerDto } from '../../types/api.types';
 import type { AxiosError } from 'axios';
 
 type Props = NativeStackScreenProps<BorrowerStackParamList, 'EditBorrower'>;
@@ -33,7 +33,7 @@ export function EditBorrowerScreen({ route, navigation }: Props) {
     );
   }
 
-  const handleSubmit = async (data: CreateBorrowerDto) => {
+  const handleSubmit = async (data: UpdateBorrowerDto) => {
     setIsLoading(true);
     setApiError(undefined);
     try {
@@ -50,6 +50,7 @@ export function EditBorrowerScreen({ route, navigation }: Props) {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <BorrowerForm
+        mode="edit"
         defaultValues={{
           firstName: selectedBorrower.firstName,
           lastName: selectedBorrower.lastName,

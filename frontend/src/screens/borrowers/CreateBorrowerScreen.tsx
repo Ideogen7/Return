@@ -33,6 +33,7 @@ export function CreateBorrowerScreen({ navigation }: Props) {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <BorrowerForm
+        mode="create"
         onSubmit={handleSubmit}
         isLoading={isLoading}
         error={apiError}

@@ -32,7 +32,7 @@ const mockBorrowerStats = {
   returnedOnTime: 3,
   returnedLate: 1,
   notReturned: 1,
-  averageReturnDelay: 2.5,
+  averageReturnDelay: 2,
   trustScore: 75,
 };
 
