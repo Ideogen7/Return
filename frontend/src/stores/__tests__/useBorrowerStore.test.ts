@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../__mocks__/server';
 import { useBorrowerStore } from '../useBorrowerStore';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:4010';
 
 beforeAll(() => server.listen());
 afterEach(() => {
