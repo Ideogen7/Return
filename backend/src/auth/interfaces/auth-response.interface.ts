@@ -5,6 +5,12 @@ import { UserRole } from '@prisma/client';
 // =============================================================================
 
 /**
+ * Langues supportées (conforme à l'enum OpenAPI UserSettings.language).
+ * FR + EN en V1 — extensible en V2.
+ */
+export type SupportedLanguage = 'fr' | 'en';
+
+/**
  * Préférences utilisateur (conforme au schéma OpenAPI `UserSettings`).
  *
  * Renvoyé en tant que champ imbriqué `settings` dans SafeUser,
@@ -13,7 +19,7 @@ import { UserRole } from '@prisma/client';
 export interface UserSettings {
   pushNotificationsEnabled: boolean;
   reminderEnabled: boolean;
-  language: string;
+  language: SupportedLanguage;
   timezone: string;
 }
 

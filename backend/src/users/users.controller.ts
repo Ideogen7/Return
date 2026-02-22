@@ -15,10 +15,7 @@ import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 import { DeleteAccountDto } from './dto/delete-account.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import type {
-  SafeUser,
-  UserSettings,
-} from '../auth/interfaces/auth-response.interface.js';
+import type { SafeUser, UserSettings } from '../auth/interfaces/auth-response.interface.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
 
 // =============================================================================
@@ -50,9 +47,7 @@ export class UsersController {
    * @throws 404 Not Found — Utilisateur introuvable (supprimé entre-temps)
    */
   @Get('me')
-  async getProfile(
-    @Request() req: { user: AuthenticatedUser },
-  ): Promise<SafeUser> {
+  async getProfile(@Request() req: { user: AuthenticatedUser }): Promise<SafeUser> {
     return this.usersService.getProfile(req.user.userId);
   }
 
@@ -105,12 +100,7 @@ export class UsersController {
     @Request() req: { user: AuthenticatedUser },
     @Body() dto: ChangePasswordDto,
   ): Promise<void> {
-    await this.usersService.changePassword(
-      req.user.userId,
-      dto,
-      req.user.jti,
-      req.user.tokenExp,
-    );
+    await this.usersService.changePassword(req.user.userId, dto, req.user.jti, req.user.tokenExp);
   }
 
   /**
@@ -121,9 +111,7 @@ export class UsersController {
    * @returns 200 OK — UserSettings
    */
   @Get('me/settings')
-  async getSettings(
-    @Request() req: { user: AuthenticatedUser },
-  ): Promise<UserSettings> {
+  async getSettings(@Request() req: { user: AuthenticatedUser }): Promise<UserSettings> {
     return this.usersService.getSettings(req.user.userId);
   }
 

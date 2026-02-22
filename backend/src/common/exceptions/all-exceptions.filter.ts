@@ -29,14 +29,28 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
-      // Handle class-validator errors (Bad Request with array of messages)
+      // Handle class-validator errors (Bad Request with structured error details)
+      // Le exceptionFactory custom dans main.ts envoie un tableau d'objets
+      // { field, code, message } au lieu de simples strings.
       const messages =
         typeof exceptionResponse === 'object'
           ? (exceptionResponse as Record<string, unknown>).message
           : undefined;
 
       if (status === 400 && Array.isArray(messages)) {
-        const errors = messages.map((msg: string) => {
+        // Supporte les deux formats : string[] (legacy) et { field, code, message }[] (custom factory)
+        const errors = messages.map((entry: unknown) => {
+          if (typeof entry === 'object' && entry !== null && 'field' in entry) {
+            // Format structuré du exceptionFactory custom
+            const structured = entry as { field: string; code: string; message: string };
+            return {
+              field: structured.field,
+              code: structured.code,
+              message: structured.message,
+            };
+          }
+          // Fallback legacy : essai d'extraction par regex
+          const msg = String(entry);
           const match = /^(\w+)\s/.exec(msg);
           return {
             field: match?.[1] ?? 'unknown',
@@ -48,7 +62,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           type: 'https://api.return.app/errors/validation-failed',
           title: 'Validation Failed',
           status,
-          detail: messages.join('; '),
+          detail: errors.map((e) => e.message).join('; '),
           instance: request.url,
           timestamp: new Date().toISOString(),
           requestId: getRequestId(),

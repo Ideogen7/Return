@@ -1,5 +1,5 @@
 import type { User } from '@prisma/client';
-import type { SafeUser } from '../../auth/interfaces/auth-response.interface.js';
+import type { SafeUser, SupportedLanguage } from '../../auth/interfaces/auth-response.interface.js';
 
 // =============================================================================
 // UserMapper — Utilitaire partagé de transformation User → SafeUser
@@ -30,7 +30,9 @@ export function toSafeUser(user: User): SafeUser {
     settings: {
       pushNotificationsEnabled: user.pushNotificationsEnabled,
       reminderEnabled: user.reminderEnabled,
-      language: user.language,
+      // Cast sûr — la valeur est validée par @IsIn(['fr','en']) à l'entrée
+      // et la valeur par défaut Prisma est 'fr' (schema.prisma VarChar(5))
+      language: user.language as SupportedLanguage,
       timezone: user.timezone,
     },
     createdAt: user.createdAt,

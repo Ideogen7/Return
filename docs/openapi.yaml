@@ -94,7 +94,7 @@ paths:
                 success:
                   value:
                     accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-                    refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    refreshToken: a3f1c9e7b2d84f6a1e0c5b9d7f3a2e8c4d6b0f1a2c3e5d7f9b1a4c6e8d0f2a48
                     expiresIn: 900
                     tokenType: Bearer
                     user:
@@ -178,8 +178,9 @@ paths:
         - Authentication
       summary: Renouveler un access token expiré
       description: |
-        Utilise le refresh token pour obtenir un nouveau access token.
-        Le refresh token reste valide jusqu'à son expiration (30 jours).
+        Utilise le refresh token opaque pour obtenir un nouvel access token JWT.
+        Le refresh token est à usage unique (rotation) : un nouveau refresh token
+        est retourné à chaque appel. L'ancien token est immédiatement invalidé.
       operationId: refreshToken
       security: [ ]  # Public endpoint (le refresh token est dans le body)
       requestBody:
@@ -191,7 +192,7 @@ paths:
             examples:
               valid:
                 value:
-                  refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  refreshToken: a3f1c9e7b2d84f6a1e0c5b9d7f3a2e8c4d6b0f1a2c3e5d7f9b1a4c6e8d0f2a48
       responses:
         '200':
           description: Token renouvelé avec succès
@@ -2513,12 +2514,14 @@ components:
       properties:
         refreshToken:
           type: string
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-          description: Refresh token obtenu lors du login
+          example: a3f1c9e7b2d84f6a1e0c5b9d7f3a2e8c4d6b0f1a2c3e5d7f9b1a4c6e8d0f2a48
+          description: |
+            Token de rafraîchissement opaque reçu dans la réponse AuthResponse.
+            Le token est à usage unique : chaque appel à /auth/refresh retourne un nouveau refresh token.
 
     AuthResponse:
       type: object
-      description: Réponse d'authentification avec tokens JWT
+      description: Réponse d'authentification avec access token JWT et refresh token opaque
       required:
         - accessToken
         - refreshToken
@@ -2532,8 +2535,12 @@ components:
           description: JWT access token (expire après 15 min)
         refreshToken:
           type: string
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNjA5NDU5MjAwLCJleHAiOjE2MTIwNTEyMDB9.signature
-          description: JWT refresh token (expire après 30 jours)
+          pattern: '^[a-f0-9]{64}$'
+          example: a3f1c9e7b2d84f6a1e0c5b9d7f3a2e8c4d6b0f1a2c3e5d7f9b1a4c6e8d0f2a48
+          description: |
+            Token de rafraîchissement opaque (64 caractères hex).
+            Généré via crypto.randomBytes, stocké côté serveur sous forme de hash SHA-256.
+            Expire après 30 jours. Rotation à chaque utilisation (l'ancien token est invalidé).
         expiresIn:
           type: integer
           example: 900

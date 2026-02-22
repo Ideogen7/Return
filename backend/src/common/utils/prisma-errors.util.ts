@@ -11,9 +11,7 @@
  * Prisma lève ce code quand un INSERT/UPDATE viole un @unique ou @@unique.
  * Utilisé pour détecter les doublons d'email à l'inscription ou la mise à jour.
  */
-export function isPrismaUniqueConstraintError(
-  error: unknown,
-): error is Error & { code: string } {
+export function isPrismaUniqueConstraintError(error: unknown): error is Error & { code: string } {
   return (
     typeof error === 'object' &&
     error !== null &&
