@@ -181,6 +181,21 @@ describe('AllExceptionsFilter', () => {
     expect(body.title).toBe('Rate Limit Exceeded');
   });
 
+  it('should format 401 HttpException with unauthorized type (Passport rejection)', () => {
+    // Arrange — Simule un rejet Passport (token manquant/expiré)
+    const exception = new HttpException('Unauthorized', 401);
+    const { host, status, json } = createMockHost('/v1/users/me');
+
+    // Act
+    filter.catch(exception, host);
+
+    // Assert
+    expect(status).toHaveBeenCalledWith(401);
+    const body = json.mock.calls[0]![0] as ProblemDetails;
+    expect(body.type).toBe('https://api.return.app/errors/unauthorized');
+    expect(body.title).toBe('Unauthorized');
+  });
+
   // =========================================================================
   // 5. Exception non-HTTP (erreur inattendue) → 500
   // =========================================================================

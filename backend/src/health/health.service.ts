@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RedisService } from '../redis/redis.service.js';
 
 export interface HealthStatus {
   status: 'ok';
@@ -8,16 +9,21 @@ export interface HealthStatus {
 }
 
 export interface ReadinessStatus {
-  status: 'ok' | 'degraded';
+  status: 'ok' | 'error';
   timestamp: string;
   checks: {
     database: 'ok' | 'error';
+    redis: 'ok' | 'error';
+    fcm: 'ok' | 'error';
   };
 }
 
 @Injectable()
 export class HealthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   getHealth(): HealthStatus {
     return {
@@ -29,6 +35,7 @@ export class HealthService {
 
   async getReadiness(): Promise<ReadinessStatus> {
     let dbStatus: 'ok' | 'error' = 'ok';
+    let redisStatus: 'ok' | 'error' = 'ok';
 
     try {
       await this.prisma.$queryRaw`SELECT 1`;
@@ -36,10 +43,21 @@ export class HealthService {
       dbStatus = 'error';
     }
 
+    try {
+      await this.redis.getClient().ping();
+    } catch {
+      redisStatus = 'error';
+    }
+
+    // FCM n'est pas implémenté en V1 — hardcodé 'error' en attendant le module Notifications
+    const fcmStatus: 'ok' | 'error' = 'error';
+
+    const allOk = dbStatus === 'ok' && redisStatus === 'ok' && fcmStatus === 'ok';
+
     return {
-      status: dbStatus === 'ok' ? 'ok' : 'degraded',
+      status: allOk ? 'ok' : 'error',
       timestamp: new Date().toISOString(),
-      checks: { database: dbStatus },
+      checks: { database: dbStatus, redis: redisStatus, fcm: fcmStatus },
     };
   }
 }

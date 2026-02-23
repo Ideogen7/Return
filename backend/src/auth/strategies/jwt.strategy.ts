@@ -61,9 +61,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const isBlacklisted = await this.redis.isTokenBlacklisted(payload.jti);
     if (isBlacklisted) {
       throw new UnauthorizedException(
-        'token-revoked',
+        'invalid-token',
         'Invalid Token',
-        'This token has been revoked.',
+        'The provided token is invalid or has expired.',
         '',
       );
     }

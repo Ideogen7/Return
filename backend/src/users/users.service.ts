@@ -156,7 +156,7 @@ export class UsersService {
       throw new UnauthorizedException(
         'invalid-current-password',
         'Invalid Current Password',
-        'The current password is incorrect.',
+        'The current password you provided is incorrect.',
         '/v1/users/me/password',
       );
     }

@@ -75,9 +75,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
       const body: ProblemDetails = {
         type: `https://api.return.app/errors/${
-          status === 404 ? 'not-found' : status === 429 ? 'rate-limit-exceeded' : 'http-error'
+          status === 401
+            ? 'unauthorized'
+            : status === 404
+              ? 'not-found'
+              : status === 429
+                ? 'rate-limit-exceeded'
+                : 'http-error'
         }`,
-        title: status === 429 ? 'Rate Limit Exceeded' : exception.message,
+        title:
+          status === 401
+            ? 'Unauthorized'
+            : status === 429
+              ? 'Rate Limit Exceeded'
+              : exception.message,
         status,
         detail: exception.message,
         instance: request.url,
