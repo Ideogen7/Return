@@ -162,6 +162,7 @@ identifié par son email. Le champ `userId` (nullable) permet de lier l'emprunte
 n'a pas encore de compte, une invitation lui sera envoyée lors de la création d'un prêt (Sprint 4).
 
 **Contraintes spec OpenAPI** :
+
 - Chaque emprunteur appartient à un prêteur (ownership via `userId` du JWT) → toute opération READ/UPDATE/DELETE
   vérifie que le borrower appartient au prêteur authentifié (403 si non propriétaire).
 - La réponse `Borrower` inclut un objet `statistics` (BorrowerStatistics) — retourné avec des zéros par défaut en

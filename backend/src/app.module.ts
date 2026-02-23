@@ -9,6 +9,7 @@ import { RedisModule } from './redis/redis.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
 import { HealthModule } from './health/health.module.js';
+import { BorrowersModule } from './borrowers/borrowers.module.js';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware.js';
 
 @Module({
@@ -31,6 +32,7 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
     // --- Features ---
     UsersModule,
     HealthModule,
+    BorrowersModule,
   ],
   providers: [
     {
