@@ -12,10 +12,10 @@ type Props = NativeStackScreenProps<BorrowerStackParamList, 'BorrowerList'>;
 
 export function BorrowerListScreen({ navigation }: Props) {
   const { t } = useTranslation();
-  const { borrowers, isLoading, fetchBorrowers } = useBorrowerStore();
+  const { borrowers, isLoading, error, fetchBorrowers } = useBorrowerStore();
 
   useEffect(() => {
-    fetchBorrowers();
+    fetchBorrowers().catch(() => {});
   }, [fetchBorrowers]);
 
   const handlePress = (id: string) => {
@@ -26,6 +26,17 @@ export function BorrowerListScreen({ navigation }: Props) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#6B8E7B" testID="loading" />
+      </View>
+    );
+  }
+
+  if (error && borrowers.length === 0) {
+    return (
+      <View style={styles.centerContainer} testID="borrower-error">
+        <Icon source="alert-circle-outline" size={64} color="#D97A6B" />
+        <Text variant="titleMedium" style={styles.emptyTitle}>
+          {t('errors.unknownError')}
+        </Text>
       </View>
     );
   }

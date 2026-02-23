@@ -15,14 +15,20 @@ type Props = NativeStackScreenProps<BorrowerStackParamList, 'BorrowerDetail'>;
 export function BorrowerDetailScreen({ route, navigation }: Props) {
   const { id } = route.params;
   const { t } = useTranslation();
-  const { selectedBorrower, selectedBorrowerStats, isLoading, fetchBorrower, fetchBorrowerStats } =
-    useBorrowerStore();
+  const {
+    selectedBorrower,
+    selectedBorrowerStats,
+    isLoading,
+    error,
+    fetchBorrower,
+    fetchBorrowerStats,
+  } = useBorrowerStore();
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [apiError, setApiError] = useState<string | undefined>();
 
   useEffect(() => {
-    fetchBorrower(id);
-    fetchBorrowerStats(id);
+    fetchBorrower(id).catch(() => {});
+    fetchBorrowerStats(id).catch(() => {});
   }, [id, fetchBorrower, fetchBorrowerStats]);
 
   const handleDelete = async () => {
@@ -37,10 +43,23 @@ export function BorrowerDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  if (isLoading || !selectedBorrower) {
+  if (isLoading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#6B8E7B" testID="loading" />
+      </View>
+    );
+  }
+
+  if (!selectedBorrower) {
+    return (
+      <View style={styles.centerContainer} testID="borrower-error">
+        <Text variant="titleMedium" style={styles.errorText}>
+          {error ? t('errors.borrowerNotFound') : t('errors.unknownError')}
+        </Text>
+        <Button mode="outlined" onPress={() => navigation.goBack()} style={styles.backButton}>
+          {t('common.back')}
+        </Button>
       </View>
     );
   }
@@ -128,7 +147,9 @@ export function BorrowerDetailScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, paddingBottom: 32, backgroundColor: '#F7F4EF' },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  errorText: { color: '#6B7A8D', textAlign: 'center', marginBottom: 16 },
+  backButton: { borderRadius: 12 },
   infoCard: { margin: 16, padding: 24, alignItems: 'center' },
   avatar: {
     width: 72,

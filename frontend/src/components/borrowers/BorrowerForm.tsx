@@ -33,7 +33,7 @@ export function BorrowerForm({
       firstName: defaultValues?.firstName ?? '',
       lastName: defaultValues?.lastName ?? '',
       email: defaultValues?.email ?? '',
-      phoneNumber: defaultValues?.phoneNumber ?? '',
+      phoneNumber: defaultValues?.phoneNumber ?? undefined,
     },
   });
 
@@ -138,7 +138,7 @@ export function BorrowerForm({
             left={<TextInput.Icon icon="phone-outline" color="#A8B5BF" />}
             onBlur={onBlur}
             onChangeText={onChange}
-            value={value}
+            value={value ?? undefined}
             testID="phone-input"
             style={[styles.input, ui.input]}
             outlineStyle={styles.outline}
