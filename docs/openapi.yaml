@@ -1097,7 +1097,6 @@ paths:
                 email:
                   type: string
                   format: email
-                  nullable: true
                 phoneNumber:
                   type: string
                   nullable: true

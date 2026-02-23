@@ -12,6 +12,7 @@ import {
   UseGuards,
   Request,
   Res,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { BorrowersService } from './borrowers.service.js';
@@ -85,7 +86,7 @@ export class BorrowersController {
   @Get(':id')
   async findById(
     @Request() req: { user: AuthenticatedUser },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ): Promise<BorrowerResponse> {
     return this.borrowersService.findById(id, req.user.userId);
   }
@@ -96,7 +97,7 @@ export class BorrowersController {
   @Patch(':id')
   async update(
     @Request() req: { user: AuthenticatedUser },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateBorrowerDto,
   ): Promise<BorrowerResponse> {
     return this.borrowersService.update(id, req.user.userId, dto);
@@ -109,7 +110,7 @@ export class BorrowersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(
     @Request() req: { user: AuthenticatedUser },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
     return this.borrowersService.delete(id, req.user.userId);
   }

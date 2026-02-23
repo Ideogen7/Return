@@ -10,7 +10,6 @@ export interface HealthStatus {
 
 export interface ReadinessStatus {
   status: 'ok' | 'error';
-  timestamp: string;
   checks: {
     database: 'ok' | 'error';
     redis: 'ok' | 'error';
@@ -56,7 +55,6 @@ export class HealthService {
 
     return {
       status: allOk ? 'ok' : 'error',
-      timestamp: new Date().toISOString(),
       checks: { database: dbStatus, redis: redisStatus, fcm: fcmStatus },
     };
   }
