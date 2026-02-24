@@ -41,7 +41,7 @@ export const useBorrowerStore = create<BorrowerState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const { data } = await apiClient.get<PaginatedResponse<Borrower>>('/borrowers', {
-        params: { page, sortBy: 'lastName', sortOrder: 'asc' },
+        params: { page, limit: 20, sortBy: 'firstName', sortOrder: 'asc' },
       });
       set({ borrowers: data.data, isLoading: false });
     } catch (err) {
