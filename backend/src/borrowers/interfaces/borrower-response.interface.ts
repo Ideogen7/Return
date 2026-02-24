@@ -7,6 +7,7 @@ export interface BorrowerStatistics {
   returnedOnTime: number;
   returnedLate: number;
   notReturned: number;
+  /** Délai moyen de retour en jours (arrondi, conforme OpenAPI integer). null si aucun prêt rendu. */
   averageReturnDelay: number | null;
   trustScore: number;
 }
