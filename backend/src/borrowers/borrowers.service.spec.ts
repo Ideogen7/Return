@@ -22,6 +22,8 @@ const MOCK_BORROWER: Borrower = {
   phoneNumber: '+33612345678',
   userId: null,
   lenderUserId: LENDER_USER_ID,
+  trustScore: 0,
+  totalLoans: 0,
   createdAt: new Date('2025-01-01T00:00:00Z'),
   updatedAt: new Date('2025-01-01T00:00:00Z'),
 };
@@ -34,6 +36,8 @@ const MOCK_BORROWER_2: Borrower = {
   phoneNumber: null,
   userId: null,
   lenderUserId: LENDER_USER_ID,
+  trustScore: 0,
+  totalLoans: 0,
   createdAt: new Date('2025-01-02T00:00:00Z'),
   updatedAt: new Date('2025-01-02T00:00:00Z'),
 };
@@ -84,7 +88,7 @@ describe('BorrowersService', () => {
           returnedLate: 0,
           notReturned: 0,
           averageReturnDelay: null,
-          trustScore: 100,
+          trustScore: 0,
         },
       });
 
@@ -149,7 +153,7 @@ describe('BorrowersService', () => {
         returnedLate: 0,
         notReturned: 0,
         averageReturnDelay: null,
-        trustScore: 100,
+        trustScore: 0,
       });
       expect(result.pagination).toEqual({
         currentPage: 1,
@@ -211,6 +215,44 @@ describe('BorrowersService', () => {
       expect(result.pagination.totalItems).toBe(0);
       expect(result.pagination.totalPages).toBe(0);
     });
+
+    it('should sort by trustScore (denormalized column)', async () => {
+      prisma.borrower.findMany.mockResolvedValue([MOCK_BORROWER]);
+      prisma.borrower.count.mockResolvedValue(1);
+
+      await service.findAll(LENDER_USER_ID, {
+        sortBy: 'trustScore',
+        sortOrder: 'desc',
+        page: 1,
+        limit: 20,
+      });
+
+      expect(prisma.borrower.findMany).toHaveBeenCalledWith({
+        where: { lenderUserId: LENDER_USER_ID },
+        orderBy: { trustScore: 'desc' },
+        skip: 0,
+        take: 20,
+      });
+    });
+
+    it('should sort by totalLoans (denormalized column)', async () => {
+      prisma.borrower.findMany.mockResolvedValue([MOCK_BORROWER]);
+      prisma.borrower.count.mockResolvedValue(1);
+
+      await service.findAll(LENDER_USER_ID, {
+        sortBy: 'totalLoans',
+        sortOrder: 'asc',
+        page: 1,
+        limit: 20,
+      });
+
+      expect(prisma.borrower.findMany).toHaveBeenCalledWith({
+        where: { lenderUserId: LENDER_USER_ID },
+        orderBy: { totalLoans: 'asc' },
+        skip: 0,
+        take: 20,
+      });
+    });
   });
 
   // ===========================================================================
@@ -226,6 +268,25 @@ describe('BorrowersService', () => {
       expect(result.id).toBe(BORROWER_ID);
       expect(result.firstName).toBe('Marie');
       expect(result.statistics.totalLoans).toBe(0);
+    });
+
+    it('should map trustScore and totalLoans from database values', async () => {
+      const borrowerWithStats: Borrower = {
+        ...MOCK_BORROWER,
+        trustScore: 88,
+        totalLoans: 12,
+      };
+      prisma.borrower.findUnique.mockResolvedValue(borrowerWithStats);
+
+      const result = await service.findById(BORROWER_ID, LENDER_USER_ID);
+
+      expect(result.statistics.trustScore).toBe(88);
+      expect(result.statistics.totalLoans).toBe(12);
+      // Other stats remain at defaults (no loan detail columns yet)
+      expect(result.statistics.returnedOnTime).toBe(0);
+      expect(result.statistics.returnedLate).toBe(0);
+      expect(result.statistics.notReturned).toBe(0);
+      expect(result.statistics.averageReturnDelay).toBeNull();
     });
 
     it('should throw 404 if borrower does not exist', async () => {

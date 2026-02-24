@@ -36,7 +36,7 @@ const MOCK_BORROWER_RESPONSE: BorrowerResponse = {
     returnedLate: 0,
     notReturned: 0,
     averageReturnDelay: null,
-    trustScore: 100,
+    trustScore: 0,
   },
 };
 
@@ -83,8 +83,14 @@ describe('BorrowersController', () => {
         setHeader: jest.fn(),
       };
 
+      const mockReq = {
+        user: MOCK_AUTH_USER,
+        protocol: 'http',
+        headers: { host: 'localhost:3000' },
+      };
+
       const result = await controller.create(
-        { user: MOCK_AUTH_USER },
+        mockReq as never,
         {
           firstName: 'Marie',
           lastName: 'Dupont',
@@ -95,7 +101,10 @@ describe('BorrowersController', () => {
       );
 
       expect(result).toEqual(MOCK_BORROWER_RESPONSE);
-      expect(mockRes.setHeader).toHaveBeenCalledWith('Location', `/v1/borrowers/${BORROWER_ID}`);
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        'Location',
+        `http://localhost:3000/v1/borrowers/${BORROWER_ID}`,
+      );
       expect(service.create).toHaveBeenCalledWith(LENDER_USER_ID, {
         firstName: 'Marie',
         lastName: 'Dupont',

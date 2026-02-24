@@ -28,7 +28,7 @@ export function setUserId(userId: string): void {
 @Injectable()
 export class RequestContextMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
-    const requestId = (req.headers['x-request-id'] as string) || randomUUID();
+    const requestId = (req.headers['x-request-id'] as string) || `req-${randomUUID()}`;
     Object.defineProperty(req, 'requestId', { value: requestId });
     res.setHeader('X-Request-Id', requestId);
 

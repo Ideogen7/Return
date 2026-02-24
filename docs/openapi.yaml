@@ -52,13 +52,13 @@ tags:
     description: Endpoints de santé pour monitoring et load balancer
 
 security:
-  - BearerAuth: [ ]
+  - BearerAuth: []
 
 paths:
   # =============================================================================
   # AUTHENTICATION ENDPOINTS (Exemple de structure)
   # =============================================================================
-  
+
   /auth/register:
     post:
       tags:
@@ -68,7 +68,7 @@ paths:
         Inscription d'un nouvel utilisateur. Retourne un JWT valide après création.
         Le compte est créé avec le rôle `LENDER` par défaut.
       operationId: registerUser
-      security: [ ]  # Public endpoint
+      security: [] # Public endpoint
       requestBody:
         required: true
         content:
@@ -103,7 +103,7 @@ paths:
                       firstName: John
                       lastName: Doe
                       role: LENDER
-                      createdAt: "2026-01-15T10:00:00Z"
+                      createdAt: '2026-01-15T10:00:00Z'
         '400':
           $ref: '#/components/responses/ValidationError'
         '409':
@@ -132,7 +132,7 @@ paths:
         Authentification par email + mot de passe. Retourne un access token (15 min)
         et un refresh token (30 jours).
       operationId: loginUser
-      security: [ ]  # Public endpoint
+      security: [] # Public endpoint
       requestBody:
         required: true
         content:
@@ -182,7 +182,7 @@ paths:
         Le refresh token est à usage unique (rotation) : un nouveau refresh token
         est retourné à chaque appel. L'ancien token est immédiatement invalidé.
       operationId: refreshToken
-      security: [ ]  # Public endpoint (le refresh token est dans le body)
+      security: [] # Public endpoint (le refresh token est dans le body)
       requestBody:
         required: true
         content:
@@ -284,7 +284,7 @@ paths:
           description: Champ de tri
           schema:
             type: string
-            enum: [ createdAt, returnDate, status ]
+            enum: [createdAt, returnDate, status]
             default: createdAt
           example: returnDate
         - name: sortOrder
@@ -292,7 +292,7 @@ paths:
           description: Ordre de tri
           schema:
             type: string
-            enum: [ asc, desc ]
+            enum: [asc, desc]
             default: desc
           example: asc
       responses:
@@ -342,18 +342,18 @@ paths:
                     firstName: Marie
                     lastName: Dupont
                     email: marie.dupont@example.com
-                    phoneNumber: "+33612345678"
-                  returnDate: "2026-03-15"
-                  notes: "Avec 2 batteries et chargeur"
+                    phoneNumber: '+33612345678'
+                  returnDate: '2026-03-15'
+                  notes: 'Avec 2 batteries et chargeur'
               existingBorrower:
                 summary: Nouvel objet + emprunteur existant
                 value:
                   item:
-                    name: "Livre : Clean Code"
+                    name: 'Livre : Clean Code'
                     category: BOOKS
                     estimatedValue: 35.00
                   borrower: 5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
-                  returnDate: "2026-03-01"
+                  returnDate: '2026-03-01'
               moneyLoan:
                 summary: Prêt d'argent
                 value:
@@ -365,8 +365,8 @@ paths:
                     firstName: Paul
                     lastName: Martin
                     email: paul.martin@example.com
-                  returnDate: "2026-04-15"
-                  notes: "Remboursement prévu fin avril"
+                  returnDate: '2026-04-15'
+                  notes: 'Remboursement prévu fin avril'
       responses:
         '201':
           description: Prêt créé avec succès
@@ -454,12 +454,12 @@ paths:
                   type: string
                   format: date
                   nullable: true
-                  example: "2026-03-20"
+                  example: '2026-03-20'
                 notes:
                   type: string
                   nullable: true
                   maxLength: 500
-                  example: "Retour décalé car travaux en cours"
+                  example: 'Retour décalé car travaux en cours'
       responses:
         '200':
           description: Prêt mis à jour avec succès
@@ -483,7 +483,7 @@ paths:
       description: |
         Archive le prêt (soft delete). Le prêt reste en base mais est marqué comme supprimé.
         Les rappels planifiés sont automatiquement annulés.
-        
+
         **Attention** : Cette action est irréversible (pas de restauration en V1).
       operationId: deleteLoan
       responses:
@@ -525,17 +525,17 @@ paths:
       summary: Changer le statut d'un prêt
       description: |
         Permet les transitions de statut suivantes selon le rôle :
-        
+
         **Prêteur (propriétaire du prêt)** :
         - `PENDING_CONFIRMATION` → `ACTIVE` (si timeout 48h atteint)
         - `ACTIVE` → `RETURNED` (confirmer retour)
         - `AWAITING_RETURN` → `RETURNED` (confirmer retour tardif)
         - `ACTIVE` / `AWAITING_RETURN` → `ABANDONED` (abandon manuel)
-        
+
         **Emprunteur** :
         - `PENDING_CONFIRMATION` → `ACTIVE` (accepter)
         - `PENDING_CONFIRMATION` → `CONTESTED` (refuser)
-        
+
         Les transitions invalides retournent une erreur 409 Conflict.
       operationId: updateLoanStatus
       requestBody:
@@ -549,7 +549,7 @@ paths:
                 summary: Prêteur confirme le retour
                 value:
                   status: RETURNED
-                  notes: "Rendu en bon état le 14/03"
+                  notes: 'Rendu en bon état le 14/03'
               borrowerAccepts:
                 summary: Emprunteur accepte le prêt
                 value:
@@ -596,7 +596,7 @@ paths:
                 type: https://api.return.app/errors/invalid-status-transition
                 title: Invalid Status Transition
                 status: 409
-                detail: "Cannot transition from RETURNED to ACTIVE."
+                detail: 'Cannot transition from RETURNED to ACTIVE.'
                 instance: /v1/loans/loan-123/status
                 timestamp: 2026-02-08T17:05:00Z
                 requestId: req-1b2c3d4e
@@ -959,14 +959,14 @@ paths:
           description: Champ de tri
           schema:
             type: string
-            enum: [ firstName, lastName, trustScore, totalLoans ]
+            enum: [firstName, lastName, trustScore, totalLoans]
             default: firstName
           example: trustScore
         - name: sortOrder
           in: query
           schema:
             type: string
-            enum: [ asc, desc ]
+            enum: [asc, desc]
             default: asc
         - name: page
           in: query
@@ -1115,6 +1115,20 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          description: Contact déjà existant avec cet email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/borrower-already-exists
+                title: Borrower Already Exists
+                status: 409
+                detail: A contact with this email already exists in your list.
+                instance: /v1/borrowers/5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
+                timestamp: 2026-02-08T19:00:00Z
+                requestId: req-3f4a5b6c
 
     delete:
       tags:
@@ -1491,7 +1505,7 @@ paths:
                   description: Mot de passe pour confirmer
                 confirmationText:
                   type: string
-                  enum: [ "DELETE MY ACCOUNT" ]
+                  enum: ['DELETE MY ACCOUNT']
                   description: 'Doit être exactement "DELETE MY ACCOUNT"'
       responses:
         '204':
@@ -1668,7 +1682,7 @@ paths:
             type: array
             items:
               type: string
-              enum: [ RETURNED, NOT_RETURNED, CONTESTED, ABANDONED ]
+              enum: [RETURNED, NOT_RETURNED, CONTESTED, ABANDONED]
           style: form
           explode: false
         - name: borrowerId
@@ -1682,14 +1696,14 @@ paths:
           schema:
             type: string
             format: date
-          example: "2026-01-01"
+          example: '2026-01-01'
         - name: endDate
           in: query
           description: Date de fin de période
           schema:
             type: string
             format: date
-          example: "2026-12-31"
+          example: '2026-12-31'
         - name: page
           in: query
           schema:
@@ -1823,7 +1837,7 @@ paths:
         Retourne le statut du serveur. Utilisé par le load balancer Fly.io
         pour déterminer si l'instance est vivante.
       operationId: healthCheck
-      security: [ ]
+      security: []
       responses:
         '200':
           description: Serveur opérationnel
@@ -1838,10 +1852,10 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-                    example: "2026-02-12T10:00:00Z"
+                    example: '2026-02-12T10:00:00Z'
                   version:
                     type: string
-                    example: "1.0.0"
+                    example: '1.0.0'
 
   /ready:
     get:
@@ -1852,7 +1866,7 @@ paths:
         Vérifie que toutes les dépendances sont opérationnelles
         (PostgreSQL, Redis, FCM). Utilisé pour le routing du load balancer.
       operationId: readinessCheck
-      security: [ ]
+      security: []
       responses:
         '200':
           description: Toutes les dépendances opérationnelles
@@ -1869,15 +1883,15 @@ paths:
                     properties:
                       database:
                         type: string
-                        enum: [ ok, error ]
+                        enum: [ok, error]
                         example: ok
                       redis:
                         type: string
-                        enum: [ ok, error ]
+                        enum: [ok, error]
                         example: ok
                       fcm:
                         type: string
-                        enum: [ ok, error ]
+                        enum: [ok, error]
                         example: ok
         '503':
           description: Une ou plusieurs dépendances indisponibles
@@ -1911,7 +1925,7 @@ components:
       description: |
         JWT obtenu via `/auth/login` ou `/auth/register`.
         Format : `Authorization: Bearer <access_token>`
-        
+
         Le token expire après 15 minutes. Utiliser `/auth/refresh` pour le renouveler.
 
   schemas:
@@ -1950,7 +1964,7 @@ components:
           type: string
           format: date
           nullable: true
-          example: "2026-03-15"
+          example: '2026-03-15'
           description: Date de retour prévue (null = indéfinie)
         status:
           $ref: '#/components/schemas/LoanStatus'
@@ -1958,28 +1972,28 @@ components:
           type: string
           format: date-time
           nullable: true
-          example: "2026-02-08T14:30:00Z"
+          example: '2026-02-08T14:30:00Z'
           description: Date de confirmation par l'emprunteur (null si non confirmé)
         returnedDate:
           type: string
           format: date-time
           nullable: true
-          example: "2026-03-14T10:00:00Z"
+          example: '2026-03-14T10:00:00Z'
           description: Date effective du retour (null si non rendu)
         notes:
           type: string
           nullable: true
           maxLength: 500
-          example: "Perceuse avec 2 batteries et chargeur"
+          example: 'Perceuse avec 2 batteries et chargeur'
           description: Notes optionnelles du prêteur
         createdAt:
           type: string
           format: date-time
-          example: "2026-02-08T14:00:00Z"
+          example: '2026-02-08T14:00:00Z'
         updatedAt:
           type: string
           format: date-time
-          example: "2026-02-08T14:30:00Z"
+          example: '2026-02-08T14:30:00Z'
 
     LoanStatus:
       type: string
@@ -2047,7 +2061,7 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: "2026-02-08T14:00:00Z"
+          example: '2026-02-08T14:00:00Z'
 
     ItemCategory:
       type: string
@@ -2092,7 +2106,7 @@ components:
         uploadedAt:
           type: string
           format: date-time
-          example: "2026-02-08T14:05:00Z"
+          example: '2026-02-08T14:05:00Z'
 
     Borrower:
       type: object
@@ -2129,7 +2143,7 @@ components:
         phoneNumber:
           type: string
           nullable: true
-          example: "+33612345678"
+          example: '+33612345678'
           description: Numéro de téléphone (chiffré en base)
         userId:
           type: string
@@ -2203,17 +2217,17 @@ components:
         scheduledFor:
           type: string
           format: date-time
-          example: "2026-03-12T09:00:00Z"
+          example: '2026-03-12T09:00:00Z'
           description: Date/heure programmée d'envoi
         sentAt:
           type: string
           format: date-time
           nullable: true
-          example: "2026-03-12T09:00:15Z"
+          example: '2026-03-12T09:00:15Z'
           description: Date/heure d'envoi effectif (null si non envoyé)
         message:
           type: string
-          example: "Bonjour Marie, petit rappel amical : le retour de Perceuse Bosch PSB 1800 est prévu pour le 15/03/2026."
+          example: 'Bonjour Marie, petit rappel amical : le retour de Perceuse Bosch PSB 1800 est prévu pour le 15/03/2026.'
           description: Message envoyé (template personnalisé ou par défaut)
         channel:
           $ref: '#/components/schemas/NotificationChannel'
@@ -2305,12 +2319,12 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: "2026-01-15T10:00:00Z"
+          example: '2026-01-15T10:00:00Z'
         lastLoginAt:
           type: string
           format: date-time
           nullable: true
-          example: "2026-02-08T14:00:00Z"
+          example: '2026-02-08T14:00:00Z'
 
     UserRole:
       type: string
@@ -2338,7 +2352,7 @@ components:
           description: Activer/désactiver les rappels automatiques
         language:
           type: string
-          enum: [ fr, en ]
+          enum: [fr, en]
           example: fr
           description: Langue de l'interface et des notifications (V1 — FR et EN)
         timezone:
@@ -2378,7 +2392,7 @@ components:
           example: Prêt confirmé
         body:
           type: string
-          example: "Marie Dupont a confirmé avoir emprunté votre Perceuse Bosch PSB 1800."
+          example: 'Marie Dupont a confirmé avoir emprunté votre Perceuse Bosch PSB 1800.'
         isRead:
           type: boolean
           example: false
@@ -2391,7 +2405,7 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: "2026-02-08T14:30:00Z"
+          example: '2026-02-08T14:30:00Z'
 
     PaginationMetadata:
       type: object
@@ -2573,13 +2587,13 @@ components:
           type: string
           format: date
           nullable: true
-          example: "2026-03-15"
+          example: '2026-03-15'
           description: Date de retour prévue (null = indéfinie)
         notes:
           type: string
           nullable: true
           maxLength: 500
-          example: "Avec 2 batteries et chargeur"
+          example: 'Avec 2 batteries et chargeur'
 
     CreateItemDto:
       type: object
@@ -2635,7 +2649,7 @@ components:
         phoneNumber:
           type: string
           nullable: true
-          example: "+33612345678"
+          example: '+33612345678'
 
     UpdateLoanStatusDto:
       type: object
@@ -2692,7 +2706,7 @@ components:
         timestamp:
           type: string
           format: date-time
-          example: "2026-02-08T14:32:00Z"
+          example: '2026-02-08T14:32:00Z'
           description: Date/heure de l'erreur
         requestId:
           type: string

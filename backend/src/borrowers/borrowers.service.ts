@@ -178,7 +178,11 @@ export class BorrowersService {
       email: borrower.email,
       phoneNumber: borrower.phoneNumber,
       userId: borrower.userId,
-      statistics: { ...DEFAULT_BORROWER_STATISTICS },
+      statistics: {
+        ...DEFAULT_BORROWER_STATISTICS,
+        trustScore: borrower.trustScore,
+        totalLoans: borrower.totalLoans,
+      },
     };
   }
 }

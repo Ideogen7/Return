@@ -223,6 +223,8 @@ Cycle TDD par comportement (RED → GREEN → REFACTOR → COMMIT).
 
 > **Note** : `GET /borrowers/{id}/statistics` (trustScore) est implémenté au Sprint 6 (HIST-006/007/010) car il nécessite les données de prêts (module Loans, Sprint 4). `GET /borrowers/{id}/loans` est également reporté au Sprint 6. En Sprint 2, le champ `statistics` de la réponse Borrower retourne un objet BorrowerStatistics avec des zéros par défaut.
 
+> **Colonnes dénormalisées (Sprint 2)** : `trustScore` et `totalLoans` sont stockés comme colonnes Prisma sur le modèle `Borrower` (valeurs par défaut : 0). Le tri `sortBy=trustScore` et `sortBy=totalLoans` fonctionne nativement via Prisma. La mise à jour de ces colonnes sera implémentée au Sprint 4 (module Loans) via événements `loan.created`, `loan.status.changed`, `loan.deleted` — voir `src/common/events/loan.events.ts` pour les contrats d'événements.
+
 ---
 
 ## Sprint 3 : Module Items (4 jours)

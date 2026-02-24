@@ -44,5 +44,5 @@ export const DEFAULT_BORROWER_STATISTICS: BorrowerStatistics = {
   returnedLate: 0,
   notReturned: 0,
   averageReturnDelay: null,
-  trustScore: 100,
+  trustScore: 0,
 };

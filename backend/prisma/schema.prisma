@@ -84,6 +84,10 @@ model Borrower {
   /// Prêteur propriétaire de ce contact
   lenderUserId String @map("lender_user_id") @db.Uuid
 
+  // Statistiques dénormalisées (mises à jour via événements lors des changements de statut de prêt)
+  trustScore Int @default(0) @map("trust_score")
+  totalLoans Int @default(0) @map("total_loans")
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

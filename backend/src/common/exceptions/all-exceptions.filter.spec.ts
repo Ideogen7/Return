@@ -116,8 +116,7 @@ describe('AllExceptionsFilter', () => {
       code: 'VALIDATION_ERROR',
       message: 'password must be longer than or equal to 8 characters',
     });
-    expect(body.detail).toContain('email must be an email');
-    expect(body.detail).toContain('password must be longer than or equal to 8 characters');
+    expect(body.detail).toBe('The request contains invalid data.');
   });
 
   // =========================================================================

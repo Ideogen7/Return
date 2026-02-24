@@ -49,15 +49,8 @@ export class NotFoundException extends ProblemDetailsException {
       HttpStatus.NOT_FOUND,
       `${resource.toLowerCase()}-not-found`,
       `${resource} Not Found`,
-      `The ${resource.toLowerCase()} with ID '${id}' does not exist or you don't have access to it.`,
+      `The ${resource.toLowerCase()} with ID '${id}' does not exist.`,
       path,
-      [
-        {
-          field: `${resource.toLowerCase()}Id`,
-          code: 'NOT_FOUND',
-          message: `${resource} does not exist`,
-        },
-      ],
     );
   }
 }

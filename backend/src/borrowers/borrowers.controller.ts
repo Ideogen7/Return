@@ -14,7 +14,7 @@ import {
   Res,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request as ExpressRequest, Response } from 'express';
 import { BorrowersService } from './borrowers.service.js';
 import { CreateBorrowerDto } from './dto/create-borrower.dto.js';
 import { UpdateBorrowerDto } from './dto/update-borrower.dto.js';
@@ -55,12 +55,13 @@ export class BorrowersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Request() req: { user: AuthenticatedUser },
+    @Request() req: ExpressRequest & { user: AuthenticatedUser },
     @Body() dto: CreateBorrowerDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<BorrowerResponse> {
     const borrower = await this.borrowersService.create(req.user.userId, dto);
-    res.setHeader('Location', `/v1/borrowers/${borrower.id}`);
+    const baseUrl = `${req.protocol}://${req.headers.host as string}`;
+    res.setHeader('Location', `${baseUrl}/v1/borrowers/${borrower.id}`);
     return borrower;
   }
 

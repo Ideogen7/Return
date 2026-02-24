@@ -62,7 +62,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           type: 'https://api.return.app/errors/validation-failed',
           title: 'Validation Failed',
           status,
-          detail: errors.map((e) => e.message).join('; '),
+          detail: 'The request contains invalid data.',
           instance: request.url,
           timestamp: new Date().toISOString(),
           requestId: getRequestId(),
@@ -73,24 +73,57 @@ export class AllExceptionsFilter implements ExceptionFilter {
         return;
       }
 
+      // Handle ParseUUIDPipe and other 400 string-message errors
+      if (status === 400) {
+        let msg = exception.message;
+        if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+          const messageField = (exceptionResponse as Record<string, unknown>).message;
+          if (typeof messageField === 'string') {
+            msg = messageField;
+          }
+        }
+        const body: ProblemDetails = {
+          type: 'https://api.return.app/errors/validation-failed',
+          title: 'Validation Failed',
+          status,
+          detail: 'The request contains invalid data.',
+          instance: request.url,
+          timestamp: new Date().toISOString(),
+          requestId: getRequestId(),
+          errors: [{ field: 'id', code: 'INVALID_UUID', message: msg }],
+        };
+
+        response.status(status).setHeader('Content-Type', 'application/problem+json').json(body);
+        return;
+      }
+
       const body: ProblemDetails = {
         type: `https://api.return.app/errors/${
           status === 401
             ? 'unauthorized'
-            : status === 404
-              ? 'not-found'
-              : status === 429
-                ? 'rate-limit-exceeded'
-                : 'http-error'
+            : status === 403
+              ? 'forbidden'
+              : status === 404
+                ? 'not-found'
+                : status === 429
+                  ? 'rate-limit-exceeded'
+                  : 'http-error'
         }`,
         title:
           status === 401
             ? 'Unauthorized'
-            : status === 429
-              ? 'Rate Limit Exceeded'
-              : exception.message,
+            : status === 403
+              ? 'Forbidden'
+              : status === 429
+                ? 'Rate Limit Exceeded'
+                : exception.message,
         status,
-        detail: exception.message,
+        detail:
+          status === 401
+            ? 'No authorization token was found in the request headers.'
+            : status === 403
+              ? 'You do not have permission to access this resource.'
+              : exception.message,
         instance: request.url,
         timestamp: new Date().toISOString(),
         requestId: getRequestId(),
