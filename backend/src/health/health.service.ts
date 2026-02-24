@@ -49,7 +49,7 @@ export class HealthService {
     }
 
     // FCM n'est pas implémenté en V1 — hardcodé 'error' en attendant le module Notifications
-    const fcmStatus: 'ok' | 'error' = 'error';
+    const fcmStatus = 'error' as 'ok' | 'error';
 
     const allOk = dbStatus === 'ok' && redisStatus === 'ok' && fcmStatus === 'ok';
 
