@@ -112,7 +112,8 @@ Sprint 6 : History + Déploiement + Polish (4 jours)
    SYNC POINT FINAL : Frontend 100% Backend réel (Jour 4)
 ```
 
-**Total** : 4 + 1 + 5 + 1 + 4 + 1 + 4 + 1 + 8 + 1 + 5 + 1 + 4 = **40 jours** + **5 jours de marge générale** = **45 jours calendaires**
+**Total** : 4 + 1 + 5 + 1 + 4 + 1 + 4 + 1 + 8 + 1 + 5 + 1 + 4 = **40 jours** + **5 jours de marge générale** = **45
+jours calendaires**
 
 > **Utilisation de la marge** : Les 5 jours de marge générale sont reserves à :
 > - Debugging d'intégration entre Backend et Frontend (2 jours)
@@ -125,16 +126,16 @@ Sprint 6 : History + Déploiement + Polish (4 jours)
 
 ## Jalons Majeurs (Milestones)
 
-| Milestone | Jour | Critère de Succes | Go/No-Go |
-|---|---|---|---|
-| **M0 — Infrastructuré Ready** | Jour 4 | Backend demarre + Mock Server lancé + CI/CD opérationnel (incl. Spectral lint openapi.yaml) + i18n configuré | Smoke tests : `npm run start:dev` (backend) demarre sans erreur ; `npx expo start` (frontend) affiché l'écran d'accueil ; pipeline CI passe au vert (Spectral valide openapi.yaml) |
-| **M1 — Auth Complet** | Jour 10 | Login/Register fonctionnel Frontend vers Backend réel | Smoke tests : `POST /auth/register` retourné 201 ; `POST /auth/login` retourné un JWT validé ; refresh token fonctionne ; `DELETE /users/me` supprime le compte ; Frontend affiché le Dashboard après login |
-| **M2 — Gestion Contacts** | Jour 15 | CRUD Borrowers Frontend vers Backend réel | Smoke tests : créer un emprunteur retourné 201 ; lister retourné la pagination ; supprimer retourné 204 ; erreur 409 si email déjà pris ; Frontend affiché la liste des emprunteurs |
-| **M-CHECK — Checkpoint Mi-Parcours** | Jour 20-22 | Evaluation du scope restant vs temps disponible | Decision formelle : on continue le plan complet OU on coupe des features non-essentielles (stats avancees, deep linking, dashboard détaillé) pour tenir la date. Documenter la decision dans un ADR |
-| **M3 — Enregistrement Objets (Photos)** | Jour 20 | Upload photos + CRUD Items Frontend vers Backend réel | Smoke tests : `POST /items` avec type OBJECT retourné 201 ; `POST /items` avec type MONEY retourné 201 ; upload photo vers R2 retourné URL ; `DELETE /items/{id}` avec prêt actif retourné 409 |
-| **M4 — Prêts Fonctionnels** | Jour 29 | Workflow 8 statuts complet Frontend vers Backend réel | Smoke tests : créer prêt (PENDING) -> confirmer (ACTIVE) -> retournér (RETURNED) ; créer prêt -> contester (DISPUTED) ; timeout 48h passe en ACTIVE_BY_DEFAULT ; transition invalidé retourné 400 |
-| **M5 — Notifications Push** | Jour 35 | Rappels automatiques et notifications temps réel fonctionnels | Smoke tests : rappel J-3 planifié à la création du prêt ; notification push reçue sur device physique ; `GET /notifications` retourné la liste ; `PATCH /notifications/{id}/read` marque comme lu |
-| **M6 — MVP Complet** | Jour 45 | App complète prete pour déploiement production | Smoke tests : flow complet register -> créer item -> créer prêt -> confirmer -> retournér -> consulter stats ; déploiement Fly.io OK ; build Expo OK (iOS + Android) |
+| Milestone                               | Jour       | Critère de Succes                                                                                            | Go/No-Go                                                                                                                                                                                                    |
+|-----------------------------------------|------------|--------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **M0 — Infrastructuré Ready**           | Jour 4     | Backend demarre + Mock Server lancé + CI/CD opérationnel (incl. Spectral lint openapi.yaml) + i18n configuré | Smoke tests : `npm run start:dev` (backend) demarre sans erreur ; `npx expo start` (frontend) affiché l'écran d'accueil ; pipeline CI passe au vert (Spectral valide openapi.yaml)                          |
+| **M1 — Auth Complet**                   | Jour 10    | Login/Register fonctionnel Frontend vers Backend réel                                                        | Smoke tests : `POST /auth/register` retourné 201 ; `POST /auth/login` retourné un JWT validé ; refresh token fonctionne ; `DELETE /users/me` supprime le compte ; Frontend affiché le Dashboard après login |
+| **M2 — Gestion Contacts**               | Jour 15    | CRUD Borrowers Frontend vers Backend réel                                                                    | Smoke tests : créer un emprunteur retourné 201 ; lister retourné la pagination ; supprimer retourné 204 ; erreur 409 si email déjà pris ; Frontend affiché la liste des emprunteurs                         |
+| **M-CHECK — Checkpoint Mi-Parcours**    | Jour 20-22 | Evaluation du scope restant vs temps disponible                                                              | Decision formelle : on continue le plan complet OU on coupe des features non-essentielles (stats avancees, deep linking, dashboard détaillé) pour tenir la date. Documenter la decision dans un ADR         |
+| **M3 — Enregistrement Objets (Photos)** | Jour 20    | Upload photos + CRUD Items Frontend vers Backend réel                                                        | Smoke tests : `POST /items` avec type OBJECT retourné 201 ; `POST /items` avec type MONEY retourné 201 ; upload photo vers R2 retourné URL ; `DELETE /items/{id}` avec prêt actif retourné 409              |
+| **M4 — Prêts Fonctionnels**             | Jour 29    | Workflow 8 statuts complet Frontend vers Backend réel                                                        | Smoke tests : créer prêt (PENDING) -> confirmer (ACTIVE) -> retournér (RETURNED) ; créer prêt -> contester (DISPUTED) ; timeout 48h passe en ACTIVE_BY_DEFAULT ; transition invalidé retourné 400           |
+| **M5 — Notifications Push**             | Jour 35    | Rappels automatiques et notifications temps réel fonctionnels                                                | Smoke tests : rappel J-3 planifié à la création du prêt ; notification push reçue sur device physique ; `GET /notifications` retourné la liste ; `PATCH /notifications/{id}/read` marque comme lu           |
+| **M6 — MVP Complet**                    | Jour 45    | App complète prete pour déploiement production                                                               | Smoke tests : flow complet register -> créer item -> créer prêt -> confirmer -> retournér -> consulter stats ; déploiement Fly.io OK ; build Expo OK (iOS + Android)                                        |
 
 ---
 
@@ -142,12 +143,12 @@ Sprint 6 : History + Déploiement + Polish (4 jours)
 
 ### Sprint 0 : Setup (4 jours)
 
-| Jour | Dev 1 (Backend) | Dev 2 (Frontend) |
-|---|---|---|
-| **J1** | Setup NestJS + TypeScript + ESLint + Prettier | Setup Expo (React Native) + TypeScript + ESLint + Prettier |
-| **J2** | Prisma + PostgreSQL Docker + Redis Docker + `docker-compose.yml` | React Navigation + Zustand + React Native Paper |
-| **J3** | JWT Module (Passport.js) + Redis blacklist + RFC 7807 Exception Filter + Winston | Axios + JWT Interceptor + AsyncStorage securise + react-i18next (FR/EN) |
-| **J4** | CI/CD GitHub Actions (lint + tests + Spectral lint openapi.yaml + Docker build) + `Dockerfile` | Prism Mock Server + CI/CD (lint + RNTL tests) |
+| Jour   | Dev 1 (Backend)                                                                                | Dev 2 (Frontend)                                                        |
+|--------|------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| **J1** | Setup NestJS + TypeScript + ESLint + Prettier                                                  | Setup Expo (React Native) + TypeScript + ESLint + Prettier              |
+| **J2** | Prisma + PostgreSQL Docker + Redis Docker + `docker-compose.yml`                               | React Navigation + Zustand + React Native Paper                         |
+| **J3** | JWT Module (Passport.js) + Redis blacklist + RFC 7807 Exception Filter + Winston               | Axios + JWT Interceptor + AsyncStorage securise + react-i18next (FR/EN) |
+| **J4** | CI/CD GitHub Actions (lint + tests + Spectral lint openapi.yaml + Docker build) + `Dockerfile` | Prism Mock Server + CI/CD (lint + RNTL tests)                           |
 
 **Livrable** : Infrastructuré complète prete pour développement.
 
@@ -155,13 +156,13 @@ Sprint 6 : History + Déploiement + Polish (4 jours)
 
 ### Sprint 1 : Auth + Users (5 jours)
 
-| Jour | Dev 1 (Backend) | Dev 2 (Frontend) |
-|---|---|---|
-| **J1** | Schemas Prisma User + RefreshToken + Migrations | Store Zustand Auth + Actions |
-| **J2** | Tests TDD : register, login, refresh, logout | Composants UI : LoginForm, RegisterForm |
-| **J3** | Implémentation Services + Controllers Auth + Redis blacklist logout | Écrans : LoginScreen, RegisterScreen |
+| Jour   | Dev 1 (Backend)                                                                                        | Dev 2 (Frontend)                                          |
+|--------|--------------------------------------------------------------------------------------------------------|-----------------------------------------------------------|
+| **J1** | Schemas Prisma User + RefreshToken + Migrations                                                        | Store Zustand Auth + Actions                              |
+| **J2** | Tests TDD : register, login, refresh, logout                                                           | Composants UI : LoginForm, RegisterForm                   |
+| **J3** | Implémentation Services + Controllers Auth + Redis blacklist logout                                    | Écrans : LoginScreen, RegisterScreen                      |
 | **J4** | Tests TDD : updateProfile, changePassword, deleteAccount, getSettings, updateSettings + Implémentation | Écrans : ProfileScreen, EditProfileScreen, SettingsScreen |
-| **J5** | Review + Fix bugs + Documentation Swagger | Navigation + AuthGuard + Tests RNTL |
+| **J5** | Review + Fix bugs + Documentation Swagger                                                              | Navigation + AuthGuard + Tests RNTL                       |
 
 SYNC : Frontend basculé Auth vers Backend réel (fin J5).
 
@@ -169,12 +170,12 @@ SYNC : Frontend basculé Auth vers Backend réel (fin J5).
 
 ### Sprint 2 : Borrowers (4 jours)
 
-| Jour | Dev 1 (Backend) | Dev 2 (Frontend) |
-|---|---|---|
-| **J1** | Schema Prisma Borrower + Tests TDD CRUD | Store Zustand Borrowers + Actions CRUD |
-| **J2** | Implémentation Services + Controllers Borrowers | Composants UI : BorrowerCard, BorrowerForm |
-| **J3** | Tests Supertest + Review | Écrans : List, Create, Detail, Edit + Tests RNTL |
-| **J4** | Buffer intégration + fix bugs sync | Buffer intégration + fix bugs sync |
+| Jour   | Dev 1 (Backend)                                 | Dev 2 (Frontend)                                 |
+|--------|-------------------------------------------------|--------------------------------------------------|
+| **J1** | Schema Prisma Borrower + Tests TDD CRUD         | Store Zustand Borrowers + Actions CRUD           |
+| **J2** | Implémentation Services + Controllers Borrowers | Composants UI : BorrowerCard, BorrowerForm       |
+| **J3** | Tests Supertest + Review                        | Écrans : List, Create, Detail, Edit + Tests RNTL |
+| **J4** | Buffer intégration + fix bugs sync              | Buffer intégration + fix bugs sync               |
 
 SYNC : Frontend basculé Borrowers vers Backend réel (fin J4).
 
@@ -182,11 +183,11 @@ SYNC : Frontend basculé Borrowers vers Backend réel (fin J4).
 
 ### Sprint 3 : Items — Photos (4 jours)
 
-| Jour | Dev 1 (Backend) | Dev 2 (Frontend) |
-|---|---|---|
-| **J1** | Schemas Prisma Item + Photo + Migrations | Store Zustand Items + Actions CRUD |
-| **J2** | Tests TDD : CRUD Items + R2 Photos upload | Composants UI : ItemCard, ItemForm, PhotoPicker |
-| **J3** | Implémentation Services (R2 Photos, types OBJECT + MONEY) | Composants UI : PhotoGallery |
+| Jour   | Dev 1 (Backend)                                                                    | Dev 2 (Frontend)                                       |
+|--------|------------------------------------------------------------------------------------|--------------------------------------------------------|
+| **J1** | Schemas Prisma Item + Photo + Migrations                                           | Store Zustand Items + Actions CRUD                     |
+| **J2** | Tests TDD : CRUD Items + R2 Photos upload                                          | Composants UI : ItemCard, ItemForm, PhotoPicker        |
+| **J3** | Implémentation Services (R2 Photos, types OBJECT + MONEY)                          | Composants UI : PhotoGallery                           |
 | **J4** | Implémentation Controllers + PUT /users/me/avatar (réutilise R2) + Tests Supertest | Écrans : ItemList, CreateItem, ItemDetail + Tests RNTL |
 
 SYNC : Frontend basculé Items vers Backend réel (fin J4).
@@ -195,16 +196,16 @@ SYNC : Frontend basculé Items vers Backend réel (fin J4).
 
 ### Sprint 4 : Loans (8 jours)
 
-| Jour | Dev 1 (Backend) | Dev 2 (Frontend) |
-|---|---|---|
-| **J1** | Schema Prisma Loan + Migrations + Index | Store Zustand Loans + Actions |
-| **J2** | Tests TDD : createLoan (type OBJECT + MONEY), confirmLoan, contestLoan | Composants UI : LoanCard, StatusBadge |
-| **J3** | Tests TDD : updateStatus, workflow transitions (8 statuts) | Composants UI : LoanWizard (3 steps) |
-| **J4** | Implémentation LoanFactory + LoanStatusMachine | Composants UI : LoanTimeline, ConfirmationDialog |
-| **J5** | Implémentation LoanService + EventEmitter2 | Écrans : LoanListScreen, CreateLoanScreen |
-| **J6** | Setup Redis + BullMQ + CRON Job timeout 48h + Controllers | Écrans : LoanDetailScreen, ConfirmLoanScreen, ReturnLoanScreen |
-| **J7** | Tests Supertest workflow complet + Review | Tests RNTL (flow complet création -> confirmation -> retour) |
-| **J8** | Buffer intégration + fix bugs sync | Buffer intégration + fix bugs sync |
+| Jour   | Dev 1 (Backend)                                                        | Dev 2 (Frontend)                                               |
+|--------|------------------------------------------------------------------------|----------------------------------------------------------------|
+| **J1** | Schema Prisma Loan + Migrations + Index                                | Store Zustand Loans + Actions                                  |
+| **J2** | Tests TDD : createLoan (type OBJECT + MONEY), confirmLoan, contestLoan | Composants UI : LoanCard, StatusBadge                          |
+| **J3** | Tests TDD : updateStatus, workflow transitions (8 statuts)             | Composants UI : LoanWizard (3 steps)                           |
+| **J4** | Implémentation LoanFactory + LoanStatusMachine                         | Composants UI : LoanTimeline, ConfirmationDialog               |
+| **J5** | Implémentation LoanService + EventEmitter2                             | Écrans : LoanListScreen, CreateLoanScreen                      |
+| **J6** | Setup Redis + BullMQ + CRON Job timeout 48h + Controllers              | Écrans : LoanDetailScreen, ConfirmLoanScreen, ReturnLoanScreen |
+| **J7** | Tests Supertest workflow complet + Review                              | Tests RNTL (flow complet création -> confirmation -> retour)   |
+| **J8** | Buffer intégration + fix bugs sync                                     | Buffer intégration + fix bugs sync                             |
 
 SYNC : Frontend basculé Loans vers Backend réel (fin J8).
 
@@ -216,13 +217,13 @@ SYNC : Frontend basculé Loans vers Backend réel (fin J8).
 
 ### Sprint 5 : Reminders automatiques + Notifications (5 jours)
 
-| Jour | Dev 1 (Backend) | Dev 2 (Frontend) |
-|---|---|---|
-| **J1** | Schemas Prisma Reminder + Notification + Migrations | Setup Firebasé Cloud Messaging (FCM) |
-| **J2** | Tests TDD : scheduleReminders (5 rappels auto : J-3, J, J+7, J+14, J+21) | Store Zustand Notifications + Actions |
-| **J3** | Implémentation politique de rappels fixe + ReminderService | Composants UI : NotificationCard, NotificationBadge |
-| **J4** | CRON Job envoi rappels (BullMQ) + FCM Push | Écrans : NotificationListScreen |
-| **J5** | Tests Supertest + Review | Tests RNTL + Intégration avec LoanDetailScreen |
+| Jour   | Dev 1 (Backend)                                                          | Dev 2 (Frontend)                                    |
+|--------|--------------------------------------------------------------------------|-----------------------------------------------------|
+| **J1** | Schemas Prisma Reminder + Notification + Migrations                      | Setup Firebasé Cloud Messaging (FCM)                |
+| **J2** | Tests TDD : scheduleReminders (5 rappels auto : J-3, J, J+7, J+14, J+21) | Store Zustand Notifications + Actions               |
+| **J3** | Implémentation politique de rappels fixe + ReminderService               | Composants UI : NotificationCard, NotificationBadge |
+| **J4** | CRON Job envoi rappels (BullMQ) + FCM Push                               | Écrans : NotificationListScreen                     |
+| **J5** | Tests Supertest + Review                                                 | Tests RNTL + Intégration avec LoanDetailScreen      |
 
 SYNC : Frontend basculé Notifications vers Backend réel (fin J5).
 
@@ -233,11 +234,11 @@ SYNC : Frontend basculé Notifications vers Backend réel (fin J5).
 
 ### Sprint 6 : History + Déploiement + Polish (4 jours)
 
-| Jour | Dev 1 (Backend) | Dev 2 (Frontend) |
-|---|---|---|
-| **J1** | Tests TDD : getArchivedLoans, getStatistics, trustScore, borrowerLoans | Store Zustand History + Actions |
-| **J2** | Implémentation HistoryService + Agregations Prisma + BorrowerService.getLoans() | Composants UI : StatCard, PieChart, TopBorrowersList |
-| **J3** | Smoke tests d'intégration complets + Documentation finale | Écrans : Dashboard, History, Statistics + Tests RNTL |
+| Jour   | Dev 1 (Backend)                                                                    | Dev 2 (Frontend)                                         |
+|--------|------------------------------------------------------------------------------------|----------------------------------------------------------|
+| **J1** | Tests TDD : getArchivedLoans, getStatistics, trustScore, borrowerLoans             | Store Zustand History + Actions                          |
+| **J2** | Implémentation HistoryService + Agregations Prisma + BorrowerService.getLoans()    | Composants UI : StatCard, PieChart, TopBorrowersList     |
+| **J3** | Smoke tests d'intégration complets + Documentation finale                          | Écrans : Dashboard, History, Statistics + Tests RNTL     |
 | **J4** | Vérification Dockerfile + `fly.toml` + Déploiement production Fly.io + Smoke tests | Polish UI + Fix bugs finaux + Build Expo (iOS + Android) |
 
 SYNC FINAL : Frontend 100% Backend réel (fin J4).
@@ -421,7 +422,8 @@ const MOCK_MODULES = {
 > **Note** : Les rappels sont 100% automatiques (politique fixe J-3, J, J+7, J+14, J+21).
 > 5 rappels planifiés automatiquement à la création d'un prêt avec date d'échéance.
 > Les 3 endpoints `/reminders/*` ne sont pas utilisés en V1 (réservés pour rappels manuels V2+).
-> **Endpoints actifs en V1** : 3 endpoints notifications (`GET /notifications`, `PATCH /notifications/{id}/read`, `POST /notifications/read-all`).
+> **Endpoints actifs en V1** : 3 endpoints notifications (`GET /notifications`, `PATCH /notifications/{id}/read`,
+`POST /notifications/read-all`).
 
 **Action Frontend** :
 
@@ -487,15 +489,15 @@ const MOCK_MODULES = {
 
 ## Gestion des Risques
 
-| Risque | Probabilite | Impact | Mitigation | Responsable |
-|---|---|---|---|---|
-| **Scope creep** | Elevee | Eleve | Scope minimal défini : auth + borrowers + items + loans + rappels auto. Checkpoint mi-parcours (M-CHECK jour 20-22) pour reevaluer. Features non-essentielles identifiées et coupables : stats avancees, deep linking, dashboard détaillé | Dev 1 & 2 |
-| **Backend en retard (bloque Frontend)** | Moyenne | Eleve | Frontend utilisé le Mock Server Prism (pas de blocage). Le Frontend peut avancer indépendamment sur tous les écrans | Dev 1 & 2 |
-| **Rejet App Store** | Moyenne | Moyen | Prevoir 1-2 semaines post-MVP pour review Apple/Google. Preparer les assets (screenshots, description, politique de confidentialite) en avance. Première soumission = allers-retours probables | Dev 1 & 2 |
-| **Notifications FCM non reçues** | Moyenne | Moyen | Tester avec Postman -> FCM dès leSprint 5, logs Winston détaillés. Prevoir un fallback in-app (polling notifications) | Dev 1 & 2 |
-| **Migration Prisma échoue en prod** | Faible | Eleve | Testcontainers pour valider les migrations en CI. Tester chaque migration sur une copie de la DB avant application en prod | Dev 1 |
-| **Timeout CRON Job (48h) non déclenché** | Faible | Moyen | Tests unitaires avec fake clock (Jest `jest.useFakeTimers()`), logs BullMQ détaillés | Dev 1 |
-| **Build Expo échoue (iOS/Android)** | Moyenne | Moyen | Tester les builds EAS regulierement (pas seulement au Sprint 6). Première tentative de build au Sprint 3 au plus tard | Dev 2 |
+| Risque                                   | Probabilite | Impact | Mitigation                                                                                                                                                                                                                                | Responsable |
+|------------------------------------------|-------------|--------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| **Scope creep**                          | Elevee      | Eleve  | Scope minimal défini : auth + borrowers + items + loans + rappels auto. Checkpoint mi-parcours (M-CHECK jour 20-22) pour reevaluer. Features non-essentielles identifiées et coupables : stats avancees, deep linking, dashboard détaillé | Dev 1 & 2   |
+| **Backend en retard (bloque Frontend)**  | Moyenne     | Eleve  | Frontend utilisé le Mock Server Prism (pas de blocage). Le Frontend peut avancer indépendamment sur tous les écrans                                                                                                                       | Dev 1 & 2   |
+| **Rejet App Store**                      | Moyenne     | Moyen  | Prevoir 1-2 semaines post-MVP pour review Apple/Google. Preparer les assets (screenshots, description, politique de confidentialite) en avance. Première soumission = allers-retours probables                                            | Dev 1 & 2   |
+| **Notifications FCM non reçues**         | Moyenne     | Moyen  | Tester avec Postman -> FCM dès leSprint 5, logs Winston détaillés. Prevoir un fallback in-app (polling notifications)                                                                                                                     | Dev 1 & 2   |
+| **Migration Prisma échoue en prod**      | Faible      | Eleve  | Testcontainers pour valider les migrations en CI. Tester chaque migration sur une copie de la DB avant application en prod                                                                                                                | Dev 1       |
+| **Timeout CRON Job (48h) non déclenché** | Faible      | Moyen  | Tests unitaires avec fake clock (Jest `jest.useFakeTimers()`), logs BullMQ détaillés                                                                                                                                                      | Dev 1       |
+| **Build Expo échoue (iOS/Android)**      | Moyenne     | Moyen  | Tester les builds EAS regulierement (pas seulement au Sprint 6). Première tentative de build au Sprint 3 au plus tard                                                                                                                     | Dev 2       |
 
 ---
 
@@ -555,19 +557,19 @@ const MOCK_MODULES = {
 
 ## Post-MVP (Backlog V2)
 
-| Feature | Priorite | Complexite | Sprint Estime | Notes |
-|---|---|---|---|---|
-| **OCR (Google Cloud Vision)** | Haute | Moyenne | Sprint 7 (3j) | Reconnaissance automatique d'objets via photo. Reporte de V1 pour reduire le scope MVP |
-| **Email Notifications** (en plus de push) | Haute | Moyenne | Sprint 8 (3j) | Resend ou SendGrid |
-| **Rappels Manuels** | Moyenne | Faible | Sprint 8 (2j) | Permettre au prêteur d'envoyer un rappel manuel en plus des 5 automatiques |
-| **SMS Reminders** (Twilio) | Moyenne | Moyenne | Sprint 9 (3j) | |
-| **Export CSV/PDF** (historique) | Moyenne | Faible | Sprint 9 (2j) | |
-| **Dark Mode** | Faible | Faible | Sprint 10 (2j) | |
-| **Freemium Limits** (X loans/month) | Haute | Moyenne | Sprint 10 (5j) | Champ `subscription_tier` prévu des V1 |
-| **Detox E2E Tests** | Moyenne | Moyenne | Sprint 11 (3j) | Tests E2E sur emulateurs iOS/Android. RNTL couvre le MVP |
-| **Accessibilité** (VoiceOver + TalkBack) | Moyenne | Moyenne | Sprint 11 (3j) | |
-| **Web Version** (React) | Faible | Elevee | Sprint 12-14 (15j) | |
-| **AR Object Recognition** (ARKit/ARCore) | Faible | Elevee | Sprint 15-16 (10j) | |
+| Feature                                   | Priorite | Complexite | Sprint Estime      | Notes                                                                                  |
+|-------------------------------------------|----------|------------|--------------------|----------------------------------------------------------------------------------------|
+| **OCR (Google Cloud Vision)**             | Haute    | Moyenne    | Sprint 7 (3j)      | Reconnaissance automatique d'objets via photo. Reporte de V1 pour reduire le scope MVP |
+| **Email Notifications** (en plus de push) | Haute    | Moyenne    | Sprint 8 (3j)      | Resend ou SendGrid                                                                     |
+| **Rappels Manuels**                       | Moyenne  | Faible     | Sprint 8 (2j)      | Permettre au prêteur d'envoyer un rappel manuel en plus des 5 automatiques             |
+| **SMS Reminders** (Twilio)                | Moyenne  | Moyenne    | Sprint 9 (3j)      |                                                                                        |
+| **Export CSV/PDF** (historique)           | Moyenne  | Faible     | Sprint 9 (2j)      |                                                                                        |
+| **Dark Mode**                             | Faible   | Faible     | Sprint 10 (2j)     |                                                                                        |
+| **Freemium Limits** (X loans/month)       | Haute    | Moyenne    | Sprint 10 (5j)     | Champ `subscription_tier` prévu des V1                                                 |
+| **Detox E2E Tests**                       | Moyenne  | Moyenne    | Sprint 11 (3j)     | Tests E2E sur emulateurs iOS/Android. RNTL couvre le MVP                               |
+| **Accessibilité** (VoiceOver + TalkBack)  | Moyenne  | Moyenne    | Sprint 11 (3j)     |                                                                                        |
+| **Web Version** (React)                   | Faible   | Elevee     | Sprint 12-14 (15j) |                                                                                        |
+| **AR Object Recognition** (ARKit/ARCore)  | Faible   | Elevee     | Sprint 15-16 (10j) |                                                                                        |
 
 > **Note sur l'i18n** : Les fondations i18n (react-i18next) sont installees dès leSprint 0 de la V1.
 > L'application est bilingue FR/EN dès lelancement. Il n'y à donc pas de sprint i18n dédié en V2 —
@@ -577,21 +579,22 @@ const MOCK_MODULES = {
 
 ## Calendrier Récapitulatif (45 jours ~ 8 semaines)
 
-| Semaine | Sprints | Modules Livres | SYNC Points |
-|---|---|---|---|
-| **Semaine 1** | Sprint 0 (4j) + buffer (1j) | Setup complet (NestJS, Expo, CI/CD, i18n, Mock Server, Redis blacklist, Docker) | — |
-| **Semaine 2** | Sprint 1 (5j) | Auth + Users | SYNC Auth (J10) |
-| **Semaine 3** | Buffer (1j) + Sprint 2 (4j) | Borrowers | SYNC Borrowers (J15) |
-| **Semaine 4** | Buffer (1j) + Sprint 3 (4j) | Items + Photos R2 | SYNC Items (J20) |
-| **Semaine 5** | Buffer (1j) + Sprint 4 début (4j) | Loans (coeur métier) — partie 1 | M-CHECK : checkpoint mi-parcours (J20-22) |
-| **Semaine 6** | Sprint 4 fin (4j) + buffer (1j) | Loans complet | SYNC Loans (J29) |
-| **Semaine 7** | Sprint 5 (5j) | Reminders automatiques + Notifications Push | SYNC Reminders (J35) |
-| **Semaine 8** | Buffer (1j) + Sprint 6 (4j) | History + Dashboard + Polish + Déploiement | SYNC FINAL (J45) |
+| Semaine       | Sprints                           | Modules Livres                                                                  | SYNC Points                               |
+|---------------|-----------------------------------|---------------------------------------------------------------------------------|-------------------------------------------|
+| **Semaine 1** | Sprint 0 (4j) + buffer (1j)       | Setup complet (NestJS, Expo, CI/CD, i18n, Mock Server, Redis blacklist, Docker) | —                                         |
+| **Semaine 2** | Sprint 1 (5j)                     | Auth + Users                                                                    | SYNC Auth (J10)                           |
+| **Semaine 3** | Buffer (1j) + Sprint 2 (4j)       | Borrowers                                                                       | SYNC Borrowers (J15)                      |
+| **Semaine 4** | Buffer (1j) + Sprint 3 (4j)       | Items + Photos R2                                                               | SYNC Items (J20)                          |
+| **Semaine 5** | Buffer (1j) + Sprint 4 début (4j) | Loans (coeur métier) — partie 1                                                 | M-CHECK : checkpoint mi-parcours (J20-22) |
+| **Semaine 6** | Sprint 4 fin (4j) + buffer (1j)   | Loans complet                                                                   | SYNC Loans (J29)                          |
+| **Semaine 7** | Sprint 5 (5j)                     | Reminders automatiques + Notifications Push                                     | SYNC Reminders (J35)                      |
+| **Semaine 8** | Buffer (1j) + Sprint 6 (4j)       | History + Dashboard + Polish + Déploiement                                      | SYNC FINAL (J45)                          |
 
 ---
 
 **Date de Livraison MVP** : Jour 45 après le début effectif du projet
-**First Public Release** : ~2 semaines après le MVP (TestFlight iOS + Google Play Beta — prevoir les allers-retours avec les stores)
+**First Public Release** : ~2 semaines après le MVP (TestFlight iOS + Google Play Beta — prevoir les allers-retours avec
+les stores)
 
 ---
 
