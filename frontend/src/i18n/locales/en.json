@@ -65,6 +65,31 @@
     "timezone": "Timezone",
     "saved": "Settings saved"
   },
+  "borrowers": {
+    "title": "Contacts",
+    "addContact": "Add a contact",
+    "editContact": "Edit contact",
+    "details": "Contact details",
+    "emptyList": "No contacts",
+    "emptyListSubtitle": "Add your first borrower to get started",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "phone": "Phone",
+    "trustScore": "Trust score",
+    "totalLoans": "Total loans",
+    "returnedOnTime": "Returned on time",
+    "returnedLate": "Returned late",
+    "notReturned": "Not returned",
+    "averageDelay": "Average return delay",
+    "days": "days",
+    "confirmDelete": "Confirm deletion",
+    "deleteWarning": "This action is irreversible. This contact and their history will be deleted.",
+    "deleteSuccess": "Contact deleted",
+    "createSuccess": "Contact created",
+    "updateSuccess": "Contact updated",
+    "statistics": "Statistics"
+  },
   "errors": {
     "invalidCredentials": "Invalid email or password",
     "emailAlreadyExists": "This email is already in use",
@@ -72,7 +97,9 @@
     "invalidCurrentPassword": "Current password is incorrect",
     "validationFailed": "The submitted data is invalid. Please check the fields.",
     "unknownError": "An unexpected error occurred",
-    "networkError": "Network error. Check your connection."
+    "networkError": "Network error. Check your connection.",
+    "borrowerAlreadyExists": "This contact already exists",
+    "borrowerNotFound": "Contact not found"
   },
   "navigation": {
     "loans": "Loans",

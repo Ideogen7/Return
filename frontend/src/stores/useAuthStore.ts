@@ -7,6 +7,7 @@ import {
   getRefreshToken,
   clearTokens,
 } from '../utils/storage';
+import { extractProblemDetails } from '../utils/error';
 import type { User, AuthResponse, ProblemDetails } from '../types/api.types';
 
 interface AuthState {
@@ -135,23 +136,3 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   reset: () => set({ ...initialState }),
 }));
-
-// Extrait un ProblemDetails depuis une erreur Axios (ou fabrique un fallback pour les erreurs réseau)
-function extractProblemDetails(err: unknown): ProblemDetails {
-  if (err && typeof err === 'object' && 'response' in err) {
-    const response = (err as { response?: { data?: unknown } }).response;
-    if (response?.data && typeof response.data === 'object' && 'type' in response.data) {
-      return response.data as ProblemDetails;
-    }
-  }
-  // Erreur réseau ou réponse non-RFC 7807
-  return {
-    type: 'https://api.return.app/errors/network-error',
-    title: 'Network Error',
-    status: 0,
-    detail: 'Unable to reach the server. Check your connection.',
-    instance: '',
-    timestamp: new Date().toISOString(),
-    requestId: '',
-  };
-}

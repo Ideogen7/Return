@@ -1,51 +1,47 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
-import { ProfileScreen } from '../screens/profile/ProfileScreen';
-import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
-import { ChangePasswordScreen } from '../screens/profile/ChangePasswordScreen';
-import { DeleteAccountScreen } from '../screens/profile/DeleteAccountScreen';
-import { SettingsScreen } from '../screens/profile/SettingsScreen';
-import type { AppStackParamList } from './types';
+import { Icon } from 'react-native-paper';
+import { BorrowerNavigator } from './BorrowerNavigator';
+import { ProfileNavigator } from './ProfileNavigator';
+import type { AppTabParamList } from './types';
 
-const Stack = createNativeStackNavigator<AppStackParamList>();
-
-const screenOptions = {
-  headerStyle: { backgroundColor: '#FFFFFF' },
-  headerTintColor: '#2D3748',
-  headerTitleStyle: { fontWeight: '600' as const },
-  headerShadowVisible: false,
-};
+const Tab = createBottomTabNavigator<AppTabParamList>();
 
 export function AppNavigator() {
   const { t } = useTranslation();
 
   return (
-    <Stack.Navigator screenOptions={screenOptions}>
-      <Stack.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: t('profile.title') }}
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#6B8E7B',
+        tabBarInactiveTintColor: '#A8B5BF',
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#EDE9E2',
+        },
+      }}
+    >
+      <Tab.Screen
+        name="BorrowerTab"
+        component={BorrowerNavigator}
+        options={{
+          title: t('navigation.contacts'),
+          tabBarIcon: ({ color, size }) => (
+            <Icon source="account-group-outline" color={color} size={size} />
+          ),
+        }}
       />
-      <Stack.Screen
-        name="EditProfile"
-        component={EditProfileScreen}
-        options={{ title: t('profile.editProfile') }}
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileNavigator}
+        options={{
+          title: t('navigation.profile'),
+          tabBarIcon: ({ color, size }) => (
+            <Icon source="account-circle-outline" color={color} size={size} />
+          ),
+        }}
       />
-      <Stack.Screen
-        name="ChangePassword"
-        component={ChangePasswordScreen}
-        options={{ title: t('profile.changePassword') }}
-      />
-      <Stack.Screen
-        name="DeleteAccount"
-        component={DeleteAccountScreen}
-        options={{ title: t('profile.deleteAccount') }}
-      />
-      <Stack.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ title: t('settings.title') }}
-      />
-    </Stack.Navigator>
+    </Tab.Navigator>
   );
 }

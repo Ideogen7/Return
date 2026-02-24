@@ -2,7 +2,7 @@ import type { AxiosError } from 'axios';
 import type { TFunction } from 'i18next';
 import type { ProblemDetails } from '../types/api.types';
 
-// Extrait un ProblemDetails depuis une erreur Axios
+// Extrait un ProblemDetails depuis une erreur Axios (retourne null si non-RFC 7807)
 export function parseProblemDetails(error: AxiosError): ProblemDetails | null {
   const data = error.response?.data;
   if (data && typeof data === 'object' && 'type' in data) {
@@ -11,11 +11,32 @@ export function parseProblemDetails(error: AxiosError): ProblemDetails | null {
   return null;
 }
 
+// Extrait un ProblemDetails depuis une erreur inconnue (fabrique un fallback réseau si non-RFC 7807)
+export function extractProblemDetails(err: unknown): ProblemDetails {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const response = (err as { response?: { data?: unknown } }).response;
+    if (response?.data && typeof response.data === 'object' && 'type' in response.data) {
+      return response.data as ProblemDetails;
+    }
+  }
+  return {
+    type: 'https://api.return.app/errors/network-error',
+    title: 'Network Error',
+    status: 0,
+    detail: 'Unable to reach the server. Check your connection.',
+    instance: '',
+    timestamp: new Date().toISOString(),
+    requestId: '',
+  };
+}
+
 // Table de correspondance type d'erreur → clé i18n
 const ERROR_TYPE_MAP: Record<string, string> = {
   'https://api.return.app/errors/invalid-credentials': 'errors.invalidCredentials',
   'https://api.return.app/errors/email-already-exists': 'errors.emailAlreadyExists',
   'https://api.return.app/errors/active-loans-exist': 'errors.activeLoansExist',
+  'https://api.return.app/errors/borrower-already-exists': 'errors.borrowerAlreadyExists',
+  'https://api.return.app/errors/borrower-not-found': 'errors.borrowerNotFound',
   'https://api.return.app/errors/invalid-current-password': 'errors.invalidCurrentPassword',
   'https://api.return.app/errors/validation-failed': 'errors.validationFailed',
   'https://api.return.app/errors/network-error': 'errors.networkError',

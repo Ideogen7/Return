@@ -67,6 +67,57 @@ export interface DeleteAccountDto {
   confirmationText: 'DELETE MY ACCOUNT';
 }
 
+// --- Emprunteurs (Borrowers) ---
+
+export interface BorrowerStatistics {
+  totalLoans: number;
+  returnedOnTime: number;
+  returnedLate: number;
+  notReturned: number;
+  averageReturnDelay: number | null;
+  trustScore: number;
+}
+
+export interface Borrower {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string | null;
+  userId?: string | null;
+  statistics?: BorrowerStatistics;
+}
+
+export interface CreateBorrowerDto {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string | null;
+}
+
+export interface UpdateBorrowerDto {
+  firstName?: string;
+  lastName?: string;
+  email?: string | null;
+  phoneNumber?: string | null;
+}
+
+// --- Pagination ---
+
+export interface PaginationMetadata {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: PaginationMetadata;
+}
+
 // --- Erreurs RFC 7807 ---
 
 export interface ErrorDetail {

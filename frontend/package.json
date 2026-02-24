@@ -15,7 +15,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "typecheck": "tsc --noEmit",
-    "mock:api": "prism mock ../docs/openapi.yaml --host 0.0.0.0 --port 3000 --cors"
+    "mock:api": "prism mock ../docs/openapi.yaml --host 0.0.0.0 --port 4010 --cors"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",

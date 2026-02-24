@@ -15,7 +15,7 @@ export function getBaseUrl(endpoint: string): string {
 
   // Prism ignore le basePath des servers — les routes sont directement sur /auth/login, /loans, etc.
   if (module && MOCK_MODULES[module]) {
-    return 'http://localhost:3000'; // Prism mock server (pas de /v1)
+    return 'http://localhost:4010'; // Prism mock server (pas de /v1)
   }
 
   return __DEV__ ? 'http://localhost:3000/v1' : 'https://api.return.app/v1';

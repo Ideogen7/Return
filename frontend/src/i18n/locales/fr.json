@@ -65,6 +65,31 @@
     "timezone": "Fuseau horaire",
     "saved": "Paramètres sauvegardés"
   },
+  "borrowers": {
+    "title": "Contacts",
+    "addContact": "Ajouter un contact",
+    "editContact": "Modifier le contact",
+    "details": "Détails du contact",
+    "emptyList": "Aucun contact",
+    "emptyListSubtitle": "Ajoutez votre premier emprunteur pour commencer",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Email",
+    "phone": "Téléphone",
+    "trustScore": "Score de confiance",
+    "totalLoans": "Total des prêts",
+    "returnedOnTime": "Rendus à temps",
+    "returnedLate": "Rendus en retard",
+    "notReturned": "Non rendus",
+    "averageDelay": "Délai moyen de retour",
+    "days": "jours",
+    "confirmDelete": "Confirmer la suppression",
+    "deleteWarning": "Cette action est irréversible. Ce contact et son historique seront supprimés.",
+    "deleteSuccess": "Contact supprimé",
+    "createSuccess": "Contact créé",
+    "updateSuccess": "Contact mis à jour",
+    "statistics": "Statistiques"
+  },
   "errors": {
     "invalidCredentials": "Email ou mot de passe incorrect",
     "emailAlreadyExists": "Cet email est déjà utilisé",
@@ -72,7 +97,9 @@
     "invalidCurrentPassword": "Mot de passe actuel incorrect",
     "validationFailed": "Les données envoyées sont invalides. Vérifiez les champs.",
     "unknownError": "Une erreur inattendue est survenue",
-    "networkError": "Erreur réseau. Vérifiez votre connexion."
+    "networkError": "Erreur réseau. Vérifiez votre connexion.",
+    "borrowerAlreadyExists": "Ce contact existe déjà",
+    "borrowerNotFound": "Contact introuvable"
   },
   "navigation": {
     "loans": "Prêts",
