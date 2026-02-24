@@ -49,39 +49,32 @@ export class NotFoundException extends ProblemDetailsException {
       HttpStatus.NOT_FOUND,
       `${resource.toLowerCase()}-not-found`,
       `${resource} Not Found`,
-      `The ${resource.toLowerCase()} with ID '${id}' does not exist or you don't have access to it.`,
+      `The ${resource.toLowerCase()} with ID '${id}' does not exist.`,
       path,
-      [
-        {
-          field: `${resource.toLowerCase()}Id`,
-          code: 'NOT_FOUND',
-          message: `${resource} does not exist`,
-        },
-      ],
     );
   }
 }
 
 export class ConflictException extends ProblemDetailsException {
-  constructor(type: string, detail: string, path: string) {
-    super(HttpStatus.CONFLICT, type, 'Conflict', detail, path);
+  constructor(type: string, title: string, detail: string, path: string) {
+    super(HttpStatus.CONFLICT, type, title, detail, path);
   }
 }
 
 export class ForbiddenException extends ProblemDetailsException {
-  constructor(type: string, detail: string, path: string) {
-    super(HttpStatus.FORBIDDEN, type, 'Forbidden', detail, path);
+  constructor(type: string, title: string, detail: string, path: string) {
+    super(HttpStatus.FORBIDDEN, type, title, detail, path);
   }
 }
 
 export class UnauthorizedException extends ProblemDetailsException {
-  constructor(type: string, detail: string, path: string) {
-    super(HttpStatus.UNAUTHORIZED, type, 'Unauthorized', detail, path);
+  constructor(type: string, title: string, detail: string, path: string) {
+    super(HttpStatus.UNAUTHORIZED, type, title, detail, path);
   }
 }
 
 export class RateLimitException extends ProblemDetailsException {
   constructor(detail: string, path: string) {
-    super(HttpStatus.TOO_MANY_REQUESTS, 'too-many-requests', 'Too Many Requests', detail, path);
+    super(HttpStatus.TOO_MANY_REQUESTS, 'rate-limit-exceeded', 'Rate Limit Exceeded', detail, path);
   }
 }

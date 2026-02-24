@@ -56,6 +56,7 @@ describe('AllExceptionsFilter', () => {
     // Arrange
     const exception = new UnauthorizedException(
       'invalid-credentials',
+      'Invalid Credentials',
       'Email or password is incorrect.',
       '/v1/auth/login',
     );
@@ -68,7 +69,7 @@ describe('AllExceptionsFilter', () => {
     expect(status).toHaveBeenCalledWith(401);
     const body = json.mock.calls[0]![0] as ProblemDetails;
     expect(body.type).toBe('https://api.return.app/errors/invalid-credentials');
-    expect(body.title).toBe('Unauthorized');
+    expect(body.title).toBe('Invalid Credentials');
     expect(body.status).toBe(401);
     expect(body.detail).toBe('Email or password is incorrect.');
     expect(body.instance).toBe('/v1/auth/login');
@@ -115,8 +116,7 @@ describe('AllExceptionsFilter', () => {
       code: 'VALIDATION_ERROR',
       message: 'password must be longer than or equal to 8 characters',
     });
-    expect(body.detail).toContain('email must be an email');
-    expect(body.detail).toContain('password must be longer than or equal to 8 characters');
+    expect(body.detail).toBe('The request contains invalid data.');
   });
 
   // =========================================================================
@@ -165,7 +165,7 @@ describe('AllExceptionsFilter', () => {
     expect(body.errors).toBeUndefined();
   });
 
-  it('should format non-404 HttpException with http-error type', () => {
+  it('should format 429 HttpException with rate-limit-exceeded type', () => {
     // Arrange
     const exception = new HttpException('Too Many Requests', 429);
     const { host, status, json } = createMockHost('/v1/auth/login');
@@ -176,7 +176,23 @@ describe('AllExceptionsFilter', () => {
     // Assert
     expect(status).toHaveBeenCalledWith(429);
     const body = json.mock.calls[0]![0] as ProblemDetails;
-    expect(body.type).toBe('https://api.return.app/errors/http-error');
+    expect(body.type).toBe('https://api.return.app/errors/rate-limit-exceeded');
+    expect(body.title).toBe('Rate Limit Exceeded');
+  });
+
+  it('should format 401 HttpException with unauthorized type (Passport rejection)', () => {
+    // Arrange — Simule un rejet Passport (token manquant/expiré)
+    const exception = new HttpException('Unauthorized', 401);
+    const { host, status, json } = createMockHost('/v1/users/me');
+
+    // Act
+    filter.catch(exception, host);
+
+    // Assert
+    expect(status).toHaveBeenCalledWith(401);
+    const body = json.mock.calls[0]![0] as ProblemDetails;
+    expect(body.type).toBe('https://api.return.app/errors/unauthorized');
+    expect(body.title).toBe('Unauthorized');
   });
 
   // =========================================================================

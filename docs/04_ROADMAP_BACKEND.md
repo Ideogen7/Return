@@ -157,60 +157,73 @@ Cyclé TDD par comportement pour chaque endpoint utilisateur.
 
 ### Objectif
 
-Gerer les emprunteurs. Un emprunteur est un **utilisateur disposant d'un compte Return** (pas un simple contact).
-L'emprunteur doit avoir un compte pour recevoir les notifications push et interagir avec les prêts
-(confirmation/contestation).
+Gérer les emprunteurs (carnet de contacts du prêteur). Un emprunteur est un **contact** dans le carnet du prêteur,
+identifié par son email. Le champ `userId` (nullable) permet de lier l'emprunteur à un compte Return existant — s'il
+n'a pas encore de compte, une invitation lui sera envoyée lors de la création d'un prêt (Sprint 4).
+
+**Contraintes spec OpenAPI** :
+
+- Chaque emprunteur appartient à un prêteur (ownership via `userId` du JWT) → toute opération READ/UPDATE/DELETE
+  vérifie que le borrower appartient au prêteur authentifié (403 si non propriétaire).
+- La réponse `Borrower` inclut un objet `statistics` (BorrowerStatistics) — retourné avec des zéros par défaut en
+  Sprint 2 car aucun prêt n'existe encore. L'endpoint dédié `GET /borrowers/{id}/statistics` est reporté au Sprint 6.
+- `POST /borrowers` retourne un header `Location` avec l'URL du nouveau borrower (201).
+- `GET /borrowers` supporte tri (`sortBy`: firstName, lastName, trustScore, totalLoans) et pagination
+  (`page`, `limit`).
 
 ### Phase 2.1 : Base de Données
 
 | ID           | Titre                                                                                  | Dépendance | Critère de Fin      | Temps |
 |--------------|----------------------------------------------------------------------------------------|------------|---------------------|-------|
-| **BORR-001** | Créer le schema Prisma `Borrower` (firstName, lastName, email, phoneNumber, userId FK) | AUTH-001   | Migration appliquée | 30min |
-| **BORR-002** | Ajouter index unique sur le couple `(userId, email)` et index sur `borrowers.userId`   | BORR-001   | Index créés         | 15min |
+| **BORR-001** | Créer le schema Prisma `Borrower` (firstName, lastName, email, phoneNumber, userId FK, lenderUserId FK) | AUTH-001   | Migration appliquée | 30min |
+| **BORR-002** | Ajouter index unique sur le couple `(lenderUserId, email)` et index sur `borrowers.lenderUserId` | BORR-001   | Index créés         | 15min |
 
-> **Note** : L'unicite est sur le couple `(userId, email)` -- un même email peut exister comme emprunteur chez
-> plusieurs prêteurs différents.
+> **Note** : L'unicité est sur le couple `(lenderUserId, email)` — un même email peut exister comme emprunteur chez
+> plusieurs prêteurs différents. `lenderUserId` identifie le prêteur propriétaire du contact.
+> `userId` (nullable) est la FK vers le compte Return de l'emprunteur (null si pas encore inscrit).
 
 ### Phase 2.2 : TDD -- Borrower Service
 
-Cyclé TDD par comportement (RED -> GREEN -> REFACTOR -> COMMIT).
+Cycle TDD par comportement (RED → GREEN → REFACTOR → COMMIT).
 
 **Comportement 1 : Création**
 
 | ID           | Titre                                                                       | Dépendance | Critère de Fin              | Temps |
 |--------------|-----------------------------------------------------------------------------|------------|-----------------------------|-------|
-| **BORR-003** | RED : Test `POST /borrowers` (success 201)                                  | BORR-002   | Test écrit, échoue          | 20min |
+| **BORR-003** | RED : Test `POST /borrowers` (success 201 avec header Location)             | BORR-002   | Test écrit, échoue          | 20min |
 | **BORR-004** | RED : Test `POST /borrowers` (erreur 409 si email existe déjà pour ce prêteur) | BORR-003 | Test écrit, échoue          | 15min |
-| **BORR-005** | GREEN : Implémenter `BorrowerService.create()` (vérification unicite `(userId, email)` via Prisma) | BORR-004 | Tests BORR-003 et BORR-004 passent | 1h |
+| **BORR-005** | GREEN : Implémenter `BorrowerService.create()` (vérification unicité `(lenderUserId, email)` via Prisma, retour Borrower avec statistics par défaut) | BORR-004 | Tests BORR-003 et BORR-004 passent | 1h |
 
-**Comportement 2 : Lecture**
+**Comportement 2 : Lecture (avec ownership)**
 
-| ID           | Titre                                                                      | Dépendance | Critère de Fin         | Temps |
-|--------------|----------------------------------------------------------------------------|------------|------------------------|-------|
-| **BORR-006** | RED : Test `GET /borrowers` (liste paginée)                                | BORR-005   | Test écrit, échoue     | 20min |
-| **BORR-007** | GREEN : Implémenter `BorrowerService.findAll()` (pagination via Prisma)    | BORR-006   | Test BORR-006 passe    | 45min |
-| **BORR-008** | RED : Test `GET /borrowers/{id}` (success 200)                             | BORR-007   | Test écrit, échoue     | 15min |
-| **BORR-009** | GREEN : Implémenter `BorrowerService.findById()` (via Prisma)              | BORR-008   | Test BORR-008 passe    | 30min |
+| ID           | Titre                                                                            | Dépendance | Critère de Fin         | Temps |
+|--------------|----------------------------------------------------------------------------------|------------|------------------------|-------|
+| **BORR-006** | RED : Test `GET /borrowers` (liste paginée, triée, filtrée par lenderUserId)     | BORR-005   | Test écrit, échoue     | 20min |
+| **BORR-007** | GREEN : Implémenter `BorrowerService.findAll()` (pagination + tri via Prisma, filtre lenderUserId) | BORR-006 | Test BORR-006 passe | 45min |
+| **BORR-008** | RED : Test `GET /borrowers/{id}` (success 200 + 403 si pas propriétaire)         | BORR-007   | Test écrit, échoue     | 20min |
+| **BORR-009** | GREEN : Implémenter `BorrowerService.findById()` (ownership check = 403, not found = 404) | BORR-008 | Test BORR-008 passe | 30min |
 
-**Comportement 3 : Modification et suppression**
+**Comportement 3 : Modification et suppression (avec ownership)**
 
 | ID           | Titre                                                                            | Dépendance | Critère de Fin               | Temps |
 |--------------|----------------------------------------------------------------------------------|------------|------------------------------|-------|
-| **BORR-010** | RED : Test `PATCH /borrowers/{id}` (update success)                              | BORR-009   | Test écrit, échoue           | 15min |
-| **BORR-011** | GREEN : Implémenter `BorrowerService.update()` (via Prisma)                      | BORR-010   | Test BORR-010 passe          | 45min |
-| **BORR-012** | RED : Test `DELETE /borrowers/{id}` (success 204)                                | BORR-011   | Test écrit, échoue           | 15min |
-| **BORR-013** | RED : Test `DELETE /borrowers/{id}` (erreur 409 si prêts actifs)                 | BORR-012   | Test écrit, échoue           | 15min |
-| **BORR-014** | GREEN : Implémenter `BorrowerService.delete()` (vérifiér absence de prêts actifs via Prisma) | BORR-013 | Tests BORR-012 et BORR-013 passent | 1h |
+| **BORR-010** | RED : Test `PATCH /borrowers/{id}` (update success + 403 si pas propriétaire)    | BORR-009   | Test écrit, échoue           | 20min |
+| **BORR-011** | GREEN : Implémenter `BorrowerService.update()` (ownership check + update via Prisma + 409 si email dupliqué) | BORR-010 | Test BORR-010 passe | 45min |
+| **BORR-012** | RED : Test `DELETE /borrowers/{id}` (success 204 + 403 si pas propriétaire)      | BORR-011   | Test écrit, échoue           | 15min |
+| **BORR-013** | RED : Test `DELETE /borrowers/{id}` (erreur 409 `active-loans-exist` si prêts actifs) | BORR-012 | Test écrit, échoue         | 15min |
+| **BORR-014** | GREEN : Implémenter `BorrowerService.delete()` (ownership check + vérifier absence de prêts actifs via Prisma) | BORR-013 | Tests BORR-012 et BORR-013 passent | 1h |
 
 ### Phase 2.3 : Endpoints API
 
 | ID           | Titre                                          | Dépendance | Critère de Fin                               | Temps |
 |--------------|-------------------------------------------------|------------|----------------------------------------------|-------|
-| **BORR-015** | Créer `BorrowersController` (5 endpoints CRUD) | BORR-014   | Tous les tests BORR-003 à BORR-013 passent   | 1h30  |
+| **BORR-015** | Créer `BorrowersController` (5 endpoints CRUD avec header Location sur POST, @UseGuards JwtAuthGuard) | BORR-014   | Tous les tests BORR-003 à BORR-014 passent   | 1h30  |
 
-🏁 **Livrable Sprint 2** : **Frontend peut gérer les emprunteurs** (5 endpoints Borrowers CRUD).
+🏁 **Livrable Sprint 2** : **Frontend peut gérer les emprunteurs** (5 endpoints Borrowers CRUD avec ownership, pagination, tri).
 
-> **Note** : `GET /borrowers/{id}/statistics` (trustScore) est implémenté au Sprint 6 (HIST-006/007/010) car il nécessite les données de prêts (module Loans, Sprint 4). `GET /borrowers/{id}/loans` est également reporté au Sprint 6.
+> **Note** : `GET /borrowers/{id}/statistics` (trustScore) est implémenté au Sprint 6 (HIST-006/007/010) car il nécessite les données de prêts (module Loans, Sprint 4). `GET /borrowers/{id}/loans` est également reporté au Sprint 6. En Sprint 2, le champ `statistics` de la réponse Borrower retourne un objet BorrowerStatistics avec des zéros par défaut.
+
+> **Colonnes dénormalisées (Sprint 2)** : `trustScore` et `totalLoans` sont stockés comme colonnes Prisma sur le modèle `Borrower` (valeurs par défaut : 0). Le tri `sortBy=trustScore` et `sortBy=totalLoans` fonctionne nativement via Prisma. La mise à jour de ces colonnes sera implémentée au Sprint 4 (module Loans) via événements `loan.created`, `loan.status.changed`, `loan.deleted` — voir `src/common/events/loan.events.ts` pour les contrats d'événements.
 
 ---
 

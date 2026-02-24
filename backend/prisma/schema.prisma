@@ -45,6 +45,8 @@ model User {
 
   // Relations
   refreshTokens RefreshToken[]
+  borrowerProfile Borrower[] @relation("BorrowerUser")   // Contacts linked to this user as borrower
+  borrowers       Borrower[] @relation("LenderBorrowers") // Contacts this user owns as lender
 
   @@map("users")
 }
@@ -62,4 +64,40 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+// =============================================================================
+// BORROWERS (Contacts / Emprunteurs)
+// =============================================================================
+
+/// Emprunteur — contact du carnet d'adresses d'un prêteur
+model Borrower {
+  id          String  @id @default(uuid()) @db.Uuid
+  firstName   String  @map("first_name") @db.VarChar(50)
+  lastName    String  @map("last_name") @db.VarChar(50)
+  email       String
+  phoneNumber String? @map("phone_number")
+
+  /// ID utilisateur Return (null si invitation en attente)
+  userId String? @map("user_id") @db.Uuid
+
+  /// Prêteur propriétaire de ce contact
+  lenderUserId String @map("lender_user_id") @db.Uuid
+
+  // Statistiques dénormalisées (mises à jour via événements lors des changements de statut de prêt)
+  trustScore Int @default(0) @map("trust_score")
+  totalLoans Int @default(0) @map("total_loans")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user       User? @relation("BorrowerUser", fields: [userId], references: [id], onDelete: SetNull)
+  lenderUser User  @relation("LenderBorrowers", fields: [lenderUserId], references: [id], onDelete: Cascade)
+
+  // Un prêteur ne peut pas avoir deux contacts avec le même email
+  @@unique([lenderUserId, email])
+  @@index([lenderUserId])
+  @@map("borrowers")
 }

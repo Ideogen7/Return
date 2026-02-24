@@ -94,7 +94,6 @@ describe('AuthService', () => {
       getOrThrow: jest.fn((key: string) => {
         const values: Record<string, string> = {
           JWT_ACCESS_SECRET: 'test-access-secret',
-          JWT_REFRESH_SECRET: 'test-refresh-secret',
         };
         if (!values[key]) throw new Error(`Missing ${key}`);
         return values[key];
