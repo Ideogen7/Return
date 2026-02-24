@@ -97,7 +97,7 @@ describe('BorrowerDetailScreen', () => {
 
   it('should show API error on 409 delete', async () => {
     server.use(
-      http.delete('http://localhost:4010/borrowers/:id', () => {
+      http.delete('http://localhost:3000/v1/borrowers/:id', () => {
         return HttpResponse.json(
           {
             type: 'https://api.return.app/errors/active-loans-exist',

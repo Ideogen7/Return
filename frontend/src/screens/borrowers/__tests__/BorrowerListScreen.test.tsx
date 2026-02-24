@@ -58,7 +58,7 @@ describe('BorrowerListScreen', () => {
 
   it('should render empty state when no borrowers', async () => {
     server.use(
-      http.get('http://localhost:4010/borrowers', () => {
+      http.get('http://localhost:3000/v1/borrowers', () => {
         return HttpResponse.json(
           {
             data: [],
