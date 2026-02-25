@@ -1,7 +1,7 @@
 // Basculement progressif mock → backend réel, module par module
 const MOCK_MODULES: Record<string, boolean> = {
   auth: false,
-  borrowers: true,
+  borrowers: false,
   items: true,
   loans: true,
   reminders: true,

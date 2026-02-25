@@ -99,5 +99,6 @@ model Borrower {
   // Un prêteur ne peut pas avoir deux contacts avec le même email
   @@unique([lenderUserId, email])
   @@index([lenderUserId])
+  @@index([userId])
   @@map("borrowers")
 }

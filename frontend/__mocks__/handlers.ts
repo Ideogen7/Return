@@ -151,7 +151,7 @@ export const handlers = [
   // =========================================================================
 
   // GET /borrowers
-  http.get(`${API_MOCK}/borrowers`, () => {
+  http.get(`${API_REAL}/borrowers`, () => {
     return HttpResponse.json(
       {
         data: [{ ...mockBorrower }],
@@ -169,7 +169,7 @@ export const handlers = [
   }),
 
   // POST /borrowers
-  http.post(`${API_MOCK}/borrowers`, async ({ request }) => {
+  http.post(`${API_REAL}/borrowers`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(
       {
@@ -182,7 +182,7 @@ export const handlers = [
   }),
 
   // GET /borrowers/:id
-  http.get(`${API_MOCK}/borrowers/:id`, ({ params }) => {
+  http.get(`${API_REAL}/borrowers/:id`, ({ params }) => {
     if (params.id === 'not-found') {
       return HttpResponse.json(
         {
@@ -202,23 +202,23 @@ export const handlers = [
   }),
 
   // PATCH /borrowers/:id
-  http.patch(`${API_MOCK}/borrowers/:id`, async ({ params, request }) => {
+  http.patch(`${API_REAL}/borrowers/:id`, async ({ params, request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json({ ...mockBorrower, id: params.id, ...body }, { status: 200 });
   }),
 
   // DELETE /borrowers/:id
-  http.delete(`${API_MOCK}/borrowers/:id`, () => {
+  http.delete(`${API_REAL}/borrowers/:id`, () => {
     return new HttpResponse(null, { status: 204 });
   }),
 
   // GET /borrowers/:id/statistics
-  http.get(`${API_MOCK}/borrowers/:id/statistics`, () => {
+  http.get(`${API_REAL}/borrowers/:id/statistics`, () => {
     return HttpResponse.json({ ...mockBorrowerStats }, { status: 200 });
   }),
 
   // GET /borrowers/:id/loans
-  http.get(`${API_MOCK}/borrowers/:id/loans`, () => {
+  http.get(`${API_REAL}/borrowers/:id/loans`, () => {
     return HttpResponse.json([], { status: 200 });
   }),
 

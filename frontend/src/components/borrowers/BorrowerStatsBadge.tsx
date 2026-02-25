@@ -48,7 +48,7 @@ export function BorrowerStatsBadge({ statistics }: BorrowerStatsBadgeProps) {
         </View>
 
         <View style={styles.statItem}>
-          <Text variant="titleMedium" style={[styles.statValue, { color: '#6B8E7B' }]}>
+          <Text variant="titleMedium" style={[styles.statValue, styles.statOnTime]}>
             {statistics.returnedOnTime}
           </Text>
           <Text variant="bodySmall" style={styles.statLabel}>
@@ -57,7 +57,7 @@ export function BorrowerStatsBadge({ statistics }: BorrowerStatsBadgeProps) {
         </View>
 
         <View style={styles.statItem}>
-          <Text variant="titleMedium" style={[styles.statValue, { color: '#C9C4BB' }]}>
+          <Text variant="titleMedium" style={[styles.statValue, styles.statLate]}>
             {statistics.returnedLate}
           </Text>
           <Text variant="bodySmall" style={styles.statLabel}>
@@ -66,7 +66,7 @@ export function BorrowerStatsBadge({ statistics }: BorrowerStatsBadgeProps) {
         </View>
 
         <View style={styles.statItem}>
-          <Text variant="titleMedium" style={[styles.statValue, { color: '#D97A6B' }]}>
+          <Text variant="titleMedium" style={[styles.statValue, styles.statNotReturned]}>
             {statistics.notReturned}
           </Text>
           <Text variant="bodySmall" style={styles.statLabel}>
@@ -115,6 +115,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: { fontWeight: '700', color: '#2D3748' },
+  statOnTime: { color: '#6B8E7B' },
+  statLate: { color: '#C9C4BB' },
+  statNotReturned: { color: '#D97A6B' },
   statLabel: { color: '#6B7A8D', marginTop: 4, textAlign: 'center' },
   delayRow: {
     flexDirection: 'row',
