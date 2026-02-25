@@ -68,7 +68,7 @@ describe('ItemForm', () => {
       { timeout: 3000 },
     );
 
-    const callArgs = onSubmit.mock.calls[0]![0] as Record<string, unknown>;
+    const callArgs = (onSubmit as jest.Mock).mock.calls[0]![0] as Record<string, unknown>;
     expect(callArgs.name).toBe('Perceuse Bosch');
     expect(callArgs.category).toBe('TOOLS');
     expect(callArgs.estimatedValue).toBe(89.99);

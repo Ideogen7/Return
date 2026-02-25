@@ -8,6 +8,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^msw/node$': '<rootDir>/node_modules/msw/lib/node/index.js',
+    '^expo-image-picker$': '<rootDir>/__mocks__/expo-image-picker.ts',
   },
   collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/**/types/**'],
 };
