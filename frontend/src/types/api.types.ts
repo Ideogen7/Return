@@ -102,6 +102,49 @@ export interface UpdateBorrowerDto {
   phoneNumber?: string | null;
 }
 
+// --- Objets (Items) ---
+
+export type ItemCategory =
+  | 'TOOLS'
+  | 'ELECTRONICS'
+  | 'BOOKS'
+  | 'SPORTS'
+  | 'KITCHEN'
+  | 'GARDEN'
+  | 'GAMES'
+  | 'OTHER';
+
+export interface Photo {
+  id: string;
+  url: string;
+  thumbnailUrl?: string | null;
+  uploadedAt: string;
+}
+
+export interface Item {
+  id: string;
+  name: string;
+  description?: string | null;
+  category: ItemCategory;
+  estimatedValue?: number | null;
+  photos?: Photo[];
+  createdAt: string;
+}
+
+export interface CreateItemDto {
+  name: string;
+  category: ItemCategory;
+  description?: string | null;
+  estimatedValue?: number | null;
+}
+
+export interface UpdateItemDto {
+  name?: string;
+  description?: string | null;
+  category?: ItemCategory;
+  estimatedValue?: number | null;
+}
+
 // --- Pagination ---
 
 export interface PaginationMetadata {
