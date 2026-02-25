@@ -13,7 +13,7 @@ const CATEGORIES: ItemCategory[] = [
   'SPORTS',
   'KITCHEN',
   'GARDEN',
-  'GAMES',
+  'MONEY',
   'OTHER',
 ];
 
@@ -150,8 +150,7 @@ export function ItemForm({
         control={control}
         name="estimatedValue"
         rules={{
-          ...(selectedCategory === 'OTHER' || selectedCategory === 'TOOLS' ? {} : {}),
-          ...(selectedCategory === ('MONEY' as ItemCategory) && {
+          ...(selectedCategory === 'MONEY' && {
             required: t('items.estimatedValueRequired'),
           }),
           min: { value: 0, message: t('items.estimatedValueMin') },

@@ -102,7 +102,9 @@
     "borrowerNotFound": "Contact not found",
     "itemNotFound": "Item not found",
     "itemCurrentlyLoaned": "This item cannot be deleted because it is currently loaned",
-    "maxPhotosExceeded": "Maximum number of photos reached (5)"
+    "maxPhotosExceeded": "Maximum number of photos reached (5)",
+    "unauthorized": "Session expired. Please log in again.",
+    "forbidden": "You do not have permission to perform this action."
   },
   "items": {
     "title": "Items",
@@ -121,6 +123,8 @@
     "takePhoto": "Camera",
     "chooseFromGallery": "Gallery",
     "photoUploadFailed": "Photo upload failed. You can retry from item details.",
+    "photoTooLarge": "Photo must be less than 5 MB",
+    "photoInvalidFormat": "Only JPEG and PNG formats are accepted",
     "confirmDelete": "Confirm deletion",
     "deleteWarning": "This action is irreversible. This item and its photos will be deleted.",
     "deleteSuccess": "Item deleted",
@@ -140,7 +144,7 @@
     "categorySports": "Sports",
     "categoryKitchen": "Kitchen",
     "categoryGarden": "Garden",
-    "categoryGames": "Games",
+    "categoryMoney": "Money",
     "categoryOther": "Other"
   },
   "navigation": {

@@ -111,7 +111,7 @@ export type ItemCategory =
   | 'SPORTS'
   | 'KITCHEN'
   | 'GARDEN'
-  | 'GAMES'
+  | 'MONEY'
   | 'OTHER';
 
 export interface Photo {

@@ -15,7 +15,7 @@ const CATEGORIES: ItemCategory[] = [
   'SPORTS',
   'KITCHEN',
   'GARDEN',
-  'GAMES',
+  'MONEY',
   'OTHER',
 ];
 

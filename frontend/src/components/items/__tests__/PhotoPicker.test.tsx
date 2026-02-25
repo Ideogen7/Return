@@ -106,4 +106,103 @@ describe('PhotoPicker', () => {
 
     expect(onPhotoPicked).not.toHaveBeenCalled();
   });
+
+  it('should show error when photo exceeds 5MB', async () => {
+    (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: 'file:///tmp/large-photo.jpg',
+          mimeType: 'image/jpeg',
+          fileName: 'large-photo.jpg',
+          fileSize: 6 * 1024 * 1024, // 6 MB
+        },
+      ],
+    });
+
+    const { onPhotoPicked } = renderPicker();
+
+    fireEvent.press(screen.getByTestId('photo-picker-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('photo-picker-gallery')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId('photo-picker-gallery'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('photo-validation-error')).toBeTruthy();
+    });
+
+    expect(onPhotoPicked).not.toHaveBeenCalled();
+  });
+
+  it('should show error when photo format is not JPEG/PNG', async () => {
+    (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: 'file:///tmp/photo.gif',
+          mimeType: 'image/gif',
+          fileName: 'photo.gif',
+          fileSize: 500000,
+        },
+      ],
+    });
+
+    const { onPhotoPicked } = renderPicker();
+
+    fireEvent.press(screen.getByTestId('photo-picker-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('photo-picker-gallery')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId('photo-picker-gallery'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('photo-validation-error')).toBeTruthy();
+    });
+
+    expect(onPhotoPicked).not.toHaveBeenCalled();
+  });
+
+  it('should clear validation error after successful pick', async () => {
+    // First pick: oversized file
+    (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: 'file:///tmp/large.jpg',
+          mimeType: 'image/jpeg',
+          fileSize: 6 * 1024 * 1024,
+        },
+      ],
+    });
+
+    const { onPhotoPicked } = renderPicker();
+
+    fireEvent.press(screen.getByTestId('photo-picker-btn'));
+    await waitFor(() => {
+      expect(screen.getByTestId('photo-picker-gallery')).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId('photo-picker-gallery'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('photo-validation-error')).toBeTruthy();
+    });
+
+    // Second pick: valid file (default mock)
+    fireEvent.press(screen.getByTestId('photo-picker-btn'));
+    await waitFor(() => {
+      expect(screen.getByTestId('photo-picker-gallery')).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId('photo-picker-gallery'));
+
+    await waitFor(() => {
+      expect(onPhotoPicked).toHaveBeenCalled();
+    });
+
+    expect(screen.queryByTestId('photo-validation-error')).toBeNull();
+  });
 });

@@ -12,7 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { PhotoGallery } from '../../components/items/PhotoGallery';
-import { PhotoPicker } from '../../components/items/PhotoPicker';
+import { PhotoPicker, getMimeType } from '../../components/items/PhotoPicker';
 import { CATEGORY_I18N } from '../../components/items/ItemCard';
 import { useItemStore } from '../../stores/useItemStore';
 import { parseProblemDetails, getErrorMessage } from '../../utils/error';
@@ -47,11 +47,14 @@ export function ItemDetailScreen({ route, navigation }: Props) {
 
   const handlePhotoPicked = async (uri: string) => {
     setApiError(undefined);
+    const mimeType = getMimeType(uri);
+    const ext = mimeType === 'image/png' ? 'png' : 'jpg';
+
     const formData = new FormData();
     formData.append('photo', {
       uri,
-      type: 'image/jpeg',
-      name: 'photo.jpg',
+      type: mimeType,
+      name: `photo.${ext}`,
     } as unknown as Blob);
 
     try {

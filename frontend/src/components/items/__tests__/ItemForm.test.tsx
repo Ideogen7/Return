@@ -108,4 +108,63 @@ describe('ItemForm', () => {
       expect(screen.getByTestId('name-error')).toBeTruthy();
     });
   });
+
+  it('should render MONEY category chip', () => {
+    renderForm();
+
+    expect(screen.getByTestId('category-chip-MONEY')).toBeTruthy();
+  });
+
+  it('should require estimatedValue when category is MONEY', async () => {
+    const { onSubmit } = renderForm({ mode: 'create' });
+
+    fireEvent.changeText(screen.getByTestId('name-input'), 'Prêt personnel');
+    fireEvent.press(screen.getByTestId('category-chip-MONEY'));
+    // Leave estimatedValue empty
+    fireEvent.press(screen.getByTestId('item-submit-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('estimatedValue-error')).toBeTruthy();
+    });
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('should submit when category is MONEY with estimatedValue filled', async () => {
+    const { onSubmit } = renderForm({ mode: 'create' });
+
+    fireEvent.changeText(screen.getByTestId('name-input'), 'Prêt personnel');
+    fireEvent.press(screen.getByTestId('category-chip-MONEY'));
+    fireEvent.changeText(screen.getByTestId('estimatedValue-input'), '500');
+    fireEvent.press(screen.getByTestId('item-submit-btn'));
+
+    await waitFor(
+      () => {
+        expect(onSubmit).toHaveBeenCalled();
+      },
+      { timeout: 3000 },
+    );
+
+    const callArgs = (onSubmit as jest.Mock).mock.calls[0]![0] as Record<string, unknown>;
+    expect(callArgs.category).toBe('MONEY');
+    expect(callArgs.estimatedValue).toBe(500);
+  });
+
+  it('should not require estimatedValue for non-MONEY categories', async () => {
+    const { onSubmit } = renderForm({ mode: 'create' });
+
+    fireEvent.changeText(screen.getByTestId('name-input'), 'Perceuse Bosch');
+    fireEvent.press(screen.getByTestId('category-chip-TOOLS'));
+    // Leave estimatedValue empty
+    fireEvent.press(screen.getByTestId('item-submit-btn'));
+
+    await waitFor(
+      () => {
+        expect(onSubmit).toHaveBeenCalled();
+      },
+      { timeout: 3000 },
+    );
+
+    expect(screen.queryByTestId('estimatedValue-error')).toBeNull();
+  });
 });

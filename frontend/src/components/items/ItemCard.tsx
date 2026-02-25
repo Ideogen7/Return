@@ -11,7 +11,7 @@ const CATEGORY_ICONS: Record<ItemCategory, string> = {
   SPORTS: 'basketball',
   KITCHEN: 'silverware-fork-knife',
   GARDEN: 'flower',
-  GAMES: 'gamepad-variant',
+  MONEY: 'cash-multiple',
   OTHER: 'package-variant-closed',
 };
 
@@ -22,7 +22,7 @@ const CATEGORY_I18N: Record<ItemCategory, string> = {
   SPORTS: 'items.categorySports',
   KITCHEN: 'items.categoryKitchen',
   GARDEN: 'items.categoryGarden',
-  GAMES: 'items.categoryGames',
+  MONEY: 'items.categoryMoney',
   OTHER: 'items.categoryOther',
 };
 

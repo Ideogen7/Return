@@ -49,8 +49,6 @@ export const useItemStore = create<ItemState>((set) => ({
         params: {
           page: params?.page ?? 1,
           limit: 20,
-          sortBy: 'name',
-          sortOrder: 'asc',
           ...(params?.category && { category: params.category }),
           ...(params?.available !== undefined && { available: params.available }),
         },
