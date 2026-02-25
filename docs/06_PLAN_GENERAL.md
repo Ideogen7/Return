@@ -112,8 +112,7 @@ Sprint 6 : History + Déploiement + Polish (4 jours)
    SYNC POINT FINAL : Frontend 100% Backend réel (Jour 4)
 ```
 
-**Total** : 4 + 1 + 5 + 1 + 4 + 1 + 4 + 1 + 8 + 1 + 5 + 1 + 4 = **40 jours** + **5 jours de marge générale** = **45
-jours calendaires**
+**Total** : 4 + 1 + 5 + 1 + 4 + 1 + 4 + 1 + 8 + 1 + 5 + 1 + 4 = **40 jours** + **5 jours de marge générale** = **45 jours calendaires**
 
 > **Utilisation de la marge** : Les 5 jours de marge générale sont reserves à :
 > - Debugging d'intégration entre Backend et Frontend (2 jours)
@@ -423,7 +422,7 @@ const MOCK_MODULES = {
 > 5 rappels planifiés automatiquement à la création d'un prêt avec date d'échéance.
 > Les 3 endpoints `/reminders/*` ne sont pas utilisés en V1 (réservés pour rappels manuels V2+).
 > **Endpoints actifs en V1** : 3 endpoints notifications (`GET /notifications`, `PATCH /notifications/{id}/read`,
-`POST /notifications/read-all`).
+> `POST /notifications/read-all`).
 
 **Action Frontend** :
 

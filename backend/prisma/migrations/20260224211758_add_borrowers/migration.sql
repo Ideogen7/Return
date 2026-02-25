@@ -19,6 +19,9 @@ CREATE TABLE "borrowers" (
 CREATE INDEX "borrowers_lender_user_id_idx" ON "borrowers"("lender_user_id");
 
 -- CreateIndex
+CREATE INDEX "borrowers_user_id_idx" ON "borrowers"("user_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "borrowers_lender_user_id_email_key" ON "borrowers"("lender_user_id", "email");
 
 -- AddForeignKey
