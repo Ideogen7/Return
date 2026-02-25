@@ -1,0 +1,111 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { PaperProvider } from 'react-native-paper';
+import { ItemForm } from '../ItemForm';
+
+function renderForm(props?: Partial<React.ComponentProps<typeof ItemForm>>) {
+  const defaultProps = {
+    onSubmit: jest.fn(),
+    isLoading: false,
+    submitLabel: 'Save',
+    ...props,
+  };
+  return {
+    ...render(
+      <PaperProvider>
+        <ItemForm {...defaultProps} />
+      </PaperProvider>,
+    ),
+    onSubmit: defaultProps.onSubmit,
+  };
+}
+
+describe('ItemForm', () => {
+  it('should render all fields', () => {
+    renderForm();
+
+    expect(screen.getByTestId('name-input')).toBeTruthy();
+    expect(screen.getByTestId('description-input')).toBeTruthy();
+    expect(screen.getByTestId('estimatedValue-input')).toBeTruthy();
+    expect(screen.getByTestId('category-chip-TOOLS')).toBeTruthy();
+    expect(screen.getByTestId('category-chip-ELECTRONICS')).toBeTruthy();
+    expect(screen.getByTestId('item-submit-btn')).toBeTruthy();
+  });
+
+  it('should show validation errors on empty create submit', async () => {
+    const { onSubmit } = renderForm({ mode: 'create' });
+
+    fireEvent.press(screen.getByTestId('item-submit-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('name-error')).toBeTruthy();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('category-error')).toBeTruthy();
+    });
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('should submit valid form with default values in edit mode', async () => {
+    const { onSubmit } = renderForm({
+      mode: 'edit',
+      defaultValues: {
+        name: 'Perceuse Bosch',
+        category: 'TOOLS',
+        estimatedValue: 89.99,
+      },
+    });
+
+    await waitFor(() => {
+      fireEvent.press(screen.getByTestId('item-submit-btn'));
+    });
+
+    await waitFor(
+      () => {
+        expect(onSubmit).toHaveBeenCalled();
+      },
+      { timeout: 3000 },
+    );
+
+    const callArgs = onSubmit.mock.calls[0]![0] as Record<string, unknown>;
+    expect(callArgs.name).toBe('Perceuse Bosch');
+    expect(callArgs.category).toBe('TOOLS');
+    expect(callArgs.estimatedValue).toBe(89.99);
+  });
+
+  it('should render with default values in edit mode', () => {
+    renderForm({
+      mode: 'edit',
+      defaultValues: {
+        name: 'Tondeuse',
+        category: 'GARDEN',
+        description: 'Ma tondeuse',
+        estimatedValue: 150,
+      },
+    });
+
+    expect(screen.getByDisplayValue('Tondeuse')).toBeTruthy();
+    expect(screen.getByDisplayValue('Ma tondeuse')).toBeTruthy();
+    expect(screen.getByDisplayValue('150')).toBeTruthy();
+  });
+
+  it('should display API error', () => {
+    renderForm({ error: 'Server error occurred' });
+
+    expect(screen.getByTestId('form-error')).toBeTruthy();
+    expect(screen.getByText('Server error occurred')).toBeTruthy();
+  });
+
+  it('should show name min length error', async () => {
+    renderForm({ mode: 'create' });
+
+    fireEvent.changeText(screen.getByTestId('name-input'), 'AB');
+    fireEvent.press(screen.getByTestId('category-chip-TOOLS'));
+    fireEvent.press(screen.getByTestId('item-submit-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('name-error')).toBeTruthy();
+    });
+  });
+});
