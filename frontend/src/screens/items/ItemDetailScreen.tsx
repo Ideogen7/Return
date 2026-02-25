@@ -88,7 +88,7 @@ export function ItemDetailScreen({ route, navigation }: Props) {
       {/* Photos section */}
       {selectedItem.photos && selectedItem.photos.length > 0 && (
         <View style={styles.photoSection}>
-          <PhotoGallery photos={selectedItem.photos} onAddPress={() => {}} />
+          <PhotoGallery photos={selectedItem.photos} />
         </View>
       )}
 

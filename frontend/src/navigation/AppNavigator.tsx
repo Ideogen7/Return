@@ -20,6 +20,16 @@ export function AppNavigator() {
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#EDE9E2',
+          height: 76,
+          paddingBottom: 12,
+          paddingTop: 10,
+        },
+        tabBarIconStyle: {
+          marginBottom: 2,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
         },
       }}
     >
