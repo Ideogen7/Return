@@ -36,6 +36,23 @@ const mockBorrowerStats = {
   trustScore: 75,
 };
 
+const mockPhoto = {
+  id: 'p1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c',
+  url: 'https://storage.return.app/items/photo1.jpg',
+  thumbnailUrl: 'https://storage.return.app/items/photo1_thumb.jpg',
+  uploadedAt: '2026-02-20T14:00:00Z',
+};
+
+const mockItem = {
+  id: '9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d',
+  name: 'Perceuse Bosch',
+  description: 'Perceuse visseuse sans fil 18V',
+  category: 'TOOLS' as const,
+  estimatedValue: 89.99,
+  photos: [{ ...mockPhoto }],
+  createdAt: '2026-02-10T10:00:00Z',
+};
+
 const mockSettings = {
   pushNotificationsEnabled: true,
   reminderEnabled: true,
@@ -220,6 +237,86 @@ export const handlers = [
   // GET /borrowers/:id/loans
   http.get(`${API_REAL}/borrowers/:id/loans`, () => {
     return HttpResponse.json([], { status: 200 });
+  }),
+
+  // =========================================================================
+  // ITEMS
+  // =========================================================================
+
+  // GET /items
+  http.get(`${API_MOCK}/items`, () => {
+    return HttpResponse.json(
+      {
+        data: [{ ...mockItem }],
+        pagination: {
+          currentPage: 1,
+          itemsPerPage: 20,
+          totalItems: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+      { status: 200 },
+    );
+  }),
+
+  // POST /items
+  http.post(`${API_MOCK}/items`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        ...mockItem,
+        id: 'new-item-id-1234',
+        photos: [],
+        ...body,
+      },
+      { status: 201 },
+    );
+  }),
+
+  // GET /items/:itemId
+  http.get(`${API_MOCK}/items/:itemId`, ({ params }) => {
+    if (params.itemId === 'not-found') {
+      return HttpResponse.json(
+        {
+          type: 'https://api.return.app/errors/item-not-found',
+          title: 'Item Not Found',
+          status: 404,
+          detail: `The item with ID '${params.itemId}' does not exist.`,
+          instance: `/v1/items/${params.itemId}`,
+          timestamp: new Date().toISOString(),
+          requestId: 'req-mock',
+        },
+        { status: 404 },
+      );
+    }
+
+    return HttpResponse.json({ ...mockItem, id: params.itemId }, { status: 200 });
+  }),
+
+  // PATCH /items/:itemId
+  http.patch(`${API_MOCK}/items/:itemId`, async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ ...mockItem, id: params.itemId, ...body }, { status: 200 });
+  }),
+
+  // DELETE /items/:itemId
+  http.delete(`${API_MOCK}/items/:itemId`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // POST /items/:itemId/photos
+  http.post(`${API_MOCK}/items/:itemId/photos`, () => {
+    return HttpResponse.json(
+      {
+        id: 'p-new-photo-id',
+        url: 'https://storage.return.app/items/new-photo.jpg',
+        thumbnailUrl: 'https://storage.return.app/items/new-photo_thumb.jpg',
+        uploadedAt: new Date().toISOString(),
+      },
+      { status: 201 },
+    );
   }),
 
   // =========================================================================
