@@ -38,6 +38,7 @@ export class AuthController {
    * @throws 400 Bad Request — Si le body est invalide (ValidationPipe)
    */
   @Post('register')
+  @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterDto): Promise<AuthResponse> {
     return this.authService.register(dto);
   }

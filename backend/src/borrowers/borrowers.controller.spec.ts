@@ -4,6 +4,7 @@ import { BorrowersController } from './borrowers.controller.js';
 import { BorrowersService } from './borrowers.service.js';
 import type {
   BorrowerResponse,
+  BorrowerStatistics,
   PaginatedBorrowersResponse,
 } from './interfaces/borrower-response.interface.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
@@ -136,6 +137,29 @@ describe('BorrowersController', () => {
         page: 1,
         limit: 20,
       });
+    });
+  });
+
+  // ===========================================================================
+  // GET /v1/borrowers/:id/statistics
+  // ===========================================================================
+
+  describe('getStatistics', () => {
+    it('should return borrower statistics', async () => {
+      const mockStats: BorrowerStatistics = {
+        totalLoans: 5,
+        returnedOnTime: 3,
+        returnedLate: 1,
+        notReturned: 1,
+        averageReturnDelay: 2,
+        trustScore: 70,
+      };
+      service.getStatistics.mockResolvedValue(mockStats);
+
+      const result = await controller.getStatistics({ user: MOCK_AUTH_USER }, BORROWER_ID);
+
+      expect(result).toEqual(mockStats);
+      expect(service.getStatistics).toHaveBeenCalledWith(BORROWER_ID, LENDER_USER_ID);
     });
   });
 
