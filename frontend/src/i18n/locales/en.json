@@ -106,7 +106,8 @@
     "unauthorized": "Session expired. Please log in again.",
     "forbidden": "You do not have permission to perform this action.",
     "rateLimitExceeded": "Too many attempts. Please try again in a few minutes.",
-    "internalServerError": "Server error. Please try again later."
+    "internalServerError": "Server error. Please try again later.",
+    "photoNotFound": "Photo not found"
   },
   "items": {
     "title": "Items",

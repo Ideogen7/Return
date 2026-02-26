@@ -89,6 +89,22 @@ describe('LocalPhotoStorageService', () => {
       await expect(access(filePath)).rejects.toThrow();
     });
 
+    it('should delete file when called with full URL instead of key', async () => {
+      const key = 'items/to-delete-url/photo.jpg';
+      const filePath = join(TEST_UPLOAD_DIR, key);
+      const fullUrl = `${TEST_BASE_URL}/${key}`;
+
+      await mkdir(join(TEST_UPLOAD_DIR, 'items', 'to-delete-url'), {
+        recursive: true,
+      });
+      await writeFile(filePath, Buffer.from('to-delete-via-url'));
+
+      // Delete using full URL instead of key
+      await service.delete(fullUrl);
+
+      await expect(access(filePath)).rejects.toThrow();
+    });
+
     it('should not throw when file does not exist (idempotent)', async () => {
       await expect(service.delete('nonexistent/file.jpg')).resolves.toBeUndefined();
     });

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { TextInput, Button, HelperText, Chip, Text } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
@@ -71,6 +71,14 @@ function DecimalInput({
   }, [rawText, onChange, fieldBlur]);
 
   // Sync rawText when external value changes (e.g. form reset / default values)
+  useEffect(() => {
+    const expected = value != null ? String(value) : '';
+    // Only sync if the external value actually differs and we're not mid-typing with trailing dot
+    if (!rawText.endsWith('.') && rawText !== expected) {
+      setRawText(expected);
+    }
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const displayValue = rawText;
 
   return (

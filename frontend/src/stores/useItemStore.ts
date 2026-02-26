@@ -121,9 +121,7 @@ export const useItemStore = create<ItemState>((set) => ({
   uploadPhoto: async (itemId, formData) => {
     set({ error: null });
     try {
-      const { data: photo } = await apiClient.post<Photo>(`/items/${itemId}/photos`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data: photo } = await apiClient.post<Photo>(`/items/${itemId}/photos`, formData);
       set((state) => {
         const addPhoto = (item: Item | null) => {
           if (!item || item.id !== itemId) return item;

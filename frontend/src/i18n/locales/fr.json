@@ -106,7 +106,8 @@
     "unauthorized": "Session expirée. Veuillez vous reconnecter.",
     "forbidden": "Vous n'avez pas la permission d'effectuer cette action.",
     "rateLimitExceeded": "Trop de tentatives. Veuillez réessayer dans quelques minutes.",
-    "internalServerError": "Erreur serveur. Veuillez réessayer plus tard."
+    "internalServerError": "Erreur serveur. Veuillez réessayer plus tard.",
+    "photoNotFound": "Photo introuvable"
   },
   "items": {
     "title": "Objets",
