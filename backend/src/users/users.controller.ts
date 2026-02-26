@@ -22,6 +22,7 @@ import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 import { DeleteAccountDto } from './dto/delete-account.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { mimeToExtension } from '../common/utils/mime.util.js';
 import type { SafeUser, UserSettings } from '../auth/interfaces/auth-response.interface.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
 
@@ -133,7 +134,8 @@ export class UsersController {
     )
     file: Express.Multer.File,
   ): Promise<{ profilePicture: string }> {
-    return this.usersService.updateAvatar(req.user.userId, file.buffer, file.originalname);
+    const safeFilename = `avatar.${mimeToExtension(file.mimetype)}`;
+    return this.usersService.updateAvatar(req.user.userId, file.buffer, safeFilename);
   }
 
   /**

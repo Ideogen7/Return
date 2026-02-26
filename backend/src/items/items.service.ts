@@ -196,7 +196,7 @@ export class ItemsService {
 
     // Upload vers le storage
     const ext = filename.split('.').pop() ?? 'jpg';
-    const key = `items/${itemId}/${Date.now()}.${ext}`;
+    const key = `items/${itemId}/${crypto.randomUUID()}.${ext}`;
     const uploadResult = await this.photoStorage.upload(file, key);
 
     // Créer l'enregistrement Photo en DB

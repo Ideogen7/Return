@@ -230,22 +230,37 @@ export class UsersService {
     filename: string,
   ): Promise<{ profilePicture: string }> {
     const user = await this.findUserOrThrow(userId);
+    const previousPicture = user.profilePicture;
 
-    // Supprimer l'ancien avatar du storage si existant
-    if (user.profilePicture) {
-      await this.photoStorage.delete(user.profilePicture);
-    }
-
-    // Upload le nouvel avatar
+    // 1. Upload le nouvel avatar
     const ext = filename.split('.').pop() ?? 'jpg';
     const key = `users/${userId}/avatar.${ext}`;
     const uploadResult = await this.photoStorage.upload(file, key);
 
-    // Mettre à jour en DB
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { profilePicture: uploadResult.url },
-    });
+    // 2. Mettre à jour en DB (rollback upload si échec)
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { profilePicture: uploadResult.url },
+      });
+    } catch (error) {
+      // Rollback : supprimer le fichier uploadé
+      try {
+        await this.photoStorage.delete(uploadResult.url);
+      } catch {
+        // Best-effort : ne pas masquer l'erreur principale
+      }
+      throw error;
+    }
+
+    // 3. Supprimer l'ancien avatar (best-effort, après succès)
+    if (previousPicture) {
+      try {
+        await this.photoStorage.delete(previousPicture);
+      } catch {
+        // Best-effort : l'échec de suppression ne doit pas invalider la mise à jour
+      }
+    }
 
     return { profilePicture: uploadResult.url };
   }

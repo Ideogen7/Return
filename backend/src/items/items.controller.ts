@@ -26,6 +26,7 @@ import { CreateItemDto } from './dto/create-item.dto.js';
 import { UpdateItemDto } from './dto/update-item.dto.js';
 import { ListItemsQueryDto } from './dto/list-items-query.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { mimeToExtension } from '../common/utils/mime.util.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
 import type { ItemResponse, PaginatedItemsResponse } from './interfaces/item-response.interface.js';
 import type { PhotoResponse } from './interfaces/photo-response.interface.js';
@@ -137,11 +138,12 @@ export class ItemsController {
     file: Express.Multer.File,
     @Res({ passthrough: true }) res: Response,
   ): Promise<PhotoResponse> {
+    const safeFilename = `photo.${mimeToExtension(file.mimetype)}`;
     const photo = await this.itemsService.addPhoto(
       itemId,
       req.user.userId,
       file.buffer,
-      file.originalname,
+      safeFilename,
     );
     const baseUrl = `${req.protocol}://${req.headers.host as string}`;
     res.setHeader('Location', `${baseUrl}/v1/items/${itemId}/photos/${photo.id}`);
