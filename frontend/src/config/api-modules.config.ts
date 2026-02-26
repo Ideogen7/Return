@@ -2,7 +2,7 @@
 const MOCK_MODULES: Record<string, boolean> = {
   auth: false,
   borrowers: false,
-  items: true,
+  items: false,
   loans: true,
   reminders: true,
   notifications: true,

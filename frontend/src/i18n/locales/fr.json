@@ -104,7 +104,9 @@
     "itemCurrentlyLoaned": "Cet objet ne peut pas être supprimé car il est actuellement prêté",
     "maxPhotosExceeded": "Nombre maximum de photos atteint (5)",
     "unauthorized": "Session expirée. Veuillez vous reconnecter.",
-    "forbidden": "Vous n'avez pas la permission d'effectuer cette action."
+    "forbidden": "Vous n'avez pas la permission d'effectuer cette action.",
+    "rateLimitExceeded": "Trop de tentatives. Veuillez réessayer dans quelques minutes.",
+    "internalServerError": "Erreur serveur. Veuillez réessayer plus tard."
   },
   "items": {
     "title": "Objets",
@@ -145,7 +147,10 @@
     "categoryKitchen": "Cuisine",
     "categoryGarden": "Jardin",
     "categoryMoney": "Argent",
-    "categoryOther": "Autre"
+    "categoryOther": "Autre",
+    "deletePhoto": "Supprimer la photo",
+    "confirmDeletePhoto": "Êtes-vous sûr de vouloir supprimer cette photo ?",
+    "photoDeleteFailed": "La suppression de la photo a échoué. Veuillez réessayer."
   },
   "navigation": {
     "loans": "Prêts",

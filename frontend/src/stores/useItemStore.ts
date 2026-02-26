@@ -29,6 +29,7 @@ interface ItemState {
   updateItem: (id: string, data: UpdateItemDto) => Promise<Item>;
   deleteItem: (id: string) => Promise<void>;
   uploadPhoto: (itemId: string, formData: FormData) => Promise<Photo>;
+  deletePhoto: (itemId: string, photoId: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -120,7 +121,9 @@ export const useItemStore = create<ItemState>((set) => ({
   uploadPhoto: async (itemId, formData) => {
     set({ error: null });
     try {
-      const { data: photo } = await apiClient.post<Photo>(`/items/${itemId}/photos`, formData);
+      const { data: photo } = await apiClient.post<Photo>(`/items/${itemId}/photos`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       set((state) => {
         const addPhoto = (item: Item | null) => {
           if (!item || item.id !== itemId) return item;
@@ -132,6 +135,26 @@ export const useItemStore = create<ItemState>((set) => ({
         };
       });
       return photo;
+    } catch (err) {
+      set({ error: extractProblemDetails(err) });
+      throw err;
+    }
+  },
+
+  deletePhoto: async (itemId, photoId) => {
+    set({ error: null });
+    try {
+      await apiClient.delete(`/items/${itemId}/photos/${photoId}`);
+      set((state) => {
+        const removePhoto = (item: Item | null) => {
+          if (!item || item.id !== itemId) return item;
+          return { ...item, photos: (item.photos ?? []).filter((p) => p.id !== photoId) };
+        };
+        return {
+          items: state.items.map((i) => removePhoto(i) as Item),
+          selectedItem: removePhoto(state.selectedItem),
+        };
+      });
     } catch (err) {
       set({ error: extractProblemDetails(err) });
       throw err;

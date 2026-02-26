@@ -95,7 +95,7 @@ describe('ItemDetailScreen', () => {
 
   it('should show API error on 409 delete', async () => {
     server.use(
-      http.delete('http://localhost:4010/items/:itemId', () => {
+      http.delete('http://localhost:3000/v1/items/:itemId', () => {
         return HttpResponse.json(
           {
             type: 'https://api.return.app/errors/item-currently-loaned',

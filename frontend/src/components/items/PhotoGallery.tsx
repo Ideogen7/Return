@@ -6,10 +6,16 @@ import type { Photo } from '../../types/api.types';
 interface PhotoGalleryProps {
   photos: Photo[];
   onAddPress?: () => void;
+  onDeletePress?: (photoId: string) => void;
   maxPhotos?: number;
 }
 
-export function PhotoGallery({ photos, onAddPress, maxPhotos = 5 }: PhotoGalleryProps) {
+export function PhotoGallery({
+  photos,
+  onAddPress,
+  onDeletePress,
+  maxPhotos = 5,
+}: PhotoGalleryProps) {
   const { t } = useTranslation();
   const canAdd = photos.length < maxPhotos;
 
@@ -21,12 +27,24 @@ export function PhotoGallery({ photos, onAddPress, maxPhotos = 5 }: PhotoGallery
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
         <View style={styles.row}>
           {photos.map((photo) => (
-            <Image
-              key={photo.id}
-              source={{ uri: photo.thumbnailUrl ?? photo.url }}
-              style={styles.thumbnail}
-              testID={`photo-thumb-${photo.id}`}
-            />
+            <View key={photo.id} style={styles.thumbWrapper}>
+              <Image
+                source={{ uri: photo.thumbnailUrl ?? photo.url }}
+                style={styles.thumbnail}
+                testID={`photo-thumb-${photo.id}`}
+              />
+              {onDeletePress && (
+                <IconButton
+                  icon="close-circle"
+                  size={20}
+                  iconColor="#D97A6B"
+                  onPress={() => onDeletePress(photo.id)}
+                  style={styles.deleteButton}
+                  testID={`photo-delete-${photo.id}`}
+                  accessibilityLabel={t('items.deletePhoto')}
+                />
+              )}
+            </View>
           ))}
           {canAdd && onAddPress && (
             <IconButton
@@ -49,10 +67,19 @@ const styles = StyleSheet.create({
   counter: { color: '#6B7A8D', marginBottom: 8 },
   scroll: { flexGrow: 0 },
   row: { flexDirection: 'row', gap: 8 },
+  thumbWrapper: { position: 'relative' },
   thumbnail: {
     width: 72,
     height: 72,
     borderRadius: 8,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    margin: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
   },
   addButton: {
     width: 72,
