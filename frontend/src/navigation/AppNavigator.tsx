@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { Icon } from 'react-native-paper';
 import { BorrowerNavigator } from './BorrowerNavigator';
+import { ItemNavigator } from './ItemNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
 import type { AppTabParamList } from './types';
 
@@ -19,6 +20,16 @@ export function AppNavigator() {
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#EDE9E2',
+          height: 76,
+          paddingBottom: 12,
+          paddingTop: 10,
+        },
+        tabBarIconStyle: {
+          marginBottom: 2,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
         },
       }}
     >
@@ -29,6 +40,16 @@ export function AppNavigator() {
           title: t('navigation.contacts'),
           tabBarIcon: ({ color, size }) => (
             <Icon source="account-group-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="ItemTab"
+        component={ItemNavigator}
+        options={{
+          title: t('navigation.items'),
+          tabBarIcon: ({ color, size }) => (
+            <Icon source="package-variant-closed" color={color} size={size} />
           ),
         }}
       />

@@ -207,37 +207,62 @@ scope V1**.
 
 ### Phase 3.1 : Gestion d'État (Zustand Store)
 
-| ID           | Titre                                                                          | Dépendance | Critère de Fin               | Temps |
-|--------------|--------------------------------------------------------------------------------|------------|------------------------------|-------|
-| **ITEM-001** | Créer `useItemStore` (state: items[], selectedItem)                            | SETUP-006  | Store créé avec actions CRUD | 1h    |
-| **ITEM-002** | Créer actions `fetchItems()`, `createItem()`, `uploadPhotos()`, `deleteItem()` | ITEM-001   | Actions appellent API mock   | 2h    |
+| ID           | Titre                                                                                                                          | Dépendance | Critère de Fin               | Temps |
+|--------------|--------------------------------------------------------------------------------------------------------------------------------|------------|------------------------------|-------|
+| **ITEM-001** | Créer `useItemStore` (state: items[], selectedItem)                                                                            | SETUP-006  | Store créé avec actions CRUD | 1h    |
+| **ITEM-002** | Créer actions `fetchItems()`, `fetchItem(id)`, `createItem()`, `updateItem()`, `deleteItem()`, `uploadPhoto()`, `deletePhoto()` | ITEM-001   | Actions appellent API mock   | 2h30  |
+
+> **Note ITEM-002** : `fetchItem(id)` est nécessaire pour `ItemDetailScreen` (GET `/items/{itemId}`).
+> `updateItem(id, data)` est nécessaire pour `EditItemScreen` (PATCH `/items/{itemId}`).
+> `uploadPhoto(itemId, photo)` appelle POST `/items/{itemId}/photos` (multipart/form-data) sur un item **déjà créé**.
 
 ### Phase 3.2 : Composants UI (Dumb)
 
-| ID           | Titre                                                                   | Dépendance | Critère de Fin                                     | Temps |
-|--------------|-------------------------------------------------------------------------|------------|----------------------------------------------------|-------|
-| **ITEM-003** | Créer composant `ItemCard` (photo + nom + categorie + valeur)           | SETUP-007  | Card affichée dans liste                           | 1h    |
-| **ITEM-004** | Créer composant `ItemForm` (création manuelle avec selecteur categorie) | SETUP-007  | Formulaire avec dropdown ItemCategory              | 1h30  |
-| **ITEM-005** | Créer composant `PhotoPicker` (sélection photo via ImagePicker)         | SETUP-001  | Bouton "Prendre une photo" fonctionne              | 1h30  |
-| **ITEM-006** | Créer composant `PhotoGallery` (carousel de photos de l'objet, max 5)   | SETUP-007  | Swiper affiché photos avec bouton "+" pour ajouter | 1h30  |
+| ID           | Titre                                                                                      | Dépendance | Critère de Fin                                     | Temps |
+|--------------|--------------------------------------------------------------------------------------------|------------|----------------------------------------------------|-------|
+| **ITEM-003** | Créer composant `ItemCard` (photo + nom + categorie + valeur)                              | SETUP-007  | Card affichée dans liste                           | 1h    |
+| **ITEM-004** | Créer composant `ItemForm` (création/édition manuelle avec selecteur categorie)            | SETUP-007  | Formulaire avec dropdown ItemCategory              | 1h30  |
+| **ITEM-005** | Créer composant `PhotoPicker` (sélection photo via ImagePicker, validation JPEG/PNG ≤ 5MB) | SETUP-001  | Bouton "Prendre une photo" fonctionne              | 1h30  |
+| **ITEM-006** | Créer composant `PhotoGallery` (carousel de photos de l'objet, max 5)                      | SETUP-007  | Swiper affiché photos avec bouton "+" pour ajouter | 1h30  |
+
+> **Note ITEM-004** : Validations conformes à l'OpenAPI : `name` (min 3, max 100), `description` (max 500, nullable),
+> `estimatedValue` (min 0, nullable, **obligatoire si category = MONEY**). L'enum `ItemCategory` comprend :
+> TOOLS, BOOKS, ELECTRONICS, SPORTS, KITCHEN, GARDEN, MONEY, OTHER.
+
+> **Note ITEM-005** : Le `PhotoPicker` doit valider côté client le format (JPEG/PNG uniquement) et la taille (max 5 MB)
+> avant l'upload, conformément au contrat POST `/items/{itemId}/photos`.
 
 ### Phase 3.3 : Écrans (Smart Components)
 
-| ID           | Titre                                                                     | Dépendance                   | Critère de Fin                        | Temps |
-|--------------|---------------------------------------------------------------------------|------------------------------|---------------------------------------|-------|
-| **ITEM-007** | Créer écran `ItemListScreen` (FlatList de ItemCard avec filtres category) | ITEM-002, ITEM-003           | Liste filtree avec bouton "+ Nouveau" | 1h30  |
-| **ITEM-008** | Créer écran `CreateItemScreen` (ItemForm + PhotoPicker)                   | ITEM-002, ITEM-004, ITEM-005 | Création manuelle via API mock        | 1h    |
-| **ITEM-009** | Créer écran `ItemDetailScreen` (PhotoGallery + infos + boutons)           | ITEM-002, ITEM-006           | Details objet affiches                | 1h    |
-| **ITEM-010** | Créer écran `EditItemScreen` (ItemForm pré-rempli)                        | ITEM-002, ITEM-004           | Mise à jour objet via API mock        | 1h    |
+| ID           | Titre                                                                                       | Dépendance                   | Critère de Fin                                                  | Temps |
+|--------------|---------------------------------------------------------------------------------------------|------------------------------|-----------------------------------------------------------------|-------|
+| **ITEM-007** | Créer écran `ItemListScreen` (FlatList de ItemCard avec filtres category + available)        | ITEM-002, ITEM-003           | Liste paginée et filtrée avec bouton "+ Nouveau"                | 1h30  |
+| **ITEM-008** | Créer écran `CreateItemScreen` (ItemForm + PhotoPicker, workflow 2 étapes : créer puis upload) | ITEM-002, ITEM-004, ITEM-005 | Création item via API mock, puis upload photos sur item existant | 1h30  |
+| **ITEM-009** | Créer écran `ItemDetailScreen` (PhotoGallery + infos + boutons "Éditer" / "Supprimer")      | ITEM-002, ITEM-006           | Details objet affiches via GET `/items/{itemId}`                | 1h    |
+| **ITEM-010** | Créer écran `EditItemScreen` (ItemForm pré-rempli)                                          | ITEM-002, ITEM-004           | Mise à jour objet via PATCH `/items/{itemId}`                   | 1h    |
 
-### Phase 3.4 : Navigation + Tests
+> **Note ITEM-007** : L'OpenAPI expose 2 filtres sur GET `/items` : `category` (ItemCategory) et `available` (boolean —
+> objets non actuellement prêtés). Le filtre `available` sera utile dès le Sprint 4 pour le LoanWizard.
 
-| ID           | Titre                                                  | Dépendance          | Critère de Fin                                   | Temps |
-|--------------|--------------------------------------------------------|---------------------|--------------------------------------------------|-------|
-| **ITEM-011** | Ajouter onglet "Objets" dans Tab Navigator             | SETUP-003, ITEM-007 | Onglet accessible                                | 30min |
-| **ITEM-012** | Gerer erreur 400 si category=MONEY sans estimatedValue | ITEM-008            | Message "Montant obligatoire pour MONEY" affiché | 45min |
-| **ITEM-013** | Écrire test RNTL : ItemForm création manuelle          | ITEM-004            | Test RNTL passe                                  | 1h    |
-| **ITEM-014** | Écrire test RNTL : PhotoPicker sélection + preview     | ITEM-005            | Test RNTL passe                                  | 1h    |
+> **Note ITEM-008** : L'upload de photos se fait obligatoirement en 2 étapes (contrainte OpenAPI) :
+> 1. `POST /items` → créer l'item → récupérer l'`id`
+> 2. `POST /items/{itemId}/photos` → uploader chaque photo (multipart/form-data)
+>
+> L'écran doit gérer le cas où la création réussit mais l'upload échoue (item créé sans photo, retry possible).
+
+### Phase 3.4 : Navigation + Tests + Gestion d'Erreurs
+
+| ID            | Titre                                                                   | Dépendance          | Critère de Fin                                              | Temps |
+|---------------|-------------------------------------------------------------------------|---------------------|-------------------------------------------------------------|-------|
+| **ITEM-011**  | Ajouter onglet "Objets" dans Tab Navigator                              | SETUP-003, ITEM-007 | Onglet accessible                                           | 30min |
+| **ITEM-012**  | Gérer erreur 400 si category=MONEY sans estimatedValue                  | ITEM-008            | Message "Montant obligatoire pour MONEY" affiché            | 45min |
+| **ITEM-012b** | Gérer erreur 409 `item-currently-loaned` à la suppression d'un item     | ITEM-009            | Message "Impossible de supprimer un objet actuellement prêté" affiché | 30min |
+| **ITEM-012c** | Gérer erreur 400 `max-photos-exceeded` à l'ajout de photo (limite de 5) | ITEM-009            | Message "Maximum de 5 photos atteint" affiché               | 30min |
+| **ITEM-013**  | Écrire test RNTL : ItemForm création manuelle                           | ITEM-004            | Test RNTL passe                                             | 1h    |
+| **ITEM-014**  | Écrire test RNTL : PhotoPicker sélection + preview                      | ITEM-005            | Test RNTL passe                                             | 1h    |
+
+> **Note ITEM-012b** : L'OpenAPI retourne 409 `item-currently-loaned` si on tente `DELETE /items/{itemId}` sur un objet
+> associé à un prêt actif. L'écran `ItemDetailScreen` doit afficher un message explicatif.
 
 📦 **Livrable Sprint 3** : **Enregistrement d'objets avec photos** (connecté au Mock Server), couvert par tests RNTL.
 

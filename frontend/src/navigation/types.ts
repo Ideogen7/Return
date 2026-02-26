@@ -6,6 +6,7 @@ export type AuthStackParamList = {
 // Tabs principaux
 export type AppTabParamList = {
   BorrowerTab: undefined;
+  ItemTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -20,6 +21,14 @@ export type ProfileStackParamList = {
 
 // Backward compat — les écrans existants utilisent NativeStackScreenProps<AppStackParamList, ...>
 export type AppStackParamList = ProfileStackParamList;
+
+// Stack Items
+export type ItemStackParamList = {
+  ItemList: undefined;
+  CreateItem: undefined;
+  ItemDetail: { id: string };
+  EditItem: { id: string };
+};
 
 // Stack Borrowers
 export type BorrowerStackParamList = {
