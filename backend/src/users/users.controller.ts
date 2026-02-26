@@ -1,14 +1,18 @@
 import {
   Controller,
   Get,
+  Put,
   Patch,
   Delete,
   Body,
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   Request,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
@@ -29,6 +33,7 @@ import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
 //   PATCH  /v1/users/me           → 200 OK           (SafeUser)
 //   DELETE /v1/users/me           → 204 No Content
 //   PATCH  /v1/users/me/password  → 204 No Content
+//   PUT    /v1/users/me/avatar    → 200 OK           ({ profilePicture })
 //   GET    /v1/users/me/settings  → 200 OK           (UserSettings)
 //   PATCH  /v1/users/me/settings  → 200 OK           (UserSettings)
 // =============================================================================
@@ -101,6 +106,23 @@ export class UsersController {
     @Body() dto: ChangePasswordDto,
   ): Promise<void> {
     await this.usersService.changePassword(req.user.userId, dto, req.user.jti, req.user.tokenExp);
+  }
+
+  /**
+   * PUT /v1/users/me/avatar
+   *
+   * Upload ou remplace la photo de profil (JPEG/PNG, max 2MB).
+   *
+   * @returns 200 OK — { profilePicture: string }
+   * @throws 400 Bad Request — Format invalide ou fichier trop volumineux
+   */
+  @Put('me/avatar')
+  @UseInterceptors(FileInterceptor('avatar'))
+  async updateAvatar(
+    @Request() req: { user: AuthenticatedUser },
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<{ profilePicture: string }> {
+    return this.usersService.updateAvatar(req.user.userId, file.buffer, file.originalname);
   }
 
   /**

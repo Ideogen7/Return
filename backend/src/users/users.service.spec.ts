@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { RedisService } from '../redis/redis.service.js';
 import { UsersService } from './users.service.js';
 import { UserRole } from '@prisma/client';
+import { PHOTO_STORAGE } from '../storage/interfaces/photo-storage.interface.js';
 import type { ProblemDetails } from '../common/exceptions/problem-details.exception.js';
 
 // =============================================================================
@@ -54,6 +55,11 @@ describe('UsersService', () => {
     blacklistToken: jest.Mock;
     isTokenBlacklisted: jest.Mock;
   };
+  let photoStorage: {
+    upload: jest.Mock;
+    delete: jest.Mock;
+    getUrl: jest.Mock;
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -63,12 +69,18 @@ describe('UsersService', () => {
       blacklistToken: jest.fn().mockResolvedValue(undefined),
       isTokenBlacklisted: jest.fn().mockResolvedValue(false),
     };
+    photoStorage = {
+      upload: jest.fn(),
+      delete: jest.fn(),
+      getUrl: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: PrismaService, useValue: prisma },
         { provide: RedisService, useValue: redisService },
+        { provide: PHOTO_STORAGE, useValue: photoStorage },
       ],
     }).compile();
 
@@ -416,6 +428,94 @@ describe('UsersService', () => {
         reminderEnabled: true,
         language: 'en',
         timezone: 'Europe/Paris',
+      });
+    });
+  });
+
+  // ===========================================================================
+  // PUT /users/me/avatar — updateAvatar
+  // ===========================================================================
+
+  describe('updateAvatar', () => {
+    it('should upload avatar and update profilePicture', async () => {
+      prisma.user.findUnique.mockResolvedValue(MOCK_USER);
+      photoStorage.upload.mockResolvedValue({
+        key: 'users/550e8400-e29b-41d4-a716-446655440000/avatar.jpg',
+        url: 'http://localhost:3000/uploads/users/550e8400-e29b-41d4-a716-446655440000/avatar.jpg',
+        thumbnailUrl: null,
+      });
+      prisma.user.update.mockResolvedValue({
+        ...MOCK_USER,
+        profilePicture:
+          'http://localhost:3000/uploads/users/550e8400-e29b-41d4-a716-446655440000/avatar.jpg',
+      });
+
+      const result = await service.updateAvatar(
+        MOCK_USER.id,
+        Buffer.from('fake-image'),
+        'avatar.jpg',
+      );
+
+      expect(result.profilePicture).toBe(
+        'http://localhost:3000/uploads/users/550e8400-e29b-41d4-a716-446655440000/avatar.jpg',
+      );
+      expect(photoStorage.upload).toHaveBeenCalledWith(
+        Buffer.from('fake-image'),
+        `users/${MOCK_USER.id}/avatar.jpg`,
+      );
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: MOCK_USER.id },
+        data: {
+          profilePicture:
+            'http://localhost:3000/uploads/users/550e8400-e29b-41d4-a716-446655440000/avatar.jpg',
+        },
+      });
+    });
+
+    it('should delete old avatar before uploading new one', async () => {
+      const userWithAvatar = {
+        ...MOCK_USER,
+        profilePicture: 'http://localhost:3000/uploads/users/old-avatar.jpg',
+      };
+      prisma.user.findUnique.mockResolvedValue(userWithAvatar);
+      photoStorage.upload.mockResolvedValue({
+        key: `users/${MOCK_USER.id}/avatar.png`,
+        url: `http://localhost:3000/uploads/users/${MOCK_USER.id}/avatar.png`,
+        thumbnailUrl: null,
+      });
+      prisma.user.update.mockResolvedValue({
+        ...userWithAvatar,
+        profilePicture: `http://localhost:3000/uploads/users/${MOCK_USER.id}/avatar.png`,
+      });
+
+      await service.updateAvatar(MOCK_USER.id, Buffer.from('new-img'), 'pic.png');
+
+      expect(photoStorage.delete).toHaveBeenCalledWith(
+        'http://localhost:3000/uploads/users/old-avatar.jpg',
+      );
+    });
+
+    it('should not delete old avatar if none exists', async () => {
+      prisma.user.findUnique.mockResolvedValue(MOCK_USER); // profilePicture = null
+      photoStorage.upload.mockResolvedValue({
+        key: `users/${MOCK_USER.id}/avatar.jpg`,
+        url: `http://localhost:3000/uploads/users/${MOCK_USER.id}/avatar.jpg`,
+        thumbnailUrl: null,
+      });
+      prisma.user.update.mockResolvedValue(MOCK_USER);
+
+      await service.updateAvatar(MOCK_USER.id, Buffer.from('img'), 'pic.jpg');
+
+      expect(photoStorage.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when user does not exist', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateAvatar(MOCK_USER.id, Buffer.from('img'), 'pic.jpg'),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ status: HttpStatus.NOT_FOUND }),
       });
     });
   });

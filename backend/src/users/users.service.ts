@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -14,6 +14,8 @@ import {
 } from '../common/exceptions/problem-details.exception.js';
 import { toSafeUser } from '../common/mappers/user.mapper.js';
 import { isPrismaUniqueConstraintError } from '../common/utils/prisma-errors.util.js';
+import { PHOTO_STORAGE } from '../storage/interfaces/photo-storage.interface.js';
+import type { PhotoStorage } from '../storage/interfaces/photo-storage.interface.js';
 import type {
   UserSettings,
   SupportedLanguage,
@@ -43,6 +45,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    @Inject(PHOTO_STORAGE) private readonly photoStorage: PhotoStorage,
   ) {}
 
   // ===========================================================================
@@ -207,6 +210,44 @@ export class UsersService {
       data: dto,
     });
     return this.extractSettings(updated);
+  }
+
+  // ===========================================================================
+  // AVATAR
+  // ===========================================================================
+
+  /**
+   * PUT /users/me/avatar — Upload ou remplace la photo de profil.
+   *
+   * Si l'utilisateur a déjà un avatar, l'ancien est supprimé du storage.
+   *
+   * @returns { profilePicture: string } URL de la nouvelle photo
+   * @throws NotFoundException (404) si l'utilisateur n'existe plus
+   */
+  async updateAvatar(
+    userId: string,
+    file: Buffer,
+    filename: string,
+  ): Promise<{ profilePicture: string }> {
+    const user = await this.findUserOrThrow(userId);
+
+    // Supprimer l'ancien avatar du storage si existant
+    if (user.profilePicture) {
+      await this.photoStorage.delete(user.profilePicture);
+    }
+
+    // Upload le nouvel avatar
+    const ext = filename.split('.').pop() ?? 'jpg';
+    const key = `users/${userId}/avatar.${ext}`;
+    const uploadResult = await this.photoStorage.upload(file, key);
+
+    // Mettre à jour en DB
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { profilePicture: uploadResult.url },
+    });
+
+    return { profilePicture: uploadResult.url };
   }
 
   // ===========================================================================

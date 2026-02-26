@@ -56,6 +56,7 @@ describe('UsersController', () => {
     changePassword: jest.Mock;
     getSettings: jest.Mock;
     updateSettings: jest.Mock;
+    updateAvatar: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -68,6 +69,7 @@ describe('UsersController', () => {
       changePassword: jest.fn().mockResolvedValue(undefined),
       getSettings: jest.fn().mockResolvedValue(MOCK_SETTINGS),
       updateSettings: jest.fn().mockResolvedValue(MOCK_SETTINGS),
+      updateAvatar: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -172,6 +174,32 @@ describe('UsersController', () => {
 
       expect(usersService.updateSettings).toHaveBeenCalledWith(MOCK_AUTH_USER.userId, dto);
       expect(result).toEqual(MOCK_SETTINGS);
+    });
+  });
+
+  // ===========================================================================
+  // PUT /users/me/avatar
+  // ===========================================================================
+
+  describe('updateAvatar', () => {
+    it('should delegate to UsersService.updateAvatar', async () => {
+      const mockFile = {
+        buffer: Buffer.from('fake-image'),
+        originalname: 'avatar.jpg',
+      };
+      const mockAvatarResponse = {
+        profilePicture: 'http://localhost:3000/uploads/users/test/avatar.jpg',
+      };
+      usersService.updateAvatar.mockResolvedValue(mockAvatarResponse);
+
+      const result = await controller.updateAvatar(mockRequest, mockFile as never);
+
+      expect(usersService.updateAvatar).toHaveBeenCalledWith(
+        MOCK_AUTH_USER.userId,
+        mockFile.buffer,
+        'avatar.jpg',
+      );
+      expect(result).toEqual(mockAvatarResponse);
     });
   });
 });
