@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, View, StyleSheet } from 'react-native';
-import { Text, HelperText } from 'react-native-paper';
+import { Button, Text, HelperText } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ItemForm } from '../../components/items/ItemForm';
@@ -81,11 +81,9 @@ export function CreateItemScreen({ navigation }: Props) {
             {photoError}
           </HelperText>
         )}
-        <View style={styles.doneContainer}>
-          <Text variant="labelLarge" style={styles.doneLink} onPress={handleDone} testID="done-btn">
-            {t('common.save')}
-          </Text>
-        </View>
+        <Button mode="contained" onPress={handleDone} testID="done-btn" style={styles.doneButton}>
+          {t('common.save')}
+        </Button>
       </ScrollView>
     );
   }
@@ -107,6 +105,5 @@ export function CreateItemScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 16 },
   sectionTitle: { color: '#2D3748', fontWeight: '600', marginBottom: 12 },
-  doneContainer: { alignItems: 'center', marginTop: 24 },
-  doneLink: { color: '#6B8E7B', fontWeight: '700', fontSize: 16 },
+  doneButton: { marginTop: 24, borderRadius: 12 },
 });
