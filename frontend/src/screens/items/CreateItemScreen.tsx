@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, View, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { Button, Text, HelperText } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
