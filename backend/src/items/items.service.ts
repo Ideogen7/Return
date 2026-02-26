@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
-  ConflictException,
+  BadRequestException,
   ForbiddenException,
   NotFoundException,
 } from '../common/exceptions/problem-details.exception.js';
@@ -34,6 +34,19 @@ export class ItemsService {
   // ---------------------------------------------------------------------------
 
   async create(userId: string, dto: CreateItemDto): Promise<ItemResponse> {
+    // Règle métier : estimatedValue obligatoire si category = MONEY
+    if (
+      dto.category === 'MONEY' &&
+      (dto.estimatedValue === undefined || dto.estimatedValue === null)
+    ) {
+      throw new BadRequestException(
+        'estimated-value-required',
+        'Estimated Value Required',
+        'estimatedValue is required when category is MONEY.',
+        '/v1/items',
+      );
+    }
+
     const item = await this.prisma.item.create({
       data: {
         name: dto.name,
@@ -161,7 +174,7 @@ export class ItemsService {
     // Vérifier la limite de photos
     const photoCount = await this.prisma.photo.count({ where: { itemId } });
     if (photoCount >= MAX_PHOTOS_PER_ITEM) {
-      throw new ConflictException(
+      throw new BadRequestException(
         'max-photos-exceeded',
         'Maximum Photos Exceeded',
         `An item can have a maximum of ${MAX_PHOTOS_PER_ITEM} photos.`,

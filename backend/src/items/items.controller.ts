@@ -15,6 +15,9 @@ import {
   Request,
   Res,
   ParseUUIDPipe,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request as ExpressRequest, Response } from 'express';
@@ -123,7 +126,15 @@ export class ItemsController {
   async addPhoto(
     @Request() req: ExpressRequest & { user: AuthenticatedUser },
     @Param('itemId', ParseUUIDPipe) itemId: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /(jpeg|jpg|png)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
     @Res({ passthrough: true }) res: Response,
   ): Promise<PhotoResponse> {
     const photo = await this.itemsService.addPhoto(

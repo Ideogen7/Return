@@ -5,7 +5,7 @@ import { ItemCategory } from '@prisma/client';
 import {
   NotFoundException,
   ForbiddenException,
-  ConflictException,
+  BadRequestException,
 } from '../common/exceptions/problem-details.exception.js';
 import { PHOTO_STORAGE } from '../storage/interfaces/photo-storage.interface.js';
 
@@ -152,6 +152,15 @@ describe('ItemsService', () => {
       expect(result.description).toBeNull();
       expect(result.estimatedValue).toBeNull();
       expect(result.photos).toEqual([]);
+    });
+
+    it('should throw BadRequestException when category is MONEY and estimatedValue is missing', async () => {
+      await expect(
+        service.create(USER_ID, {
+          name: 'Prêt à Pierre',
+          category: ItemCategory.MONEY,
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -366,7 +375,7 @@ describe('ItemsService', () => {
 
       await expect(
         service.addPhoto(ITEM_ID, USER_ID, Buffer.from('img'), 'pic.jpg'),
-      ).rejects.toThrow(ConflictException);
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw NotFoundException for non-existent item', async () => {

@@ -78,3 +78,9 @@ export class RateLimitException extends ProblemDetailsException {
     super(HttpStatus.TOO_MANY_REQUESTS, 'rate-limit-exceeded', 'Rate Limit Exceeded', detail, path);
   }
 }
+
+export class BadRequestException extends ProblemDetailsException {
+  constructor(type: string, title: string, detail: string, path: string) {
+    super(HttpStatus.BAD_REQUEST, type, title, detail, path);
+  }
+}
