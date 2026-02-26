@@ -252,7 +252,7 @@ export function ItemForm({
             label={t('items.estimatedValue')}
             onBlur={onBlur}
             onChange={onChange}
-            value={value}
+            value={value ?? undefined}
             error={!!errors.estimatedValue}
             testID="estimatedValue-input"
             style={[styles.input, ui.input]}

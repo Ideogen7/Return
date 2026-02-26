@@ -149,7 +149,7 @@ describe('useItemStore', () => {
       await useItemStore.getState().fetchItems();
 
       const item = useItemStore.getState().items[0]!;
-      const photoId = item.photos[0]!.id;
+      const photoId = item.photos![0]!.id;
 
       await useItemStore.getState().deletePhoto(item.id, photoId);
 
