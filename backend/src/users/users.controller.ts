@@ -1,20 +1,28 @@
 import {
   Controller,
   Get,
+  Put,
   Patch,
   Delete,
   Body,
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
   Request,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 import { DeleteAccountDto } from './dto/delete-account.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { mimeToExtension } from '../common/utils/mime.util.js';
 import type { SafeUser, UserSettings } from '../auth/interfaces/auth-response.interface.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
 
@@ -29,6 +37,7 @@ import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
 //   PATCH  /v1/users/me           → 200 OK           (SafeUser)
 //   DELETE /v1/users/me           → 204 No Content
 //   PATCH  /v1/users/me/password  → 204 No Content
+//   PUT    /v1/users/me/avatar    → 200 OK           ({ profilePicture })
 //   GET    /v1/users/me/settings  → 200 OK           (UserSettings)
 //   PATCH  /v1/users/me/settings  → 200 OK           (UserSettings)
 // =============================================================================
@@ -101,6 +110,32 @@ export class UsersController {
     @Body() dto: ChangePasswordDto,
   ): Promise<void> {
     await this.usersService.changePassword(req.user.userId, dto, req.user.jti, req.user.tokenExp);
+  }
+
+  /**
+   * PUT /v1/users/me/avatar
+   *
+   * Upload ou remplace la photo de profil (JPEG/PNG, max 2MB).
+   *
+   * @returns 200 OK — { profilePicture: string }
+   * @throws 400 Bad Request — Format invalide ou fichier trop volumineux
+   */
+  @Put('me/avatar')
+  @UseInterceptors(FileInterceptor('avatar'))
+  async updateAvatar(
+    @Request() req: { user: AuthenticatedUser },
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /(jpeg|jpg|png)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<{ profilePicture: string }> {
+    const safeFilename = `avatar.${mimeToExtension(file.mimetype)}`;
+    return this.usersService.updateAvatar(req.user.userId, file.buffer, safeFilename);
   }
 
   /**

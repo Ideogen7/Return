@@ -44,9 +44,10 @@ model User {
   lastLoginAt DateTime? @map("last_login_at")
 
   // Relations
-  refreshTokens RefreshToken[]
+  refreshTokens   RefreshToken[]
   borrowerProfile Borrower[] @relation("BorrowerUser")   // Contacts linked to this user as borrower
   borrowers       Borrower[] @relation("LenderBorrowers") // Contacts this user owns as lender
+  items           Item[]
 
   @@map("users")
 }
@@ -101,4 +102,68 @@ model Borrower {
   @@index([lenderUserId])
   @@index([userId])
   @@map("borrowers")
+}
+
+// =============================================================================
+// ITEMS (Objets prêtés)
+// =============================================================================
+
+/// Catégorie d'objet sélectionnée par le prêteur
+/// MONEY active le workflow prêt d'argent (estimatedValue = montant prêté, obligatoire)
+enum ItemCategory {
+  TOOLS
+  BOOKS
+  ELECTRONICS
+  SPORTS
+  KITCHEN
+  GARDEN
+  MONEY
+  OTHER
+}
+
+/// Bien physique ou somme d'argent faisant l'objet d'un Prêt
+model Item {
+  id             String       @id @default(uuid()) @db.Uuid
+  name           String       @db.VarChar(100)
+  description    String?      @db.VarChar(500)
+  category       ItemCategory
+  estimatedValue Float?       @map("estimated_value")
+
+  // Propriétaire (prêteur)
+  userId String @map("user_id") @db.Uuid
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos Photo[]
+
+  @@index([userId])
+  @@index([category])
+  @@map("items")
+}
+
+// =============================================================================
+// PHOTOS (Images d'objets sur Cloudflare R2)
+// =============================================================================
+
+/// Photo d'un objet stockée sur Cloudflare R2 (ou disque local en dev)
+model Photo {
+  id           String  @id @default(uuid()) @db.Uuid
+  url          String
+  thumbnailUrl String? @map("thumbnail_url")
+
+  // Objet parent
+  itemId String @map("item_id") @db.Uuid
+
+  // Timestamps
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  // Relations
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@map("photos")
 }
