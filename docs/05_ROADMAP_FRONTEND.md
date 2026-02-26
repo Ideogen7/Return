@@ -275,6 +275,21 @@ scope V1**.
 Gestion complète du cyclé de vie des prêts (création, confirmation, suivi, clôture). Deux types de prêts : **Objet
 physique (OBJECT)** et **Argent (MONEY)**.
 
+### Phase 4.0 : Photo de Profil (Rattrapage Sprint 3) (Jour 1 matin)
+
+> **Contexte** : Le backend `PUT /users/me/avatar` est implémenté depuis le Sprint 3 (USER-014/015/016) mais
+> l'intégration frontend a été omise. Cette phase comble le manque avant d'attaquer les Loans.
+
+| ID            | Titre                                                                                                                       | Dépendance        | Critère de Fin                                      | Temps |
+|---------------|-----------------------------------------------------------------------------------------------------------------------------|--------------------|-----------------------------------------------------|-------|
+| **AVATAR-001** | Ajouter action `updateAvatar(formData)` dans `useAuthStore` → `PUT /users/me/avatar` + mise à jour `user.profilePicture` | SETUP-006          | Action store appelle API réel, state mis à jour      | 45min |
+| **AVATAR-002** | Modifier `ProfileCard` : afficher `user.profilePicture` (Image) au lieu de l'icône statique, fallback sur icône si null   | AUTH-008           | Photo affichée si existante, icône sinon             | 30min |
+| **AVATAR-003** | Ajouter bouton camera overlay sur l'avatar dans `ProfileScreen` → `PhotoPicker` (réutiliser composant Items)              | AVATAR-002         | Tap sur avatar → choix galerie/camera → upload       | 1h    |
+| **AVATAR-004** | Ajouter handler MSW `PUT /users/me/avatar` → 200 avec `profilePicture` URL                                                | AVATAR-001         | Handler mock fonctionnel pour les tests              | 15min |
+| **AVATAR-005** | Écrire tests RNTL : affichage photo existante, fallback icône, upload succès                                               | AVATAR-002, 003    | 3 tests RNTL passent                                 | 1h    |
+
+> **Estimation** : ~3h30. Le `PhotoPicker` et `buildPhotoFormData` du module Items sont réutilisables directement.
+
 ### Statuts de prêt (machine à états)
 
 ```
@@ -522,7 +537,7 @@ export const API_BASE_URL = (endpoint: string): string => {
 | **Sprint 1** | 5 jours      | Auth + Profil + Settings | 7 (Login, Register, Profile, EditProfile, ChangePassword, DeleteAccount, Settings) | 6 tests       |
 | **Sprint 2** | 4 jours      | Borrowers                | 4 (List, Create, Detail, Edit)                                                     | 2 tests       |
 | **Sprint 3** | 4 jours      | Items (Photos)           | 4 (List, Create, Detail, Edit)                                                     | 2 tests       |
-| **Sprint 4** | 8 jours      | Loans                    | 5 (List, Create, Detail, Confirm, Return)                                          | 4 tests       |
+| **Sprint 4** | 8 jours      | Avatar + Loans           | 5 (List, Create, Detail, Confirm, Return) + avatar profil                          | 4+3 tests     |
 | **Sprint 5** | 5 jours      | Notifications            | 1 (NotificationList) + header badge                                                | 2 tests       |
 | **Sprint 6** | 4 jours      | Dashboard + History      | 3 (Dashboard, History, Statistics)                                                 | 1 test        |
 | **TOTAL**    | **38-42 j.** | **7 modules**            | **24 écrans**                                                                      | **17+ tests** |
