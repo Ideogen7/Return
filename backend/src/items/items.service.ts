@@ -129,6 +129,18 @@ export class ItemsService {
     const item = await this.findItemOrFail(itemId);
     this.assertOwnership(item, userId, `/v1/items/${itemId}`);
 
+    // Règle métier : l'état final ne doit jamais avoir category=MONEY sans estimatedValue
+    const finalCategory = dto.category ?? item.category;
+    const finalValue = dto.estimatedValue !== undefined ? dto.estimatedValue : item.estimatedValue;
+    if (finalCategory === 'MONEY' && (finalValue === undefined || finalValue === null)) {
+      throw new BadRequestException(
+        'estimated-value-required',
+        'Estimated Value Required',
+        'estimatedValue is required when category is MONEY.',
+        `/v1/items/${itemId}`,
+      );
+    }
+
     const updated = await this.prisma.item.update({
       where: { id: itemId },
       data: dto,

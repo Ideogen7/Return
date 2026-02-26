@@ -297,6 +297,31 @@ describe('ItemsService', () => {
         ForbiddenException,
       );
     });
+
+    it('should throw BadRequestException when changing category to MONEY without estimatedValue', async () => {
+      const itemWithoutValue = {
+        ...mockItemWithPhotos,
+        estimatedValue: null,
+      };
+      prisma.item.findUnique.mockResolvedValue(itemWithoutValue);
+
+      await expect(
+        service.update(ITEM_ID, USER_ID, { category: ItemCategory.MONEY }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException when setting estimatedValue to null on MONEY item', async () => {
+      const moneyItem = {
+        ...mockItemWithPhotos,
+        category: ItemCategory.MONEY,
+        estimatedValue: 50,
+      };
+      prisma.item.findUnique.mockResolvedValue(moneyItem);
+
+      await expect(service.update(ITEM_ID, USER_ID, { estimatedValue: null })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 
   // ===========================================================================
