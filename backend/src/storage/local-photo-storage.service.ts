@@ -57,7 +57,7 @@ export class LocalPhotoStorageService implements PhotoStorage {
     }
   }
 
-  async getUrl(key: string): Promise<string> {
-    return `${this.baseUrl}/${key}`;
+  getUrl(key: string): Promise<string> {
+    return Promise.resolve(`${this.baseUrl}/${key}`);
   }
 }

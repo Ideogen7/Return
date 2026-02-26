@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
 import { HealthModule } from './health/health.module.js';
 import { BorrowersModule } from './borrowers/borrowers.module.js';
+import { ItemsModule } from './items/items.module.js';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware.js';
 
 @Module({
@@ -33,6 +34,7 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
     UsersModule,
     HealthModule,
     BorrowersModule,
+    ItemsModule,
   ],
   providers: [
     {

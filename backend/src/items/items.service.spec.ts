@@ -8,7 +8,6 @@ import {
   ConflictException,
 } from '../common/exceptions/problem-details.exception.js';
 import { PHOTO_STORAGE } from '../storage/interfaces/photo-storage.interface.js';
-import type { PhotoStorage } from '../storage/interfaces/photo-storage.interface.js';
 
 // =============================================================================
 // ItemsService — Unit Tests (TDD)
