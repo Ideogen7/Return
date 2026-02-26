@@ -8,6 +8,7 @@ import {
 import {
   DEFAULT_BORROWER_STATISTICS,
   type BorrowerResponse,
+  type BorrowerStatistics,
   type PaginatedBorrowersResponse,
 } from './interfaces/borrower-response.interface.js';
 import type { CreateBorrowerDto } from './dto/create-borrower.dto.js';
@@ -78,6 +79,21 @@ export class BorrowersService {
         hasNextPage: page < totalPages,
         hasPreviousPage: page > 1,
       },
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // GET STATISTICS
+  // ---------------------------------------------------------------------------
+
+  async getStatistics(borrowerId: string, lenderUserId: string): Promise<BorrowerStatistics> {
+    const borrower = await this.findBorrowerOrFail(borrowerId);
+    this.assertOwnership(borrower, lenderUserId, `/v1/borrowers/${borrowerId}/statistics`);
+
+    return {
+      ...DEFAULT_BORROWER_STATISTICS,
+      trustScore: borrower.trustScore,
+      totalLoans: borrower.totalLoans,
     };
   }
 

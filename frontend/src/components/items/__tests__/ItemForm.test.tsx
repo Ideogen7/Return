@@ -150,6 +150,43 @@ describe('ItemForm', () => {
     expect(callArgs.estimatedValue).toBe(500);
   });
 
+  it('should submit with decimal value 12.5', async () => {
+    const { onSubmit } = renderForm({ mode: 'create' });
+
+    fireEvent.changeText(screen.getByTestId('name-input'), 'Perceuse Bosch');
+    fireEvent.press(screen.getByTestId('category-chip-TOOLS'));
+    fireEvent.changeText(screen.getByTestId('estimatedValue-input'), '12.5');
+    fireEvent.press(screen.getByTestId('item-submit-btn'));
+
+    await waitFor(
+      () => {
+        expect(onSubmit).toHaveBeenCalled();
+      },
+      { timeout: 3000 },
+    );
+
+    const callArgs = (onSubmit as jest.Mock).mock.calls[0]![0] as Record<string, unknown>;
+    expect(callArgs.estimatedValue).toBe(12.5);
+  });
+
+  it('should preserve trailing dot while typing "12."', () => {
+    renderForm();
+
+    fireEvent.changeText(screen.getByTestId('estimatedValue-input'), '12.');
+
+    expect(screen.getByDisplayValue('12.')).toBeTruthy();
+  });
+
+  it('should normalize "12." to "12" on blur', () => {
+    renderForm();
+
+    const input = screen.getByTestId('estimatedValue-input');
+    fireEvent.changeText(input, '12.');
+    fireEvent(input, 'blur');
+
+    expect(screen.getByDisplayValue('12')).toBeTruthy();
+  });
+
   it('should not require estimatedValue for non-MONEY categories', async () => {
     const { onSubmit } = renderForm({ mode: 'create' });
 

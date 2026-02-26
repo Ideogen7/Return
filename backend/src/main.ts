@@ -1,7 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger, BadRequestException } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { ValidationError } from 'class-validator';
 import { ConfigService } from '@nestjs/config';
+import { join } from 'path';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 import { loggerConfig } from './common/logger/winston.config.js';
@@ -35,9 +37,12 @@ function constraintToCode(constraintName: string): string {
 }
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: loggerConfig,
   });
+
+  // Serve uploaded files (photos, avatars) at /uploads/*
+  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 
   const config = app.get(ConfigService);
   const logger = new Logger('Bootstrap');

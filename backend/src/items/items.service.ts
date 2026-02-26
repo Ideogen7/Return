@@ -212,6 +212,23 @@ export class ItemsService {
   }
 
   // ---------------------------------------------------------------------------
+  // DELETE PHOTO
+  // ---------------------------------------------------------------------------
+
+  async deletePhoto(itemId: string, photoId: string, userId: string): Promise<void> {
+    const item = await this.findItemOrFail(itemId);
+    this.assertOwnership(item, userId, `/v1/items/${itemId}/photos/${photoId}`);
+
+    const photo = item.photos.find((p) => p.id === photoId);
+    if (!photo) {
+      throw new NotFoundException('Photo', photoId, `/v1/items/${itemId}/photos/${photoId}`);
+    }
+
+    await this.photoStorage.delete(photo.url);
+    await this.prisma.photo.delete({ where: { id: photoId } });
+  }
+
+  // ---------------------------------------------------------------------------
   // PRIVATE HELPERS
   // ---------------------------------------------------------------------------
 

@@ -44,6 +44,7 @@ import type { PhotoResponse } from './interfaces/photo-response.interface.js';
 //   PATCH  /v1/items/:itemId               → 200 OK | 400 | 403 | 404
 //   DELETE /v1/items/:itemId               → 204 No Content | 403 | 404 | 409
 //   POST   /v1/items/:itemId/photos        → 201 Created + Location + PhotoResponse
+//   DELETE /v1/items/:itemId/photos/:photoId → 204 No Content | 403 | 404
 // =============================================================================
 
 @Controller('items')
@@ -148,5 +149,18 @@ export class ItemsController {
     const baseUrl = `${req.protocol}://${req.headers.host as string}`;
     res.setHeader('Location', `${baseUrl}/v1/items/${itemId}/photos/${photo.id}`);
     return photo;
+  }
+
+  /**
+   * DELETE /v1/items/:itemId/photos/:photoId
+   */
+  @Delete(':itemId/photos/:photoId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deletePhoto(
+    @Request() req: { user: AuthenticatedUser },
+    @Param('itemId', ParseUUIDPipe) itemId: string,
+    @Param('photoId', ParseUUIDPipe) photoId: string,
+  ): Promise<void> {
+    return this.itemsService.deletePhoto(itemId, photoId, req.user.userId);
   }
 }

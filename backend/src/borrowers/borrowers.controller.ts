@@ -27,6 +27,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
 import type {
   BorrowerResponse,
+  BorrowerStatistics,
   PaginatedBorrowersResponse,
 } from './interfaces/borrower-response.interface.js';
 
@@ -37,11 +38,12 @@ import type {
 // Le lenderUserId est TOUJOURS extrait du JWT (req.user.userId).
 //
 // Routes (préfixe global /v1 + prefix 'borrowers') :
-//   GET    /v1/borrowers           → 200 OK + PaginatedBorrowersResponse
-//   POST   /v1/borrowers           → 201 Created + Location header + BorrowerResponse
-//   GET    /v1/borrowers/:id       → 200 OK | 403 | 404
-//   PATCH  /v1/borrowers/:id       → 200 OK | 403 | 404 | 409
-//   DELETE /v1/borrowers/:id       → 204 No Content | 403 | 404 | 409
+//   GET    /v1/borrowers                  → 200 OK + PaginatedBorrowersResponse
+//   POST   /v1/borrowers                  → 201 Created + Location header + BorrowerResponse
+//   GET    /v1/borrowers/:id              → 200 OK | 403 | 404
+//   GET    /v1/borrowers/:id/statistics   → 200 OK | 403 | 404
+//   PATCH  /v1/borrowers/:id              → 200 OK | 403 | 404 | 409
+//   DELETE /v1/borrowers/:id              → 204 No Content | 403 | 404 | 409
 // =============================================================================
 
 @Controller('borrowers')
@@ -79,6 +81,17 @@ export class BorrowersController {
       page: query.page ?? 1,
       limit: query.limit ?? 20,
     });
+  }
+
+  /**
+   * GET /v1/borrowers/:id/statistics
+   */
+  @Get(':id/statistics')
+  async getStatistics(
+    @Request() req: { user: AuthenticatedUser },
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<BorrowerStatistics> {
+    return this.borrowersService.getStatistics(id, req.user.userId);
   }
 
   /**

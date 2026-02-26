@@ -104,7 +104,10 @@
     "itemCurrentlyLoaned": "This item cannot be deleted because it is currently loaned",
     "maxPhotosExceeded": "Maximum number of photos reached (5)",
     "unauthorized": "Session expired. Please log in again.",
-    "forbidden": "You do not have permission to perform this action."
+    "forbidden": "You do not have permission to perform this action.",
+    "rateLimitExceeded": "Too many attempts. Please try again in a few minutes.",
+    "internalServerError": "Server error. Please try again later.",
+    "photoNotFound": "Photo not found"
   },
   "items": {
     "title": "Items",
@@ -145,7 +148,10 @@
     "categoryKitchen": "Kitchen",
     "categoryGarden": "Garden",
     "categoryMoney": "Money",
-    "categoryOther": "Other"
+    "categoryOther": "Other",
+    "deletePhoto": "Delete photo",
+    "confirmDeletePhoto": "Are you sure you want to delete this photo?",
+    "photoDeleteFailed": "Failed to delete photo. Please try again."
   },
   "navigation": {
     "loans": "Loans",

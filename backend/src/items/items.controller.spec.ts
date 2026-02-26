@@ -216,4 +216,18 @@ describe('ItemsController', () => {
       expect(service.addPhoto).toHaveBeenCalledWith(ITEM_ID, USER_ID, mockFile.buffer, 'photo.jpg');
     });
   });
+
+  // ===========================================================================
+  // DELETE /v1/items/:itemId/photos/:photoId
+  // ===========================================================================
+
+  describe('deletePhoto', () => {
+    it('should call service.deletePhoto with correct params (204)', async () => {
+      service.deletePhoto.mockResolvedValue(undefined);
+
+      await controller.deletePhoto({ user: MOCK_AUTH_USER }, ITEM_ID, PHOTO_ID);
+
+      expect(service.deletePhoto).toHaveBeenCalledWith(ITEM_ID, PHOTO_ID, USER_ID);
+    });
+  });
 });

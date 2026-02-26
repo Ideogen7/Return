@@ -43,9 +43,13 @@ const ERROR_TYPE_MAP: Record<string, string> = {
   'https://api.return.app/errors/item-not-found': 'errors.itemNotFound',
   'https://api.return.app/errors/item-currently-loaned': 'errors.itemCurrentlyLoaned',
   'https://api.return.app/errors/max-photos-exceeded': 'errors.maxPhotosExceeded',
+  'https://api.return.app/errors/photo-not-found': 'errors.photoNotFound',
+  'https://api.return.app/errors/estimated-value-required': 'items.estimatedValueRequired',
   'https://api.return.app/errors/unauthorized': 'errors.unauthorized',
   'https://api.return.app/errors/invalid-token': 'errors.unauthorized',
   'https://api.return.app/errors/forbidden': 'errors.forbidden',
+  'https://api.return.app/errors/rate-limit-exceeded': 'errors.rateLimitExceeded',
+  'https://api.return.app/errors/internal-server-error': 'errors.internalServerError',
 };
 
 // Traduit un ProblemDetails en message lisible

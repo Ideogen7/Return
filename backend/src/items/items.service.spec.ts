@@ -422,4 +422,53 @@ describe('ItemsService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
   });
+
+  // ===========================================================================
+  // DELETE PHOTO
+  // ===========================================================================
+
+  describe('deletePhoto', () => {
+    const PHOTO_ID = 'pppppppp-pppp-pppp-pppp-pppppppppppp';
+
+    it('should delete a photo from storage and database', async () => {
+      prisma.item.findUnique.mockResolvedValue(mockItemWithPhotos);
+      prisma.photo.delete.mockResolvedValue(mockItemWithPhotos.photos[0]);
+
+      await service.deletePhoto(ITEM_ID, PHOTO_ID, USER_ID);
+
+      expect(photoStorage.delete).toHaveBeenCalledWith(
+        'http://localhost:3000/uploads/items/test/photo1.jpg',
+      );
+      expect(prisma.photo.delete).toHaveBeenCalledWith({
+        where: { id: PHOTO_ID },
+      });
+    });
+
+    it('should throw NotFoundException when item does not exist', async () => {
+      prisma.item.findUnique.mockResolvedValue(null);
+
+      await expect(service.deletePhoto(ITEM_ID, PHOTO_ID, USER_ID)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw ForbiddenException when user does not own the item', async () => {
+      prisma.item.findUnique.mockResolvedValue(mockItemWithPhotos);
+
+      await expect(service.deletePhoto(ITEM_ID, PHOTO_ID, OTHER_USER_ID)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('should throw NotFoundException when photo does not exist on item', async () => {
+      prisma.item.findUnique.mockResolvedValue({
+        ...mockItem,
+        photos: [],
+      });
+
+      await expect(service.deletePhoto(ITEM_ID, 'nonexistent-photo-id', USER_ID)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 });

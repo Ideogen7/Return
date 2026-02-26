@@ -941,6 +941,39 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /items/{itemId}/photos/{photoId}:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: photoId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    delete:
+      tags:
+        - Items
+      summary: Supprimer une photo d'un objet
+      description: |
+        Supprime une photo associée à un objet. Le fichier est supprimé du storage
+        et l'enregistrement est retiré de la base de données.
+      operationId: deletePhotoFromItem
+      responses:
+        '204':
+          description: Photo supprimée avec succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # =============================================================================
   # BORROWERS ENDPOINTS
   # =============================================================================

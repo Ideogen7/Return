@@ -60,7 +60,7 @@ describe('ItemListScreen', () => {
 
   it('should render empty state when no items', async () => {
     server.use(
-      http.get('http://localhost:4010/items', () => {
+      http.get('http://localhost:3000/v1/items', () => {
         return HttpResponse.json(
           {
             data: [],

@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../__mocks__/server';
 import { useItemStore } from '../useItemStore';
 
-const API_BASE = 'http://localhost:4010';
+const API_BASE = 'http://localhost:3000/v1';
 
 beforeAll(() => server.listen());
 afterEach(() => {
@@ -141,6 +141,44 @@ describe('useItemStore', () => {
       const state = useItemStore.getState();
       expect(state.error?.status).toBe(409);
       expect(state.isLoading).toBe(false);
+    });
+  });
+
+  describe('deletePhoto', () => {
+    it('should remove photo from item', async () => {
+      await useItemStore.getState().fetchItems();
+
+      const item = useItemStore.getState().items[0]!;
+      const photoId = item.photos![0]!.id;
+
+      await useItemStore.getState().deletePhoto(item.id, photoId);
+
+      const state = useItemStore.getState();
+      expect(state.items[0]!.photos).toHaveLength(0);
+    });
+
+    it('should set error on 404 (photo not found)', async () => {
+      server.use(
+        http.delete(`${API_BASE}/items/:itemId/photos/:photoId`, () => {
+          return HttpResponse.json(
+            {
+              type: 'https://api.return.app/errors/photo-not-found',
+              title: 'Photo Not Found',
+              status: 404,
+              detail: 'Photo not found.',
+              instance: '/items/some-id/photos/bad-id',
+              timestamp: '2026-02-25T10:00:00Z',
+              requestId: 'req-mock',
+            },
+            { status: 404 },
+          );
+        }),
+      );
+
+      await expect(useItemStore.getState().deletePhoto('some-id', 'bad-id')).rejects.toThrow();
+
+      const state = useItemStore.getState();
+      expect(state.error?.status).toBe(404);
     });
   });
 

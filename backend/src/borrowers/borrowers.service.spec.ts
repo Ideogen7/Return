@@ -256,6 +256,68 @@ describe('BorrowersService', () => {
   });
 
   // ===========================================================================
+  // GET STATISTICS
+  // ===========================================================================
+
+  describe('getStatistics', () => {
+    it('should return borrower statistics with defaults', async () => {
+      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
+
+      const result = await service.getStatistics(BORROWER_ID, LENDER_USER_ID);
+
+      expect(result).toEqual({
+        totalLoans: 0,
+        returnedOnTime: 0,
+        returnedLate: 0,
+        notReturned: 0,
+        averageReturnDelay: null,
+        trustScore: 0,
+      });
+    });
+
+    it('should map trustScore and totalLoans from database values', async () => {
+      const borrowerWithStats: Borrower = {
+        ...MOCK_BORROWER,
+        trustScore: 88,
+        totalLoans: 12,
+      };
+      prisma.borrower.findUnique.mockResolvedValue(borrowerWithStats);
+
+      const result = await service.getStatistics(BORROWER_ID, LENDER_USER_ID);
+
+      expect(result.trustScore).toBe(88);
+      expect(result.totalLoans).toBe(12);
+      expect(result.returnedOnTime).toBe(0);
+    });
+
+    it('should throw 404 if borrower does not exist', async () => {
+      prisma.borrower.findUnique.mockResolvedValue(null);
+
+      try {
+        await service.getStatistics('nonexistent-id', LENDER_USER_ID);
+        fail('Expected NotFoundException');
+      } catch (error: unknown) {
+        const body = (error as { getResponse: () => ProblemDetails }).getResponse();
+        expect(body.status).toBe(HttpStatus.NOT_FOUND);
+        expect(body.type).toContain('not-found');
+      }
+    });
+
+    it('should throw 403 if borrower belongs to another user', async () => {
+      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
+
+      try {
+        await service.getStatistics(BORROWER_ID, OTHER_USER_ID);
+        fail('Expected ForbiddenException');
+      } catch (error: unknown) {
+        const body = (error as { getResponse: () => ProblemDetails }).getResponse();
+        expect(body.status).toBe(HttpStatus.FORBIDDEN);
+        expect(body.type).toContain('forbidden');
+      }
+    });
+  });
+
+  // ===========================================================================
   // FIND BY ID
   // ===========================================================================
 

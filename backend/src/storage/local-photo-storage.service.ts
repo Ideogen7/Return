@@ -45,7 +45,9 @@ export class LocalPhotoStorageService implements PhotoStorage {
   }
 
   async delete(key: string): Promise<void> {
-    const filePath = join(this.uploadDir, key);
+    // Support both storage keys ("items/...") and full URLs ("http://...uploads/items/...")
+    const resolvedKey = key.startsWith('http') ? key.replace(`${this.baseUrl}/`, '') : key;
+    const filePath = join(this.uploadDir, resolvedKey);
 
     try {
       await access(filePath);

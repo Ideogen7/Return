@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ItemForm } from '../../components/items/ItemForm';
 import { PhotoGallery } from '../../components/items/PhotoGallery';
-import { PhotoPicker, getMimeType } from '../../components/items/PhotoPicker';
+import { PhotoPicker } from '../../components/items/PhotoPicker';
+import { buildPhotoFormData } from '../../utils/photo';
 import { useItemStore } from '../../stores/useItemStore';
 import { parseProblemDetails, getErrorMessage } from '../../utils/error';
 import type { ItemStackParamList } from '../../navigation/types';
@@ -44,17 +45,8 @@ export function CreateItemScreen({ navigation }: Props) {
     if (!createdItemId) return;
     setPhotoError(undefined);
 
-    const mimeType = getMimeType(uri);
-    const ext = mimeType === 'image/png' ? 'png' : 'jpg';
-
-    const formData = new FormData();
-    formData.append('photo', {
-      uri,
-      type: mimeType,
-      name: `photo.${ext}`,
-    } as unknown as Blob);
-
     try {
+      const formData = await buildPhotoFormData(uri);
       const photo = await useItemStore.getState().uploadPhoto(createdItemId, formData);
       setPhotos((prev) => [...prev, photo]);
     } catch (err) {

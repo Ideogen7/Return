@@ -244,7 +244,7 @@ export const handlers = [
   // =========================================================================
 
   // GET /items
-  http.get(`${API_MOCK}/items`, () => {
+  http.get(`${API_REAL}/items`, () => {
     return HttpResponse.json(
       {
         data: [{ ...mockItem }],
@@ -262,7 +262,7 @@ export const handlers = [
   }),
 
   // POST /items
-  http.post(`${API_MOCK}/items`, async ({ request }) => {
+  http.post(`${API_REAL}/items`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(
       {
@@ -276,7 +276,7 @@ export const handlers = [
   }),
 
   // GET /items/:itemId
-  http.get(`${API_MOCK}/items/:itemId`, ({ params }) => {
+  http.get(`${API_REAL}/items/:itemId`, ({ params }) => {
     if (params.itemId === 'not-found') {
       return HttpResponse.json(
         {
@@ -296,18 +296,18 @@ export const handlers = [
   }),
 
   // PATCH /items/:itemId
-  http.patch(`${API_MOCK}/items/:itemId`, async ({ params, request }) => {
+  http.patch(`${API_REAL}/items/:itemId`, async ({ params, request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json({ ...mockItem, id: params.itemId, ...body }, { status: 200 });
   }),
 
   // DELETE /items/:itemId
-  http.delete(`${API_MOCK}/items/:itemId`, () => {
+  http.delete(`${API_REAL}/items/:itemId`, () => {
     return new HttpResponse(null, { status: 204 });
   }),
 
   // POST /items/:itemId/photos
-  http.post(`${API_MOCK}/items/:itemId/photos`, () => {
+  http.post(`${API_REAL}/items/:itemId/photos`, () => {
     return HttpResponse.json(
       {
         id: 'p-new-photo-id',
@@ -317,6 +317,11 @@ export const handlers = [
       },
       { status: 201 },
     );
+  }),
+
+  // DELETE /items/:itemId/photos/:photoId
+  http.delete(`${API_REAL}/items/:itemId/photos/:photoId`, () => {
+    return new HttpResponse(null, { status: 204 });
   }),
 
   // =========================================================================

@@ -57,3 +57,6 @@ frontend/android
 # Copilot instructions
 copilot-instructions.md
 
+
+# Upload artifacts (dev)
+backend/uploads/

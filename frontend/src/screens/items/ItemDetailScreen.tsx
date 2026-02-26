@@ -12,7 +12,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { PhotoGallery } from '../../components/items/PhotoGallery';
-import { PhotoPicker, getMimeType } from '../../components/items/PhotoPicker';
+import { PhotoPicker } from '../../components/items/PhotoPicker';
+import { buildPhotoFormData } from '../../utils/photo';
 import { CATEGORY_I18N } from '../../components/items/ItemCard';
 import { useItemStore } from '../../stores/useItemStore';
 import { parseProblemDetails, getErrorMessage } from '../../utils/error';
@@ -27,6 +28,7 @@ export function ItemDetailScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { selectedItem, isLoading, error, fetchItem } = useItemStore();
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [deletePhotoId, setDeletePhotoId] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | undefined>();
 
   useEffect(() => {
@@ -45,19 +47,24 @@ export function ItemDetailScreen({ route, navigation }: Props) {
     }
   };
 
+  const handleDeletePhoto = async () => {
+    if (!deletePhotoId) return;
+    const photoId = deletePhotoId;
+    setDeletePhotoId(null);
+    setApiError(undefined);
+    try {
+      await useItemStore.getState().deletePhoto(id, photoId);
+    } catch (err) {
+      const problem = parseProblemDetails(err as AxiosError);
+      setApiError(problem ? getErrorMessage(problem, t) : t('items.photoDeleteFailed'));
+    }
+  };
+
   const handlePhotoPicked = async (uri: string) => {
     setApiError(undefined);
-    const mimeType = getMimeType(uri);
-    const ext = mimeType === 'image/png' ? 'png' : 'jpg';
-
-    const formData = new FormData();
-    formData.append('photo', {
-      uri,
-      type: mimeType,
-      name: `photo.${ext}`,
-    } as unknown as Blob);
 
     try {
+      const formData = await buildPhotoFormData(uri);
       await useItemStore.getState().uploadPhoto(id, formData);
     } catch (err) {
       const problem = parseProblemDetails(err as AxiosError);
@@ -91,7 +98,10 @@ export function ItemDetailScreen({ route, navigation }: Props) {
       {/* Photos section */}
       {selectedItem.photos && selectedItem.photos.length > 0 && (
         <View style={styles.photoSection}>
-          <PhotoGallery photos={selectedItem.photos} />
+          <PhotoGallery
+            photos={selectedItem.photos}
+            onDeletePress={(photoId) => setDeletePhotoId(photoId)}
+          />
         </View>
       )}
 
@@ -189,6 +199,29 @@ export function ItemDetailScreen({ route, navigation }: Props) {
               {t('common.cancel')}
             </Button>
             <Button onPress={handleDelete} textColor="#D97A6B" testID="confirm-delete-btn">
+              {t('common.delete')}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog
+          visible={deletePhotoId !== null}
+          onDismiss={() => setDeletePhotoId(null)}
+          testID="confirm-delete-photo-dialog"
+        >
+          <Dialog.Title>{t('items.deletePhoto')}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">{t('items.confirmDeletePhoto')}</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeletePhotoId(null)} testID="cancel-delete-photo-btn">
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onPress={handleDeletePhoto}
+              textColor="#D97A6B"
+              testID="confirm-delete-photo-btn"
+            >
               {t('common.delete')}
             </Button>
           </Dialog.Actions>

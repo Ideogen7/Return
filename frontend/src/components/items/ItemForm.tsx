@@ -1,3 +1,4 @@
+import { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { TextInput, Button, HelperText, Chip, Text } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
@@ -5,6 +6,97 @@ import { useTranslation } from 'react-i18next';
 import { ui } from '../../config/theme.config';
 import type { CreateItemDto, ItemCategory } from '../../types/api.types';
 import { CATEGORY_I18N } from './ItemCard';
+
+// ---------------------------------------------------------------------------
+// DecimalInput — handles decimal point preservation during typing
+// ---------------------------------------------------------------------------
+
+interface DecimalInputProps {
+  value: number | undefined;
+  onChange: (value: number | undefined) => void;
+  onBlur: () => void;
+  error: boolean;
+  testID: string;
+  label: string;
+  style: object[];
+  outlineStyle: object;
+}
+
+function DecimalInput({
+  value,
+  onChange,
+  onBlur: fieldBlur,
+  error,
+  testID,
+  label,
+  style,
+  outlineStyle,
+}: DecimalInputProps) {
+  const [rawText, setRawText] = useState(value != null ? String(value) : '');
+
+  const handleChangeText = useCallback(
+    (text: string) => {
+      // Allow comma as decimal separator (French keyboards)
+      const normalized = text.replace(',', '.');
+
+      // Allow empty, digits, and one decimal point (possibly trailing)
+      if (normalized !== '' && !/^\d*\.?\d*$/.test(normalized)) return;
+
+      setRawText(normalized);
+
+      // Only send to form if value is a complete number (no trailing dot)
+      if (normalized === '' || normalized === '.') {
+        onChange(undefined);
+      } else if (!normalized.endsWith('.')) {
+        const num = parseFloat(normalized);
+        if (!isNaN(num)) onChange(num);
+      }
+    },
+    [onChange],
+  );
+
+  const handleBlur = useCallback(() => {
+    // Normalize display on blur (remove trailing dot)
+    if (rawText.endsWith('.')) {
+      const num = parseFloat(rawText);
+      if (!isNaN(num)) {
+        setRawText(String(num));
+        onChange(num);
+      } else {
+        setRawText('');
+        onChange(undefined);
+      }
+    }
+    fieldBlur();
+  }, [rawText, onChange, fieldBlur]);
+
+  // Sync rawText when external value changes (e.g. form reset / default values)
+  useEffect(() => {
+    const expected = value != null ? String(value) : '';
+    // Only sync if the external value actually differs and we're not mid-typing with trailing dot
+    if (!rawText.endsWith('.') && rawText !== expected) {
+      setRawText(expected);
+    }
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const displayValue = rawText;
+
+  return (
+    <TextInput
+      label={label}
+      mode="outlined"
+      keyboardType="decimal-pad"
+      left={<TextInput.Icon icon="currency-eur" color="#A8B5BF" />}
+      onBlur={handleBlur}
+      onChangeText={handleChangeText}
+      value={displayValue}
+      error={error}
+      testID={testID}
+      style={style}
+      outlineStyle={outlineStyle}
+    />
+  );
+}
 
 const CATEGORIES: ItemCategory[] = [
   'TOOLS',
@@ -156,17 +248,11 @@ export function ItemForm({
           min: { value: 0, message: t('items.estimatedValueMin') },
         }}
         render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
+          <DecimalInput
             label={t('items.estimatedValue')}
-            mode="outlined"
-            keyboardType="decimal-pad"
-            left={<TextInput.Icon icon="currency-eur" color="#A8B5BF" />}
             onBlur={onBlur}
-            onChangeText={(text) => {
-              const num = parseFloat(text);
-              onChange(isNaN(num) ? undefined : num);
-            }}
-            value={value != null ? String(value) : ''}
+            onChange={onChange}
+            value={value ?? undefined}
             error={!!errors.estimatedValue}
             testID="estimatedValue-input"
             style={[styles.input, ui.input]}
