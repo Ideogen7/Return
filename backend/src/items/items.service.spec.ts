@@ -6,6 +6,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '../common/exceptions/problem-details.exception.js';
 import { PHOTO_STORAGE } from '../storage/interfaces/photo-storage.interface.js';
 
@@ -28,6 +29,9 @@ describe('ItemsService', () => {
       create: jest.Mock;
       count: jest.Mock;
       delete: jest.Mock;
+    };
+    loan: {
+      count: jest.Mock;
     };
   };
   let photoStorage: {
@@ -78,6 +82,9 @@ describe('ItemsService', () => {
         create: jest.fn(),
         count: jest.fn(),
         delete: jest.fn(),
+      },
+      loan: {
+        count: jest.fn(),
       },
     };
 
@@ -331,6 +338,7 @@ describe('ItemsService', () => {
   describe('delete', () => {
     it('should delete an item and its photos from storage', async () => {
       prisma.item.findUnique.mockResolvedValue(mockItemWithPhotos);
+      prisma.loan.count.mockResolvedValue(0);
       prisma.item.delete.mockResolvedValue(mockItemWithPhotos);
 
       await service.delete(ITEM_ID, USER_ID);
@@ -352,6 +360,13 @@ describe('ItemsService', () => {
       prisma.item.findUnique.mockResolvedValue(mockItemWithPhotos);
 
       await expect(service.delete(ITEM_ID, OTHER_USER_ID)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw 409 ConflictException when item has active loans (LOAN-039)', async () => {
+      prisma.item.findUnique.mockResolvedValue(mockItemWithPhotos);
+      prisma.loan.count.mockResolvedValue(1);
+
+      await expect(service.delete(ITEM_ID, USER_ID)).rejects.toThrow(ConflictException);
     });
   });
 

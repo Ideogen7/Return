@@ -13,11 +13,19 @@ import {
 } from './interfaces/borrower-response.interface.js';
 import type { CreateBorrowerDto } from './dto/create-borrower.dto.js';
 import type { UpdateBorrowerDto } from './dto/update-borrower.dto.js';
-import type { Borrower } from '@prisma/client';
+import type { Borrower, LoanStatus } from '@prisma/client';
 
 // =============================================================================
 // BorrowersService — Logique métier du module Borrowers
 // =============================================================================
+
+/** Statuses where a loan is considered "active" (borrower cannot be deleted) */
+const ACTIVE_LOAN_STATUSES: LoanStatus[] = [
+  'PENDING_CONFIRMATION',
+  'ACTIVE',
+  'ACTIVE_BY_DEFAULT',
+  'AWAITING_RETURN',
+] as LoanStatus[];
 
 @Injectable()
 export class BorrowersService {
@@ -140,6 +148,23 @@ export class BorrowersService {
   async delete(borrowerId: string, lenderUserId: string): Promise<void> {
     const borrower = await this.findBorrowerOrFail(borrowerId);
     this.assertOwnership(borrower, lenderUserId, `/v1/borrowers/${borrowerId}`);
+
+    // LOAN-038: Cannot delete a borrower with active loans
+    const activeLoanCount = await this.prisma.loan.count({
+      where: {
+        borrowerId,
+        status: { in: ACTIVE_LOAN_STATUSES },
+        deletedAt: null,
+      },
+    });
+    if (activeLoanCount > 0) {
+      throw new ConflictException(
+        'active-loans-exist',
+        'Active Loans Exist',
+        'Cannot delete a borrower who has active loans.',
+        `/v1/borrowers/${borrowerId}`,
+      );
+    }
 
     await this.prisma.borrower.delete({ where: { id: borrowerId } });
   }

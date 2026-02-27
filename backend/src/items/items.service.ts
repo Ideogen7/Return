@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '../common/exceptions/problem-details.exception.js';
@@ -11,7 +12,7 @@ import type { ItemResponse, PaginatedItemsResponse } from './interfaces/item-res
 import type { PhotoResponse } from './interfaces/photo-response.interface.js';
 import type { CreateItemDto } from './dto/create-item.dto.js';
 import type { UpdateItemDto } from './dto/update-item.dto.js';
-import type { Item, Photo, ItemCategory } from '@prisma/client';
+import type { Item, Photo, ItemCategory, LoanStatus } from '@prisma/client';
 
 // =============================================================================
 // ItemsService — Logique métier du module Items
@@ -19,6 +20,14 @@ import type { Item, Photo, ItemCategory } from '@prisma/client';
 
 /** Maximum de photos par item (OpenAPI: maxItems 5) */
 const MAX_PHOTOS_PER_ITEM = 5;
+
+/** Statuses where a loan is considered "active" (item not available) */
+const ACTIVE_LOAN_STATUSES: LoanStatus[] = [
+  'PENDING_CONFIRMATION',
+  'ACTIVE',
+  'ACTIVE_BY_DEFAULT',
+  'AWAITING_RETURN',
+] as LoanStatus[];
 
 type ItemWithPhotos = Item & { photos: Photo[] };
 
@@ -81,8 +90,23 @@ export class ItemsService {
     if (category) {
       where.category = category;
     }
-    // Note: 'available' filter will be implemented when Loans module exists
-    // (filter items not in an active loan)
+
+    // LOAN-036: Filter items by availability (no active loan)
+    if (query.available === true) {
+      where.loans = {
+        none: {
+          status: { in: ACTIVE_LOAN_STATUSES },
+          deletedAt: null,
+        },
+      };
+    } else if (query.available === false) {
+      where.loans = {
+        some: {
+          status: { in: ACTIVE_LOAN_STATUSES },
+          deletedAt: null,
+        },
+      };
+    }
 
     const [items, totalItems] = await Promise.all([
       this.prisma.item.findMany({
@@ -158,8 +182,22 @@ export class ItemsService {
     const item = await this.findItemOrFail(itemId);
     this.assertOwnership(item, userId, `/v1/items/${itemId}`);
 
-    // TODO: Vérifier qu'aucun prêt actif n'existe (Sprint 4 — Loans module)
-    // if (hasActiveLoan) throw ConflictException('item-currently-loaned', ...)
+    // LOAN-039: Cannot delete an item that is currently in an active loan
+    const activeLoanCount = await this.prisma.loan.count({
+      where: {
+        itemId,
+        status: { in: ACTIVE_LOAN_STATUSES },
+        deletedAt: null,
+      },
+    });
+    if (activeLoanCount > 0) {
+      throw new ConflictException(
+        'item-currently-loaned',
+        'Item Currently Loaned',
+        'Cannot delete an item that is associated with an active loan.',
+        `/v1/items/${itemId}`,
+      );
+    }
 
     // Supprimer les photos du storage
     for (const photo of item.photos) {
