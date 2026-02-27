@@ -48,6 +48,7 @@ model User {
   borrowerProfile Borrower[] @relation("BorrowerUser")   // Contacts linked to this user as borrower
   borrowers       Borrower[] @relation("LenderBorrowers") // Contacts this user owns as lender
   items           Item[]
+  loans           Loan[]     @relation("LenderLoans")     // Loans this user created as lender
 
   @@map("users")
 }
@@ -96,6 +97,7 @@ model Borrower {
   // Relations
   user       User? @relation("BorrowerUser", fields: [userId], references: [id], onDelete: SetNull)
   lenderUser User  @relation("LenderBorrowers", fields: [lenderUserId], references: [id], onDelete: Cascade)
+  loans      Loan[]
 
   // Un prêteur ne peut pas avoir deux contacts avec le même email
   @@unique([lenderUserId, email])
@@ -139,6 +141,7 @@ model Item {
   // Relations
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   photos Photo[]
+  loans  Loan[]
 
   @@index([userId])
   @@index([category])
@@ -166,4 +169,55 @@ model Photo {
 
   @@index([itemId])
   @@map("photos")
+}
+
+// =============================================================================
+// LOANS (Prêts — cœur métier)
+// =============================================================================
+
+/// Statut du cycle de vie d'un prêt (8 statuts)
+enum LoanStatus {
+  PENDING_CONFIRMATION
+  ACTIVE
+  ACTIVE_BY_DEFAULT
+  CONTESTED
+  AWAITING_RETURN
+  RETURNED
+  NOT_RETURNED
+  ABANDONED
+}
+
+/// Prêt d'un objet ou d'argent entre un prêteur et un emprunteur
+model Loan {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations FK
+  itemId     String @map("item_id") @db.Uuid
+  lenderId   String @map("lender_id") @db.Uuid
+  borrowerId String @map("borrower_id") @db.Uuid
+
+  // Cycle de vie
+  status           LoanStatus @default(PENDING_CONFIRMATION)
+  returnDate       DateTime?  @map("return_date") @db.Date
+  confirmationDate DateTime?  @map("confirmation_date")
+  returnedDate     DateTime?  @map("returned_date")
+  contestReason    String?    @map("contest_reason") @db.VarChar(500)
+  notes            String?    @db.VarChar(500)
+
+  // Soft delete
+  deletedAt DateTime? @map("deleted_at")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  item     Item     @relation(fields: [itemId], references: [id])
+  lender   User     @relation("LenderLoans", fields: [lenderId], references: [id])
+  borrower Borrower @relation(fields: [borrowerId], references: [id])
+
+  @@index([lenderId, status])
+  @@index([borrowerId])
+  @@index([itemId])
+  @@map("loans")
 }
