@@ -1,0 +1,862 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { HttpStatus } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { RedisService } from '../redis/redis.service.js';
+import { LoansService } from './loans.service.js';
+import { LOAN_EVENTS } from '../common/events/loan.events.js';
+import type { ProblemDetails } from '../common/exceptions/problem-details.exception.js';
+import { LoanStatus, ItemCategory, UserRole } from '@prisma/client';
+import type { Loan, Item, Photo, User, Borrower } from '@prisma/client';
+
+// =============================================================================
+// Fixtures
+// =============================================================================
+
+const LENDER_USER_ID = '550e8400-e29b-41d4-a716-446655440000';
+const OTHER_USER_ID = '660e8400-e29b-41d4-a716-446655440000';
+const LOAN_ID = '110e8400-e29b-41d4-a716-446655440000';
+const ITEM_ID = '220e8400-e29b-41d4-a716-446655440000';
+const BORROWER_ID = '330e8400-e29b-41d4-a716-446655440000';
+const PHOTO_ID = '440e8400-e29b-41d4-a716-446655440000';
+
+const MOCK_USER: User = {
+  id: LENDER_USER_ID,
+  email: 'lender@example.com',
+  password: 'hashed',
+  firstName: 'John',
+  lastName: 'Doe',
+  role: UserRole.LENDER,
+  profilePicture: null,
+  pushNotificationsEnabled: true,
+  reminderEnabled: true,
+  language: 'fr',
+  timezone: 'Europe/Paris',
+  createdAt: new Date('2025-01-01T00:00:00Z'),
+  updatedAt: new Date('2025-01-01T00:00:00Z'),
+  lastLoginAt: null,
+};
+
+const MOCK_ITEM: Item = {
+  id: ITEM_ID,
+  name: 'Perceuse',
+  description: 'Perceuse Bosch',
+  category: ItemCategory.TOOLS,
+  estimatedValue: 150,
+  userId: LENDER_USER_ID,
+  createdAt: new Date('2025-01-01T00:00:00Z'),
+  updatedAt: new Date('2025-01-01T00:00:00Z'),
+};
+
+const MOCK_PHOTO: Photo = {
+  id: PHOTO_ID,
+  url: 'https://r2.example.com/photo.jpg',
+  thumbnailUrl: 'https://r2.example.com/photo-thumb.jpg',
+  itemId: ITEM_ID,
+  uploadedAt: new Date('2025-01-01T00:00:00Z'),
+};
+
+const MOCK_BORROWER: Borrower = {
+  id: BORROWER_ID,
+  firstName: 'Marie',
+  lastName: 'Dupont',
+  email: 'marie@example.com',
+  phoneNumber: '+33612345678',
+  userId: null,
+  lenderUserId: LENDER_USER_ID,
+  trustScore: 0,
+  totalLoans: 0,
+  createdAt: new Date('2025-01-01T00:00:00Z'),
+  updatedAt: new Date('2025-01-01T00:00:00Z'),
+};
+
+const NOW = new Date('2025-02-27T12:00:00Z');
+
+const MOCK_LOAN: Loan & { item: Item & { photos: Photo[] }; lender: User; borrower: Borrower } = {
+  id: LOAN_ID,
+  itemId: ITEM_ID,
+  lenderId: LENDER_USER_ID,
+  borrowerId: BORROWER_ID,
+  status: LoanStatus.PENDING_CONFIRMATION,
+  returnDate: new Date('2025-06-01'),
+  confirmationDate: null,
+  returnedDate: null,
+  notes: 'Test loan',
+  contestReason: null,
+  deletedAt: null,
+  createdAt: NOW,
+  updatedAt: NOW,
+  item: { ...MOCK_ITEM, photos: [MOCK_PHOTO] },
+  lender: MOCK_USER,
+  borrower: MOCK_BORROWER,
+};
+
+function createMockRedisClient() {
+  return { get: jest.fn(), incr: jest.fn(), expire: jest.fn() };
+}
+
+// =============================================================================
+// Test Suite
+// =============================================================================
+
+describe('LoansService', () => {
+  let service: LoansService;
+  let prisma: DeepMockProxy<PrismaService>;
+  let eventEmitter: { emit: jest.Mock };
+  let redisClient: ReturnType<typeof createMockRedisClient>;
+  let redisService: { getClient: jest.Mock };
+
+  beforeEach(async () => {
+    prisma = mockDeep<PrismaService>();
+    eventEmitter = { emit: jest.fn() };
+    redisClient = createMockRedisClient();
+    redisService = { getClient: jest.fn().mockReturnValue(redisClient) };
+
+    // Default: no rate limit hit
+    redisClient.get.mockResolvedValue(null);
+    redisClient.incr.mockResolvedValue(1);
+    redisClient.expire.mockResolvedValue(1);
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        LoansService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: RedisService, useValue: redisService },
+        { provide: EventEmitter2, useValue: eventEmitter },
+      ],
+    }).compile();
+
+    service = module.get<LoansService>(LoansService);
+  });
+
+  // ===========================================================================
+  // CREATE
+  // ===========================================================================
+
+  describe('create', () => {
+    const CREATE_DTO = {
+      item: ITEM_ID,
+      borrower: BORROWER_ID,
+      returnDate: '2099-06-01',
+      notes: 'Test loan',
+    };
+
+    it('should create a loan with existing item UUID and borrower UUID', async () => {
+      prisma.item.findUnique.mockResolvedValue(MOCK_ITEM);
+      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
+      prisma.loan.create.mockResolvedValue(MOCK_LOAN);
+
+      const result = await service.create(LENDER_USER_ID, CREATE_DTO);
+
+      expect(result.id).toBe(LOAN_ID);
+      expect(result.status).toBe(LoanStatus.PENDING_CONFIRMATION);
+      expect(result.item.id).toBe(ITEM_ID);
+      expect(result.borrower.id).toBe(BORROWER_ID);
+      expect(result.lender.id).toBe(LENDER_USER_ID);
+      expect(result.notes).toBe('Test loan');
+      expect(result.returnDate).toBe('2025-06-01');
+      expect(prisma.loan.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            itemId: ITEM_ID,
+            lenderId: LENDER_USER_ID,
+            borrowerId: BORROWER_ID,
+            status: LoanStatus.PENDING_CONFIRMATION,
+          }),
+        }),
+      );
+    });
+
+    it('should emit LOAN_EVENTS.CREATED after creation', async () => {
+      prisma.item.findUnique.mockResolvedValue(MOCK_ITEM);
+      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
+      prisma.loan.create.mockResolvedValue(MOCK_LOAN);
+
+      await service.create(LENDER_USER_ID, CREATE_DTO);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(LOAN_EVENTS.CREATED, {
+        loanId: LOAN_ID,
+        borrowerId: BORROWER_ID,
+        lenderUserId: LENDER_USER_ID,
+      });
+    });
+
+    it('should increment Redis daily counter', async () => {
+      prisma.item.findUnique.mockResolvedValue(MOCK_ITEM);
+      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
+      prisma.loan.create.mockResolvedValue(MOCK_LOAN);
+
+      await service.create(LENDER_USER_ID, CREATE_DTO);
+
+      expect(redisClient.incr).toHaveBeenCalled();
+    });
+
+    it('should create inline item when item is an object', async () => {
+      const inlineItem = {
+        name: 'New Item',
+        category: ItemCategory.TOOLS,
+        description: 'A new tool',
+      };
+      prisma.item.create.mockResolvedValue({ ...MOCK_ITEM, name: 'New Item' });
+      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
+      prisma.loan.create.mockResolvedValue(MOCK_LOAN);
+
+      await service.create(LENDER_USER_ID, {
+        item: inlineItem as never,
+        borrower: BORROWER_ID,
+      });
+
+      expect(prisma.item.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          name: 'New Item',
+          category: ItemCategory.TOOLS,
+          userId: LENDER_USER_ID,
+        }),
+      });
+    });
+
+    it('should create inline borrower when borrower is an object', async () => {
+      const inlineBorrower = {
+        firstName: 'Jean',
+        lastName: 'Martin',
+        email: 'jean@example.com',
+      };
+      prisma.item.findUnique.mockResolvedValue(MOCK_ITEM);
+      prisma.borrower.findUnique.mockResolvedValue(null); // no existing
+      prisma.borrower.create.mockResolvedValue({ ...MOCK_BORROWER, firstName: 'Jean' });
+      prisma.loan.create.mockResolvedValue(MOCK_LOAN);
+
+      await service.create(LENDER_USER_ID, {
+        item: ITEM_ID,
+        borrower: inlineBorrower as never,
+      });
+
+      expect(prisma.borrower.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          firstName: 'Jean',
+          lastName: 'Martin',
+          email: 'jean@example.com',
+          lenderUserId: LENDER_USER_ID,
+        }),
+      });
+    });
+
+    it('should reuse existing borrower when inline borrower email already exists for lender', async () => {
+      prisma.item.findUnique.mockResolvedValue(MOCK_ITEM);
+      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER); // existing
+      prisma.loan.create.mockResolvedValue(MOCK_LOAN);
+
+      await service.create(LENDER_USER_ID, {
+        item: ITEM_ID,
+        borrower: {
+          firstName: 'Marie',
+          lastName: 'Dupont',
+          email: 'marie@example.com',
+        } as never,
+      });
+
+      expect(prisma.borrower.create).not.toHaveBeenCalled();
+    });
+
+    it('should throw 429 RateLimitException when daily limit exceeded', async () => {
+      redisClient.get.mockResolvedValue('15');
+
+      try {
+        await service.create(LENDER_USER_ID, CREATE_DTO);
+        fail('Expected RateLimitException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
+        expect(err.response.type).toContain('rate-limit-exceeded');
+      }
+    });
+
+    it('should throw 404 when item UUID does not exist', async () => {
+      prisma.item.findUnique.mockResolvedValue(null);
+
+      try {
+        await service.create(LENDER_USER_ID, CREATE_DTO);
+        fail('Expected NotFoundException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.NOT_FOUND);
+      }
+    });
+
+    it('should throw 403 when item belongs to another user', async () => {
+      prisma.item.findUnique.mockResolvedValue({ ...MOCK_ITEM, userId: OTHER_USER_ID });
+
+      try {
+        await service.create(LENDER_USER_ID, CREATE_DTO);
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+      }
+    });
+
+    it('should throw 404 when borrower UUID does not exist', async () => {
+      prisma.item.findUnique.mockResolvedValue(MOCK_ITEM);
+      prisma.borrower.findUnique.mockResolvedValue(null);
+
+      try {
+        await service.create(LENDER_USER_ID, CREATE_DTO);
+        fail('Expected NotFoundException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.NOT_FOUND);
+      }
+    });
+
+    it('should throw 403 when borrower belongs to another user', async () => {
+      prisma.item.findUnique.mockResolvedValue(MOCK_ITEM);
+      prisma.borrower.findUnique.mockResolvedValue({
+        ...MOCK_BORROWER,
+        lenderUserId: OTHER_USER_ID,
+      });
+
+      try {
+        await service.create(LENDER_USER_ID, CREATE_DTO);
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+      }
+    });
+  });
+
+  // ===========================================================================
+  // FIND ALL
+  // ===========================================================================
+
+  describe('findAll', () => {
+    const DEFAULT_QUERY = {
+      page: 1,
+      limit: 20,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+    };
+
+    it('should return paginated loans excluding archived by default', async () => {
+      prisma.loan.findMany.mockResolvedValue([MOCK_LOAN]);
+      prisma.loan.count.mockResolvedValue(1);
+
+      const result = await service.findAll(LENDER_USER_ID, DEFAULT_QUERY);
+
+      expect(result.data).toHaveLength(1);
+      expect(result.pagination.totalItems).toBe(1);
+      expect(result.pagination.currentPage).toBe(1);
+      expect(prisma.loan.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            lenderId: LENDER_USER_ID,
+            deletedAt: null,
+            status: {
+              notIn: [
+                LoanStatus.RETURNED,
+                LoanStatus.NOT_RETURNED,
+                LoanStatus.ABANDONED,
+                LoanStatus.CONTESTED,
+              ],
+            },
+          }),
+        }),
+      );
+    });
+
+    it('should include archived when includeArchived=true', async () => {
+      prisma.loan.findMany.mockResolvedValue([]);
+      prisma.loan.count.mockResolvedValue(0);
+
+      await service.findAll(LENDER_USER_ID, { ...DEFAULT_QUERY, includeArchived: true });
+
+      expect(prisma.loan.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            lenderId: LENDER_USER_ID,
+            deletedAt: null,
+          }),
+        }),
+      );
+      // Should NOT have status filter
+      const call = prisma.loan.findMany.mock.calls[0][0] as { where: Record<string, unknown> };
+      expect(call.where.status).toBeUndefined();
+    });
+
+    it('should filter by specific statuses', async () => {
+      prisma.loan.findMany.mockResolvedValue([]);
+      prisma.loan.count.mockResolvedValue(0);
+
+      await service.findAll(LENDER_USER_ID, {
+        ...DEFAULT_QUERY,
+        status: [LoanStatus.ACTIVE, LoanStatus.PENDING_CONFIRMATION],
+      });
+
+      expect(prisma.loan.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: { in: [LoanStatus.ACTIVE, LoanStatus.PENDING_CONFIRMATION] },
+          }),
+        }),
+      );
+    });
+
+    it('should filter by borrowerId', async () => {
+      prisma.loan.findMany.mockResolvedValue([]);
+      prisma.loan.count.mockResolvedValue(0);
+
+      await service.findAll(LENDER_USER_ID, {
+        ...DEFAULT_QUERY,
+        borrowerId: BORROWER_ID,
+      });
+
+      expect(prisma.loan.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ borrowerId: BORROWER_ID }),
+        }),
+      );
+    });
+
+    it('should handle pagination correctly', async () => {
+      prisma.loan.findMany.mockResolvedValue([]);
+      prisma.loan.count.mockResolvedValue(50);
+
+      const result = await service.findAll(LENDER_USER_ID, {
+        ...DEFAULT_QUERY,
+        page: 2,
+        limit: 10,
+      });
+
+      expect(result.pagination).toEqual({
+        currentPage: 2,
+        totalPages: 5,
+        totalItems: 50,
+        itemsPerPage: 10,
+        hasNextPage: true,
+        hasPreviousPage: true,
+      });
+    });
+
+    it('should return totalPages=0 when no results', async () => {
+      prisma.loan.findMany.mockResolvedValue([]);
+      prisma.loan.count.mockResolvedValue(0);
+
+      const result = await service.findAll(LENDER_USER_ID, DEFAULT_QUERY);
+      expect(result.pagination.totalPages).toBe(0);
+    });
+  });
+
+  // ===========================================================================
+  // FIND BY ID
+  // ===========================================================================
+
+  describe('findById', () => {
+    it('should return a loan response', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+
+      const result = await service.findById(LOAN_ID, LENDER_USER_ID);
+
+      expect(result.id).toBe(LOAN_ID);
+      expect(result.item.id).toBe(ITEM_ID);
+      expect(result.borrower.id).toBe(BORROWER_ID);
+    });
+
+    it('should throw 404 when loan not found', async () => {
+      prisma.loan.findUnique.mockResolvedValue(null);
+
+      try {
+        await service.findById(LOAN_ID, LENDER_USER_ID);
+        fail('Expected NotFoundException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.NOT_FOUND);
+      }
+    });
+
+    it('should throw 404 when loan is soft-deleted', async () => {
+      prisma.loan.findUnique.mockResolvedValue({
+        ...MOCK_LOAN,
+        deletedAt: new Date(),
+      });
+
+      try {
+        await service.findById(LOAN_ID, LENDER_USER_ID);
+        fail('Expected NotFoundException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.NOT_FOUND);
+      }
+    });
+
+    it('should throw 403 when loan belongs to another user', async () => {
+      prisma.loan.findUnique.mockResolvedValue({
+        ...MOCK_LOAN,
+        lenderId: OTHER_USER_ID,
+      });
+
+      try {
+        await service.findById(LOAN_ID, LENDER_USER_ID);
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+      }
+    });
+  });
+
+  // ===========================================================================
+  // UPDATE
+  // ===========================================================================
+
+  describe('update', () => {
+    it('should update loan fields', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+      prisma.loan.update.mockResolvedValue({
+        ...MOCK_LOAN,
+        notes: 'Updated notes',
+      });
+
+      const result = await service.update(LOAN_ID, LENDER_USER_ID, { notes: 'Updated notes' });
+      expect(result.notes).toBe('Updated notes');
+    });
+
+    it('should throw 404 when loan not found', async () => {
+      prisma.loan.findUnique.mockResolvedValue(null);
+
+      try {
+        await service.update(LOAN_ID, LENDER_USER_ID, { notes: 'test' });
+        fail('Expected NotFoundException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.NOT_FOUND);
+      }
+    });
+
+    it('should throw 403 when not the owner', async () => {
+      prisma.loan.findUnique.mockResolvedValue({
+        ...MOCK_LOAN,
+        lenderId: OTHER_USER_ID,
+      });
+
+      try {
+        await service.update(LOAN_ID, LENDER_USER_ID, { notes: 'test' });
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+      }
+    });
+  });
+
+  // ===========================================================================
+  // DELETE (soft)
+  // ===========================================================================
+
+  describe('delete', () => {
+    it('should soft-delete loan and emit DELETED event', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+      prisma.loan.update.mockResolvedValue({ ...MOCK_LOAN, deletedAt: new Date() });
+
+      await service.delete(LOAN_ID, LENDER_USER_ID);
+
+      expect(prisma.loan.update).toHaveBeenCalledWith({
+        where: { id: LOAN_ID },
+        data: { deletedAt: expect.any(Date) },
+      });
+      expect(eventEmitter.emit).toHaveBeenCalledWith(LOAN_EVENTS.DELETED, {
+        loanId: LOAN_ID,
+        borrowerId: BORROWER_ID,
+        lenderUserId: LENDER_USER_ID,
+        lastStatus: LoanStatus.PENDING_CONFIRMATION,
+      });
+    });
+
+    it('should throw 409 when loan has RETURNED status', async () => {
+      prisma.loan.findUnique.mockResolvedValue({
+        ...MOCK_LOAN,
+        status: LoanStatus.RETURNED,
+      });
+
+      try {
+        await service.delete(LOAN_ID, LENDER_USER_ID);
+        fail('Expected ConflictException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.CONFLICT);
+        expect(err.response.type).toContain('loan-already-returned');
+      }
+    });
+
+    it('should throw 404 when loan not found', async () => {
+      prisma.loan.findUnique.mockResolvedValue(null);
+
+      try {
+        await service.delete(LOAN_ID, LENDER_USER_ID);
+        fail('Expected NotFoundException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.NOT_FOUND);
+      }
+    });
+
+    it('should throw 403 when not the owner', async () => {
+      prisma.loan.findUnique.mockResolvedValue({
+        ...MOCK_LOAN,
+        lenderId: OTHER_USER_ID,
+      });
+
+      try {
+        await service.delete(LOAN_ID, LENDER_USER_ID);
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+      }
+    });
+  });
+
+  // ===========================================================================
+  // UPDATE STATUS
+  // ===========================================================================
+
+  describe('updateStatus', () => {
+    it('should transition PENDING_CONFIRMATION → ACTIVE and set confirmationDate', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+      prisma.loan.update.mockResolvedValue({
+        ...MOCK_LOAN,
+        status: LoanStatus.ACTIVE,
+        confirmationDate: NOW,
+      });
+
+      const result = await service.updateStatus(LOAN_ID, LENDER_USER_ID, LoanStatus.ACTIVE);
+
+      expect(result.status).toBe(LoanStatus.ACTIVE);
+      expect(prisma.loan.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: LoanStatus.ACTIVE,
+            confirmationDate: expect.any(Date),
+          }),
+        }),
+      );
+    });
+
+    it('should transition ACTIVE → RETURNED and set returnedDate', async () => {
+      const activeLoan = { ...MOCK_LOAN, status: LoanStatus.ACTIVE };
+      prisma.loan.findUnique.mockResolvedValue(activeLoan);
+      prisma.loan.update.mockResolvedValue({
+        ...activeLoan,
+        status: LoanStatus.RETURNED,
+        returnedDate: NOW,
+      });
+
+      const result = await service.updateStatus(LOAN_ID, LENDER_USER_ID, LoanStatus.RETURNED);
+      expect(result.status).toBe(LoanStatus.RETURNED);
+    });
+
+    it('should emit STATUS_CHANGED event', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+      prisma.loan.update.mockResolvedValue({
+        ...MOCK_LOAN,
+        status: LoanStatus.ACTIVE,
+      });
+
+      await service.updateStatus(LOAN_ID, LENDER_USER_ID, LoanStatus.ACTIVE);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(LOAN_EVENTS.STATUS_CHANGED, {
+        loanId: LOAN_ID,
+        borrowerId: BORROWER_ID,
+        lenderUserId: LENDER_USER_ID,
+        previousStatus: LoanStatus.PENDING_CONFIRMATION,
+        newStatus: LoanStatus.ACTIVE,
+      });
+    });
+
+    it('should throw 409 for invalid transition', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+
+      try {
+        await service.updateStatus(LOAN_ID, LENDER_USER_ID, LoanStatus.RETURNED);
+        fail('Expected ConflictException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.CONFLICT);
+        expect(err.response.type).toContain('invalid-status-transition');
+      }
+    });
+
+    it('should include notes when provided', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+      prisma.loan.update.mockResolvedValue({
+        ...MOCK_LOAN,
+        status: LoanStatus.ACTIVE,
+        notes: 'Confirmed by phone',
+      });
+
+      await service.updateStatus(LOAN_ID, LENDER_USER_ID, LoanStatus.ACTIVE, 'Confirmed by phone');
+
+      expect(prisma.loan.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ notes: 'Confirmed by phone' }),
+        }),
+      );
+    });
+  });
+
+  // ===========================================================================
+  // CONFIRM
+  // ===========================================================================
+
+  describe('confirm', () => {
+    it('should transition to ACTIVE status', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+      prisma.loan.update.mockResolvedValue({
+        ...MOCK_LOAN,
+        status: LoanStatus.ACTIVE,
+      });
+
+      const result = await service.confirm(LOAN_ID, LENDER_USER_ID);
+      expect(result.status).toBe(LoanStatus.ACTIVE);
+    });
+
+    it('should throw 409 when already active', async () => {
+      prisma.loan.findUnique.mockResolvedValue({
+        ...MOCK_LOAN,
+        status: LoanStatus.ACTIVE,
+      });
+
+      try {
+        await service.confirm(LOAN_ID, LENDER_USER_ID);
+        fail('Expected ConflictException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.CONFLICT);
+      }
+    });
+  });
+
+  // ===========================================================================
+  // CONTEST
+  // ===========================================================================
+
+  describe('contest', () => {
+    it('should set status to CONTESTED and save reason', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+      prisma.loan.update.mockResolvedValue({
+        ...MOCK_LOAN,
+        status: LoanStatus.CONTESTED,
+        contestReason: 'This is not a valid loan because I never lent this item.',
+      });
+
+      const result = await service.contest(LOAN_ID, LENDER_USER_ID, {
+        reason: 'This is not a valid loan because I never lent this item.',
+      });
+
+      expect(result.status).toBe(LoanStatus.CONTESTED);
+      expect(prisma.loan.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: LoanStatus.CONTESTED,
+            contestReason: 'This is not a valid loan because I never lent this item.',
+          }),
+        }),
+      );
+    });
+
+    it('should emit STATUS_CHANGED with CONTESTED', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+      prisma.loan.update.mockResolvedValue({
+        ...MOCK_LOAN,
+        status: LoanStatus.CONTESTED,
+      });
+
+      await service.contest(LOAN_ID, LENDER_USER_ID, {
+        reason: 'This is not a valid loan because I never lent this item.',
+      });
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        LOAN_EVENTS.STATUS_CHANGED,
+        expect.objectContaining({ newStatus: LoanStatus.CONTESTED }),
+      );
+    });
+
+    it('should throw 409 for invalid transition (e.g. RETURNED → CONTESTED)', async () => {
+      prisma.loan.findUnique.mockResolvedValue({
+        ...MOCK_LOAN,
+        status: LoanStatus.RETURNED,
+      });
+
+      try {
+        await service.contest(LOAN_ID, LENDER_USER_ID, {
+          reason: 'This is not a valid loan because I never lent this item.',
+        });
+        fail('Expected ConflictException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.CONFLICT);
+      }
+    });
+  });
+
+  // ===========================================================================
+  // RESPONSE MAPPING
+  // ===========================================================================
+
+  describe('toLoanResponse (via findById)', () => {
+    it('should correctly map loan with all relations', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+
+      const result = await service.findById(LOAN_ID, LENDER_USER_ID);
+
+      expect(result).toEqual({
+        id: LOAN_ID,
+        item: {
+          id: ITEM_ID,
+          name: 'Perceuse',
+          description: 'Perceuse Bosch',
+          category: ItemCategory.TOOLS,
+          estimatedValue: 150,
+          photos: [
+            {
+              id: PHOTO_ID,
+              url: 'https://r2.example.com/photo.jpg',
+              thumbnailUrl: 'https://r2.example.com/photo-thumb.jpg',
+              uploadedAt: '2025-01-01T00:00:00.000Z',
+            },
+          ],
+          createdAt: '2025-01-01T00:00:00.000Z',
+        },
+        lender: {
+          id: LENDER_USER_ID,
+          firstName: 'John',
+          lastName: 'Doe',
+          profilePicture: null,
+        },
+        borrower: {
+          id: BORROWER_ID,
+          firstName: 'Marie',
+          lastName: 'Dupont',
+          email: 'marie@example.com',
+          phoneNumber: '+33612345678',
+          userId: null,
+          statistics: {
+            totalLoans: 0,
+            returnedOnTime: 0,
+            returnedLate: 0,
+            notReturned: 0,
+            averageReturnDelay: null,
+            trustScore: 0,
+          },
+        },
+        returnDate: '2025-06-01',
+        status: LoanStatus.PENDING_CONFIRMATION,
+        confirmationDate: null,
+        returnedDate: null,
+        notes: 'Test loan',
+        createdAt: '2025-02-27T12:00:00.000Z',
+        updatedAt: '2025-02-27T12:00:00.000Z',
+      });
+    });
+  });
+});
