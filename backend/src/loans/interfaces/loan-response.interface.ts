@@ -1,4 +1,4 @@
-import type { LoanStatus } from '@prisma/client';
+import type { LoanStatus, ItemCategory } from '@prisma/client';
 import type { PhotoResponse } from '../../items/interfaces/photo-response.interface.js';
 import type { BorrowerStatistics } from '../../borrowers/interfaces/borrower-response.interface.js';
 
@@ -6,7 +6,7 @@ export interface LoanItemResponse {
   id: string;
   name: string;
   description: string | null;
-  category: string;
+  category: ItemCategory;
   estimatedValue: number | null;
   photos: PhotoResponse[];
   createdAt: string;

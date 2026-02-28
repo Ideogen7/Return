@@ -133,6 +133,7 @@ export class LoansController {
    * POST /v1/loans/:loanId/confirm
    */
   @Post(':loanId/confirm')
+  @HttpCode(HttpStatus.OK)
   async confirm(
     @Param('loanId', ParseUUIDPipe) loanId: string,
     @Request() req: ExpressRequest & { user: AuthenticatedUser },
@@ -144,6 +145,7 @@ export class LoansController {
    * POST /v1/loans/:loanId/contest
    */
   @Post(':loanId/contest')
+  @HttpCode(HttpStatus.OK)
   async contest(
     @Param('loanId', ParseUUIDPipe) loanId: string,
     @Body() dto: ContestLoanDto,
