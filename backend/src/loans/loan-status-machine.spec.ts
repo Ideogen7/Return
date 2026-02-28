@@ -1,5 +1,5 @@
 import { LoanStatus } from '@prisma/client';
-import { isValidTransition, getValidTransitions } from './loan-status-machine.js';
+import { isValidTransition, getValidTransitions, isAllowedForRole } from './loan-status-machine.js';
 
 // =============================================================================
 // Exhaustive Status Machine Tests (LOAN-017 to LOAN-020)
@@ -158,5 +158,84 @@ describe('LoanStatusMachine', () => {
         });
       }
     }
+  });
+
+  // ===========================================================================
+  // ROLE-BASED TRANSITIONS (isAllowedForRole)
+  // ===========================================================================
+
+  describe('isAllowedForRole', () => {
+    // BORROWER transitions
+    describe('borrower role', () => {
+      const allowed: [LoanStatus, LoanStatus][] = [
+        [LoanStatus.PENDING_CONFIRMATION, LoanStatus.ACTIVE],
+        [LoanStatus.PENDING_CONFIRMATION, LoanStatus.CONTESTED],
+      ];
+
+      it.each(allowed)('%s → %s should be allowed for borrower', (from, to) => {
+        expect(isAllowedForRole(from, to, 'borrower')).toBe(true);
+      });
+
+      const notAllowed: [LoanStatus, LoanStatus][] = [
+        [LoanStatus.ACTIVE, LoanStatus.RETURNED],
+        [LoanStatus.ACTIVE, LoanStatus.ABANDONED],
+        [LoanStatus.AWAITING_RETURN, LoanStatus.RETURNED],
+        [LoanStatus.PENDING_CONFIRMATION, LoanStatus.ACTIVE_BY_DEFAULT],
+      ];
+
+      it.each(notAllowed)('%s → %s should NOT be allowed for borrower', (from, to) => {
+        expect(isAllowedForRole(from, to, 'borrower')).toBe(false);
+      });
+    });
+
+    // LENDER transitions
+    describe('lender role', () => {
+      const allowed: [LoanStatus, LoanStatus][] = [
+        [LoanStatus.ACTIVE, LoanStatus.RETURNED],
+        [LoanStatus.ACTIVE, LoanStatus.ABANDONED],
+        [LoanStatus.ACTIVE_BY_DEFAULT, LoanStatus.RETURNED],
+        [LoanStatus.ACTIVE_BY_DEFAULT, LoanStatus.ABANDONED],
+        [LoanStatus.AWAITING_RETURN, LoanStatus.RETURNED],
+        [LoanStatus.AWAITING_RETURN, LoanStatus.ABANDONED],
+      ];
+
+      it.each(allowed)('%s → %s should be allowed for lender', (from, to) => {
+        expect(isAllowedForRole(from, to, 'lender')).toBe(true);
+      });
+
+      const notAllowed: [LoanStatus, LoanStatus][] = [
+        [LoanStatus.PENDING_CONFIRMATION, LoanStatus.ACTIVE],
+        [LoanStatus.PENDING_CONFIRMATION, LoanStatus.CONTESTED],
+        [LoanStatus.PENDING_CONFIRMATION, LoanStatus.ACTIVE_BY_DEFAULT],
+      ];
+
+      it.each(notAllowed)('%s → %s should NOT be allowed for lender', (from, to) => {
+        expect(isAllowedForRole(from, to, 'lender')).toBe(false);
+      });
+    });
+
+    // SYSTEM transitions
+    describe('system role', () => {
+      const allowed: [LoanStatus, LoanStatus][] = [
+        [LoanStatus.PENDING_CONFIRMATION, LoanStatus.ACTIVE_BY_DEFAULT],
+        [LoanStatus.ACTIVE, LoanStatus.AWAITING_RETURN],
+        [LoanStatus.ACTIVE_BY_DEFAULT, LoanStatus.AWAITING_RETURN],
+        [LoanStatus.AWAITING_RETURN, LoanStatus.NOT_RETURNED],
+      ];
+
+      it.each(allowed)('%s → %s should be allowed for system', (from, to) => {
+        expect(isAllowedForRole(from, to, 'system')).toBe(true);
+      });
+
+      const notAllowed: [LoanStatus, LoanStatus][] = [
+        [LoanStatus.ACTIVE, LoanStatus.RETURNED],
+        [LoanStatus.PENDING_CONFIRMATION, LoanStatus.ACTIVE],
+        [LoanStatus.ACTIVE, LoanStatus.ABANDONED],
+      ];
+
+      it.each(notAllowed)('%s → %s should NOT be allowed for system', (from, to) => {
+        expect(isAllowedForRole(from, to, 'system')).toBe(false);
+      });
+    });
   });
 });

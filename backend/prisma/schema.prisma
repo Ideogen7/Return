@@ -87,8 +87,12 @@ model Borrower {
   lenderUserId String @map("lender_user_id") @db.Uuid
 
   // Statistiques dénormalisées (mises à jour via événements lors des changements de statut de prêt)
-  trustScore Int @default(0) @map("trust_score")
-  totalLoans Int @default(0) @map("total_loans")
+  trustScore         Float @default(0) @map("trust_score")
+  totalLoans         Int   @default(0) @map("total_loans")
+  returnedOnTime     Int   @default(0) @map("returned_on_time")
+  returnedLate       Int   @default(0) @map("returned_late")
+  notReturned        Int   @default(0) @map("not_returned")
+  averageReturnDelay Int?  @map("average_return_delay")
 
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")

@@ -13,16 +13,11 @@ import type {
  *
  * Ref: LOAN-037 — Sprint 4, Phase 4.5
  *
- * Updates:
- * - `Borrower.totalLoans` on loan creation/deletion
- * - `Borrower.trustScore` on status changes (RETURNED, NOT_RETURNED)
- *
- * trustScore formula (from OpenAPI):
- *   (returnedOnTime × 100 + returnedLate × 50) / totalLoans
- *
- * For the MVP, we use a simplified increment approach:
- * - RETURNED: trustScore goes up proportionally
- * - NOT_RETURNED: trustScore stays or decreases
+ * Updates all BorrowerStatistics fields (OpenAPI spec):
+ * - totalLoans: incremented on creation, decremented on deletion
+ * - returnedOnTime, returnedLate, notReturned: recalculated on status changes
+ * - averageReturnDelay: integer, computed from returnedDate vs returnDate
+ * - trustScore: float, formula = (returnedOnTime * 100 + returnedLate * 50) / totalLoans
  */
 @Injectable()
 export class BorrowerStatsListener {
@@ -44,9 +39,13 @@ export class BorrowerStatsListener {
   async handleStatusChanged(event: LoanStatusChangedEvent): Promise<void> {
     this.logger.debug(`Loan ${event.loanId}: ${event.previousStatus} → ${event.newStatus}`);
 
-    // Recalculate trustScore when a loan reaches a terminal RETURNED or NOT_RETURNED status
-    if (event.newStatus === 'RETURNED' || event.newStatus === 'NOT_RETURNED') {
-      await this.recalculateTrustScore(event.borrowerId);
+    // Recalculate all stats when a loan reaches RETURNED, NOT_RETURNED, or ABANDONED
+    if (
+      event.newStatus === 'RETURNED' ||
+      event.newStatus === 'NOT_RETURNED' ||
+      event.newStatus === 'ABANDONED'
+    ) {
+      await this.recalculateStats(event.borrowerId);
     }
   }
 
@@ -54,7 +53,6 @@ export class BorrowerStatsListener {
   async handleLoanDeleted(event: LoanDeletedEvent): Promise<void> {
     this.logger.debug(`Loan deleted: ${event.loanId} for borrower ${event.borrowerId}`);
 
-    // Only decrement if the loan had actually been counted
     const borrower = await this.prisma.borrower.findUnique({
       where: { id: event.borrowerId },
       select: { totalLoans: true },
@@ -66,20 +64,20 @@ export class BorrowerStatsListener {
         data: { totalLoans: { decrement: 1 } },
       });
 
-      // Recalculate trustScore after decrement
-      await this.recalculateTrustScore(event.borrowerId);
+      await this.recalculateStats(event.borrowerId);
     }
   }
 
   /**
-   * Recalculates trustScore based on actual loan outcomes.
+   * Recalculates ALL borrower statistics from loan data.
    *
-   * Formula: (returnedOnTime × 100 + returnedLate × 50) / totalLoans
-   *
-   * For MVP: all RETURNED loans count as "on time" (100 points each).
-   * Late detection will be added when reminders are implemented (Sprint 5).
+   * - returnedOnTime: RETURNED loans where returnedDate <= returnDate (or no returnDate)
+   * - returnedLate: RETURNED loans where returnedDate > returnDate
+   * - notReturned: NOT_RETURNED + ABANDONED loans
+   * - averageReturnDelay: integer days (+ = late, - = early), null if no dated returns
+   * - trustScore: float = (returnedOnTime * 100 + returnedLate * 50) / totalLoans
    */
-  private async recalculateTrustScore(borrowerId: string): Promise<void> {
+  private async recalculateStats(borrowerId: string): Promise<void> {
     const borrower = await this.prisma.borrower.findUnique({
       where: { id: borrowerId },
       select: { totalLoans: true },
@@ -88,26 +86,67 @@ export class BorrowerStatsListener {
     if (!borrower || borrower.totalLoans === 0) {
       await this.prisma.borrower.update({
         where: { id: borrowerId },
-        data: { trustScore: 0 },
+        data: {
+          trustScore: 0,
+          returnedOnTime: 0,
+          returnedLate: 0,
+          notReturned: 0,
+          averageReturnDelay: null,
+        },
       });
       return;
     }
 
-    // Count returned loans for this borrower
-    const returnedCount = await this.prisma.loan.count({
+    // Fetch RETURNED loans with dates for on-time/late classification
+    const returnedLoans = await this.prisma.loan.findMany({
+      where: { borrowerId, status: 'RETURNED', deletedAt: null },
+      select: { returnDate: true, returnedDate: true },
+    });
+
+    let returnedOnTime = 0;
+    let returnedLate = 0;
+    let totalDelayDays = 0;
+    let loansWithDelay = 0;
+
+    for (const loan of returnedLoans) {
+      if (!loan.returnDate || !loan.returnedDate) {
+        // No planned return date = cannot be late → on time
+        returnedOnTime++;
+        continue;
+      }
+
+      const delayMs = loan.returnedDate.getTime() - loan.returnDate.getTime();
+      const delayDays = delayMs / (1000 * 60 * 60 * 24);
+
+      if (delayDays <= 0) {
+        returnedOnTime++;
+      } else {
+        returnedLate++;
+      }
+
+      totalDelayDays += delayDays;
+      loansWithDelay++;
+    }
+
+    // Count NOT_RETURNED + ABANDONED (OpenAPI: "non rendus (abandonné)")
+    const notReturned = await this.prisma.loan.count({
       where: {
         borrowerId,
-        status: 'RETURNED',
+        status: { in: ['NOT_RETURNED', 'ABANDONED'] },
         deletedAt: null,
       },
     });
 
-    // MVP formula: returnedOnTime * 100 / totalLoans (all returns are "on time" for now)
-    const trustScore = Math.round((returnedCount * 100) / borrower.totalLoans);
+    // averageReturnDelay: integer days, null if no loans with both dates
+    const averageReturnDelay =
+      loansWithDelay > 0 ? Math.round(totalDelayDays / loansWithDelay) : null;
+
+    // trustScore formula (OpenAPI): (returnedOnTime * 100 + returnedLate * 50) / totalLoans
+    const trustScore = (returnedOnTime * 100 + returnedLate * 50) / borrower.totalLoans;
 
     await this.prisma.borrower.update({
       where: { id: borrowerId },
-      data: { trustScore },
+      data: { returnedOnTime, returnedLate, notReturned, averageReturnDelay, trustScore },
     });
   }
 }

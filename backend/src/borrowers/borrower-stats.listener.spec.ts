@@ -55,7 +55,7 @@ describe('BorrowerStatsListener', () => {
   // STATUS CHANGED
   // =========================================================================
   describe(`@OnEvent(${LOAN_EVENTS.STATUS_CHANGED})`, () => {
-    it('should recalculate trustScore when status changes to RETURNED', async () => {
+    it('should recalculate all stats when status changes to RETURNED (all on-time)', async () => {
       const event: LoanStatusChangedEvent = {
         loanId: LOAN_ID,
         borrowerId: BORROWER_ID,
@@ -64,46 +64,127 @@ describe('BorrowerStatsListener', () => {
         newStatus: 'RETURNED',
       };
 
-      prisma.borrower.findUnique.mockResolvedValue({
-        totalLoans: 5,
-      } as never);
-      prisma.loan.count.mockResolvedValue(3);
+      prisma.borrower.findUnique.mockResolvedValue({ totalLoans: 3 } as never);
+      // 3 returned loans, all on-time (returnedDate <= returnDate)
+      prisma.loan.findMany.mockResolvedValue([
+        { returnDate: new Date('2025-03-10'), returnedDate: new Date('2025-03-08') },
+        { returnDate: new Date('2025-03-15'), returnedDate: new Date('2025-03-15') },
+        { returnDate: null, returnedDate: new Date('2025-03-20') }, // no deadline = on-time
+      ] as never);
+      prisma.loan.count.mockResolvedValue(0); // no NOT_RETURNED/ABANDONED
       prisma.borrower.update.mockResolvedValue({} as never);
 
       await listener.handleStatusChanged(event);
 
-      // trustScore = round(3 * 100 / 5) = 60
       expect(prisma.borrower.update).toHaveBeenCalledWith({
         where: { id: BORROWER_ID },
-        data: { trustScore: 60 },
+        data: {
+          returnedOnTime: 3,
+          returnedLate: 0,
+          notReturned: 0,
+          averageReturnDelay: expect.any(Number),
+          trustScore: 100, // (3*100 + 0*50) / 3 = 100
+        },
       });
     });
 
-    it('should recalculate trustScore when status changes to NOT_RETURNED', async () => {
+    it('should compute mixed on-time/late stats with correct trustScore', async () => {
+      const event: LoanStatusChangedEvent = {
+        loanId: LOAN_ID,
+        borrowerId: BORROWER_ID,
+        lenderUserId: LENDER_ID,
+        previousStatus: 'AWAITING_RETURN',
+        newStatus: 'RETURNED',
+      };
+
+      prisma.borrower.findUnique.mockResolvedValue({ totalLoans: 4 } as never);
+      // 2 on-time, 1 late (3 days), 1 without deadline
+      prisma.loan.findMany.mockResolvedValue([
+        { returnDate: new Date('2025-03-10'), returnedDate: new Date('2025-03-09') }, // on-time
+        { returnDate: new Date('2025-03-10'), returnedDate: new Date('2025-03-13') }, // 3 days late
+        { returnDate: null, returnedDate: new Date('2025-03-20') }, // no deadline = on-time
+      ] as never);
+      prisma.loan.count.mockResolvedValue(1); // 1 NOT_RETURNED/ABANDONED
+      prisma.borrower.update.mockResolvedValue({} as never);
+
+      await listener.handleStatusChanged(event);
+
+      // returnedOnTime=2, returnedLate=1, notReturned=1
+      // trustScore = (2*100 + 1*50) / 4 = 250/4 = 62.5
+      // averageReturnDelay: (-1 + 3) / 2 = 1 → Math.round(1) = 1
+      expect(prisma.borrower.update).toHaveBeenCalledWith({
+        where: { id: BORROWER_ID },
+        data: {
+          returnedOnTime: 2,
+          returnedLate: 1,
+          notReturned: 1,
+          averageReturnDelay: 1,
+          trustScore: 62.5,
+        },
+      });
+    });
+
+    it('should recalculate stats when status changes to NOT_RETURNED', async () => {
+      const event: LoanStatusChangedEvent = {
+        loanId: LOAN_ID,
+        borrowerId: BORROWER_ID,
+        lenderUserId: LENDER_ID,
+        previousStatus: 'AWAITING_RETURN',
+        newStatus: 'NOT_RETURNED',
+      };
+
+      prisma.borrower.findUnique.mockResolvedValue({ totalLoans: 4 } as never);
+      prisma.loan.findMany.mockResolvedValue([
+        { returnDate: new Date('2025-03-10'), returnedDate: new Date('2025-03-09') },
+      ] as never);
+      prisma.loan.count.mockResolvedValue(2);
+      prisma.borrower.update.mockResolvedValue({} as never);
+
+      await listener.handleStatusChanged(event);
+
+      // trustScore = (1*100 + 0*50) / 4 = 25
+      expect(prisma.borrower.update).toHaveBeenCalledWith({
+        where: { id: BORROWER_ID },
+        data: {
+          returnedOnTime: 1,
+          returnedLate: 0,
+          notReturned: 2,
+          averageReturnDelay: expect.any(Number),
+          trustScore: 25,
+        },
+      });
+    });
+
+    it('should recalculate stats when status changes to ABANDONED', async () => {
       const event: LoanStatusChangedEvent = {
         loanId: LOAN_ID,
         borrowerId: BORROWER_ID,
         lenderUserId: LENDER_ID,
         previousStatus: 'ACTIVE',
-        newStatus: 'NOT_RETURNED',
+        newStatus: 'ABANDONED',
       };
 
-      prisma.borrower.findUnique.mockResolvedValue({
-        totalLoans: 4,
-      } as never);
+      prisma.borrower.findUnique.mockResolvedValue({ totalLoans: 2 } as never);
+      prisma.loan.findMany.mockResolvedValue([] as never);
       prisma.loan.count.mockResolvedValue(1);
       prisma.borrower.update.mockResolvedValue({} as never);
 
       await listener.handleStatusChanged(event);
 
-      // trustScore = round(1 * 100 / 4) = 25
+      // 0 returned, 1 abandoned → trustScore = 0/2 = 0
       expect(prisma.borrower.update).toHaveBeenCalledWith({
         where: { id: BORROWER_ID },
-        data: { trustScore: 25 },
+        data: {
+          returnedOnTime: 0,
+          returnedLate: 0,
+          notReturned: 1,
+          averageReturnDelay: null,
+          trustScore: 0,
+        },
       });
     });
 
-    it('should NOT recalculate trustScore for non-terminal status changes', async () => {
+    it('should NOT recalculate for non-terminal status changes', async () => {
       const event: LoanStatusChangedEvent = {
         loanId: LOAN_ID,
         borrowerId: BORROWER_ID,
@@ -118,7 +199,7 @@ describe('BorrowerStatsListener', () => {
       expect(prisma.borrower.update).not.toHaveBeenCalled();
     });
 
-    it('should set trustScore to 0 when borrower has 0 totalLoans', async () => {
+    it('should set all stats to zero when borrower has 0 totalLoans', async () => {
       const event: LoanStatusChangedEvent = {
         loanId: LOAN_ID,
         borrowerId: BORROWER_ID,
@@ -127,20 +208,56 @@ describe('BorrowerStatsListener', () => {
         newStatus: 'RETURNED',
       };
 
-      prisma.borrower.findUnique.mockResolvedValue({
-        totalLoans: 0,
-      } as never);
+      prisma.borrower.findUnique.mockResolvedValue({ totalLoans: 0 } as never);
       prisma.borrower.update.mockResolvedValue({} as never);
 
       await listener.handleStatusChanged(event);
 
       expect(prisma.borrower.update).toHaveBeenCalledWith({
         where: { id: BORROWER_ID },
-        data: { trustScore: 0 },
+        data: {
+          trustScore: 0,
+          returnedOnTime: 0,
+          returnedLate: 0,
+          notReturned: 0,
+          averageReturnDelay: null,
+        },
       });
     });
 
-    it('should set trustScore to 100 when all loans are returned', async () => {
+    it('should set averageReturnDelay to null when no loans have both dates', async () => {
+      const event: LoanStatusChangedEvent = {
+        loanId: LOAN_ID,
+        borrowerId: BORROWER_ID,
+        lenderUserId: LENDER_ID,
+        previousStatus: 'ACTIVE',
+        newStatus: 'RETURNED',
+      };
+
+      prisma.borrower.findUnique.mockResolvedValue({ totalLoans: 2 } as never);
+      // Loans with no returnDate → on-time, no delay computable
+      prisma.loan.findMany.mockResolvedValue([
+        { returnDate: null, returnedDate: new Date('2025-03-10') },
+        { returnDate: null, returnedDate: new Date('2025-03-15') },
+      ] as never);
+      prisma.loan.count.mockResolvedValue(0);
+      prisma.borrower.update.mockResolvedValue({} as never);
+
+      await listener.handleStatusChanged(event);
+
+      expect(prisma.borrower.update).toHaveBeenCalledWith({
+        where: { id: BORROWER_ID },
+        data: {
+          returnedOnTime: 2,
+          returnedLate: 0,
+          notReturned: 0,
+          averageReturnDelay: null,
+          trustScore: 100,
+        },
+      });
+    });
+
+    it('should compute trustScore as float (no rounding)', async () => {
       const event: LoanStatusChangedEvent = {
         loanId: LOAN_ID,
         borrowerId: BORROWER_ID,
@@ -149,17 +266,23 @@ describe('BorrowerStatsListener', () => {
         newStatus: 'RETURNED',
       };
 
-      prisma.borrower.findUnique.mockResolvedValue({
-        totalLoans: 3,
-      } as never);
-      prisma.loan.count.mockResolvedValue(3);
+      prisma.borrower.findUnique.mockResolvedValue({ totalLoans: 3 } as never);
+      prisma.loan.findMany.mockResolvedValue([
+        { returnDate: new Date('2025-03-10'), returnedDate: new Date('2025-03-09') },
+        { returnDate: new Date('2025-03-10'), returnedDate: new Date('2025-03-12') },
+      ] as never);
+      prisma.loan.count.mockResolvedValue(0);
       prisma.borrower.update.mockResolvedValue({} as never);
 
       await listener.handleStatusChanged(event);
 
+      // returnedOnTime=1, returnedLate=1
+      // trustScore = (1*100 + 1*50) / 3 = 150/3 = 50
       expect(prisma.borrower.update).toHaveBeenCalledWith({
         where: { id: BORROWER_ID },
-        data: { trustScore: 100 },
+        data: expect.objectContaining({
+          trustScore: 50,
+        }),
       });
     });
   });
@@ -175,12 +298,15 @@ describe('BorrowerStatsListener', () => {
       lastStatus: 'ACTIVE',
     };
 
-    it('should decrement totalLoans and recalculate trustScore', async () => {
+    it('should decrement totalLoans and recalculate all stats', async () => {
       prisma.borrower.findUnique
-        .mockResolvedValueOnce({ totalLoans: 3 } as never) // first call: check > 0
-        .mockResolvedValueOnce({ totalLoans: 2 } as never); // second call: recalculate
+        .mockResolvedValueOnce({ totalLoans: 3 } as never) // check > 0
+        .mockResolvedValueOnce({ totalLoans: 2 } as never); // recalculate
       prisma.borrower.update.mockResolvedValue({} as never);
-      prisma.loan.count.mockResolvedValue(1);
+      prisma.loan.findMany.mockResolvedValue([
+        { returnDate: new Date('2025-03-10'), returnedDate: new Date('2025-03-09') },
+      ] as never);
+      prisma.loan.count.mockResolvedValue(0);
 
       await listener.handleLoanDeleted(event);
 
@@ -190,10 +316,17 @@ describe('BorrowerStatsListener', () => {
         data: { totalLoans: { decrement: 1 } },
       });
 
-      // Second update: trustScore = round(1 * 100 / 2) = 50
+      // Second update: full stats recalculation
+      // trustScore = (1*100 + 0*50) / 2 = 50
       expect(prisma.borrower.update).toHaveBeenCalledWith({
         where: { id: BORROWER_ID },
-        data: { trustScore: 50 },
+        data: {
+          returnedOnTime: 1,
+          returnedLate: 0,
+          notReturned: 0,
+          averageReturnDelay: expect.any(Number),
+          trustScore: 50,
+        },
       });
     });
 

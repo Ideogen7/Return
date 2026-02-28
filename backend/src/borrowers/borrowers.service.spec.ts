@@ -24,6 +24,10 @@ const MOCK_BORROWER: Borrower = {
   lenderUserId: LENDER_USER_ID,
   trustScore: 0,
   totalLoans: 0,
+  returnedOnTime: 0,
+  returnedLate: 0,
+  notReturned: 0,
+  averageReturnDelay: null,
   createdAt: new Date('2025-01-01T00:00:00Z'),
   updatedAt: new Date('2025-01-01T00:00:00Z'),
 };
@@ -38,6 +42,10 @@ const MOCK_BORROWER_2: Borrower = {
   lenderUserId: LENDER_USER_ID,
   trustScore: 0,
   totalLoans: 0,
+  returnedOnTime: 0,
+  returnedLate: 0,
+  notReturned: 0,
+  averageReturnDelay: null,
   createdAt: new Date('2025-01-02T00:00:00Z'),
   updatedAt: new Date('2025-01-02T00:00:00Z'),
 };

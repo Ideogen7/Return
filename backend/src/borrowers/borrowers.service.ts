@@ -6,7 +6,6 @@ import {
   NotFoundException,
 } from '../common/exceptions/problem-details.exception.js';
 import {
-  DEFAULT_BORROWER_STATISTICS,
   type BorrowerResponse,
   type BorrowerStatistics,
   type PaginatedBorrowersResponse,
@@ -99,9 +98,12 @@ export class BorrowersService {
     this.assertOwnership(borrower, lenderUserId, `/v1/borrowers/${borrowerId}/statistics`);
 
     return {
-      ...DEFAULT_BORROWER_STATISTICS,
-      trustScore: borrower.trustScore,
       totalLoans: borrower.totalLoans,
+      returnedOnTime: borrower.returnedOnTime,
+      returnedLate: borrower.returnedLate,
+      notReturned: borrower.notReturned,
+      averageReturnDelay: borrower.averageReturnDelay,
+      trustScore: borrower.trustScore,
     };
   }
 
@@ -220,9 +222,12 @@ export class BorrowersService {
       phoneNumber: borrower.phoneNumber,
       userId: borrower.userId,
       statistics: {
-        ...DEFAULT_BORROWER_STATISTICS,
-        trustScore: borrower.trustScore,
         totalLoans: borrower.totalLoans,
+        returnedOnTime: borrower.returnedOnTime,
+        returnedLate: borrower.returnedLate,
+        notReturned: borrower.notReturned,
+        averageReturnDelay: borrower.averageReturnDelay,
+        trustScore: borrower.trustScore,
       },
     };
   }

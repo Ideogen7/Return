@@ -15,6 +15,7 @@ import type { Loan, Item, Photo, User, Borrower } from '@prisma/client';
 // =============================================================================
 
 const LENDER_USER_ID = '550e8400-e29b-41d4-a716-446655440000';
+const BORROWER_USER_ID = '770e8400-e29b-41d4-a716-446655440000';
 const OTHER_USER_ID = '660e8400-e29b-41d4-a716-446655440000';
 const LOAN_ID = '110e8400-e29b-41d4-a716-446655440000';
 const ITEM_ID = '220e8400-e29b-41d4-a716-446655440000';
@@ -63,10 +64,14 @@ const MOCK_BORROWER: Borrower = {
   lastName: 'Dupont',
   email: 'marie@example.com',
   phoneNumber: '+33612345678',
-  userId: null,
+  userId: BORROWER_USER_ID,
   lenderUserId: LENDER_USER_ID,
   trustScore: 0,
   totalLoans: 0,
+  returnedOnTime: 0,
+  returnedLate: 0,
+  notReturned: 0,
+  averageReturnDelay: null,
   createdAt: new Date('2025-01-01T00:00:00Z'),
   updatedAt: new Date('2025-01-01T00:00:00Z'),
 };
@@ -621,7 +626,7 @@ describe('LoansService', () => {
   // ===========================================================================
 
   describe('updateStatus', () => {
-    it('should transition PENDING_CONFIRMATION → ACTIVE and set confirmationDate', async () => {
+    it('should transition PENDING_CONFIRMATION → ACTIVE (borrower) and set confirmationDate', async () => {
       prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
       prisma.loan.update.mockResolvedValue({
         ...MOCK_LOAN,
@@ -629,7 +634,7 @@ describe('LoansService', () => {
         confirmationDate: NOW,
       });
 
-      const result = await service.updateStatus(LOAN_ID, LENDER_USER_ID, LoanStatus.ACTIVE);
+      const result = await service.updateStatus(LOAN_ID, BORROWER_USER_ID, LoanStatus.ACTIVE);
 
       expect(result.status).toBe(LoanStatus.ACTIVE);
       expect(prisma.loan.update).toHaveBeenCalledWith(
@@ -642,7 +647,7 @@ describe('LoansService', () => {
       );
     });
 
-    it('should transition ACTIVE → RETURNED and set returnedDate', async () => {
+    it('should transition ACTIVE → RETURNED (lender) and set returnedDate', async () => {
       const activeLoan = { ...MOCK_LOAN, status: LoanStatus.ACTIVE };
       prisma.loan.findUnique.mockResolvedValue(activeLoan);
       prisma.loan.update.mockResolvedValue({
@@ -655,14 +660,14 @@ describe('LoansService', () => {
       expect(result.status).toBe(LoanStatus.RETURNED);
     });
 
-    it('should emit STATUS_CHANGED event', async () => {
+    it('should emit STATUS_CHANGED event with lender info from loan', async () => {
       prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
       prisma.loan.update.mockResolvedValue({
         ...MOCK_LOAN,
         status: LoanStatus.ACTIVE,
       });
 
-      await service.updateStatus(LOAN_ID, LENDER_USER_ID, LoanStatus.ACTIVE);
+      await service.updateStatus(LOAN_ID, BORROWER_USER_ID, LoanStatus.ACTIVE);
 
       expect(eventEmitter.emit).toHaveBeenCalledWith(LOAN_EVENTS.STATUS_CHANGED, {
         loanId: LOAN_ID,
@@ -686,6 +691,31 @@ describe('LoansService', () => {
       }
     });
 
+    it('should throw 403 when role is not allowed for transition (lender tries PENDING→ACTIVE)', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+
+      try {
+        await service.updateStatus(LOAN_ID, LENDER_USER_ID, LoanStatus.ACTIVE);
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+        expect(err.response.type).toContain('forbidden-status-transition');
+      }
+    });
+
+    it('should throw 403 when user is neither lender nor borrower', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+
+      try {
+        await service.updateStatus(LOAN_ID, OTHER_USER_ID, LoanStatus.ACTIVE);
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+      }
+    });
+
     it('should include notes when provided', async () => {
       prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
       prisma.loan.update.mockResolvedValue({
@@ -694,7 +724,12 @@ describe('LoansService', () => {
         notes: 'Confirmed by phone',
       });
 
-      await service.updateStatus(LOAN_ID, LENDER_USER_ID, LoanStatus.ACTIVE, 'Confirmed by phone');
+      await service.updateStatus(
+        LOAN_ID,
+        BORROWER_USER_ID,
+        LoanStatus.ACTIVE,
+        'Confirmed by phone',
+      );
 
       expect(prisma.loan.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -709,15 +744,42 @@ describe('LoansService', () => {
   // ===========================================================================
 
   describe('confirm', () => {
-    it('should transition to ACTIVE status', async () => {
+    it('should transition to ACTIVE status (borrower only)', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+      prisma.loan.update.mockResolvedValue({
+        ...MOCK_LOAN,
+        status: LoanStatus.ACTIVE,
+        confirmationDate: NOW,
+      });
+
+      const result = await service.confirm(LOAN_ID, BORROWER_USER_ID);
+      expect(result.status).toBe(LoanStatus.ACTIVE);
+      expect(prisma.loan.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: LoanStatus.ACTIVE,
+            confirmationDate: expect.any(Date),
+          }),
+        }),
+      );
+    });
+
+    it('should emit STATUS_CHANGED event on confirm', async () => {
       prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
       prisma.loan.update.mockResolvedValue({
         ...MOCK_LOAN,
         status: LoanStatus.ACTIVE,
       });
 
-      const result = await service.confirm(LOAN_ID, LENDER_USER_ID);
-      expect(result.status).toBe(LoanStatus.ACTIVE);
+      await service.confirm(LOAN_ID, BORROWER_USER_ID);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(LOAN_EVENTS.STATUS_CHANGED, {
+        loanId: LOAN_ID,
+        borrowerId: BORROWER_ID,
+        lenderUserId: LENDER_USER_ID,
+        previousStatus: LoanStatus.PENDING_CONFIRMATION,
+        newStatus: LoanStatus.ACTIVE,
+      });
     });
 
     it('should throw 409 when already active', async () => {
@@ -727,11 +789,24 @@ describe('LoansService', () => {
       });
 
       try {
-        await service.confirm(LOAN_ID, LENDER_USER_ID);
+        await service.confirm(LOAN_ID, BORROWER_USER_ID);
         fail('Expected ConflictException');
       } catch (error) {
         const err = error as { response: ProblemDetails };
         expect(err.response.status).toBe(HttpStatus.CONFLICT);
+      }
+    });
+
+    it('should throw 403 when lender tries to confirm (not borrower)', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+
+      try {
+        await service.confirm(LOAN_ID, LENDER_USER_ID);
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+        expect(err.response.type).toContain('forbidden-status-transition');
       }
     });
   });
@@ -741,7 +816,7 @@ describe('LoansService', () => {
   // ===========================================================================
 
   describe('contest', () => {
-    it('should set status to CONTESTED and save reason', async () => {
+    it('should set status to CONTESTED and save reason (borrower only)', async () => {
       prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
       prisma.loan.update.mockResolvedValue({
         ...MOCK_LOAN,
@@ -749,7 +824,7 @@ describe('LoansService', () => {
         contestReason: 'This is not a valid loan because I never lent this item.',
       });
 
-      const result = await service.contest(LOAN_ID, LENDER_USER_ID, {
+      const result = await service.contest(LOAN_ID, BORROWER_USER_ID, {
         reason: 'This is not a valid loan because I never lent this item.',
       });
 
@@ -771,7 +846,7 @@ describe('LoansService', () => {
         status: LoanStatus.CONTESTED,
       });
 
-      await service.contest(LOAN_ID, LENDER_USER_ID, {
+      await service.contest(LOAN_ID, BORROWER_USER_ID, {
         reason: 'This is not a valid loan because I never lent this item.',
       });
 
@@ -788,13 +863,28 @@ describe('LoansService', () => {
       });
 
       try {
-        await service.contest(LOAN_ID, LENDER_USER_ID, {
+        await service.contest(LOAN_ID, BORROWER_USER_ID, {
           reason: 'This is not a valid loan because I never lent this item.',
         });
         fail('Expected ConflictException');
       } catch (error) {
         const err = error as { response: ProblemDetails };
         expect(err.response.status).toBe(HttpStatus.CONFLICT);
+      }
+    });
+
+    it('should throw 403 when lender tries to contest (not borrower)', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+
+      try {
+        await service.contest(LOAN_ID, LENDER_USER_ID, {
+          reason: 'Not valid',
+        });
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+        expect(err.response.type).toContain('forbidden-status-transition');
       }
     });
   });
@@ -839,7 +929,7 @@ describe('LoansService', () => {
           lastName: 'Dupont',
           email: 'marie@example.com',
           phoneNumber: '+33612345678',
-          userId: null,
+          userId: BORROWER_USER_ID,
           statistics: {
             totalLoans: 0,
             returnedOnTime: 0,

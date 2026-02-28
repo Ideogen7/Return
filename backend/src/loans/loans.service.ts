@@ -9,9 +9,9 @@ import {
   NotFoundException,
   RateLimitException,
 } from '../common/exceptions/problem-details.exception.js';
-import { DEFAULT_BORROWER_STATISTICS } from '../borrowers/interfaces/borrower-response.interface.js';
 import { LOAN_EVENTS } from '../common/events/loan.events.js';
-import { isValidTransition } from './loan-status-machine.js';
+import { isValidTransition, isAllowedForRole } from './loan-status-machine.js';
+import type { LoanRole } from './loan-status-machine.js';
 import { CreateLoanDto } from './dto/create-loan.dto.js';
 import type { UpdateLoanDto } from './dto/update-loan.dto.js';
 import type { ContestLoanDto } from './dto/contest-loan.dto.js';
@@ -260,18 +260,29 @@ export class LoansService {
 
   async updateStatus(
     loanId: string,
-    lenderId: string,
+    userId: string,
     newStatus: LoanStatus,
     notes?: string | null,
   ): Promise<LoanResponse> {
     const loan = await this.findLoanOrFail(loanId);
-    this.assertOwnership(loan, lenderId, `/v1/loans/${loanId}/status`);
+
+    // Determine user role relative to this loan (lender or borrower)
+    const role = this.resolveUserRole(loan, userId, `/v1/loans/${loanId}/status`);
 
     if (!isValidTransition(loan.status, newStatus)) {
       throw new ConflictException(
         'invalid-status-transition',
         'Invalid Status Transition',
         `Cannot transition from ${loan.status} to ${newStatus}.`,
+        `/v1/loans/${loanId}/status`,
+      );
+    }
+
+    if (!isAllowedForRole(loan.status, newStatus, role)) {
+      throw new ForbiddenException(
+        'forbidden-status-transition',
+        'Forbidden Status Transition',
+        'This status transition is not allowed for your role.',
         `/v1/loans/${loanId}/status`,
       );
     }
@@ -302,7 +313,7 @@ export class LoansService {
     const event: LoanStatusChangedEvent = {
       loanId,
       borrowerId: loan.borrowerId,
-      lenderUserId: lenderId,
+      lenderUserId: loan.lenderId,
       previousStatus: loan.status,
       newStatus,
     };
@@ -311,13 +322,47 @@ export class LoansService {
     return this.toLoanResponse(updated as LoanWithRelations);
   }
 
-  async confirm(loanId: string, lenderId: string): Promise<LoanResponse> {
-    return this.updateStatus(loanId, lenderId, LoanStatus.ACTIVE);
+  async confirm(loanId: string, userId: string): Promise<LoanResponse> {
+    const loan = await this.findLoanOrFail(loanId);
+    this.assertBorrowerRole(loan, userId, `/v1/loans/${loanId}/confirm`);
+
+    if (!isValidTransition(loan.status, LoanStatus.ACTIVE)) {
+      throw new ConflictException(
+        'invalid-status-transition',
+        'Invalid Status Transition',
+        `Cannot transition from ${loan.status} to ACTIVE.`,
+        `/v1/loans/${loanId}/confirm`,
+      );
+    }
+
+    const updated = await this.prisma.loan.update({
+      where: { id: loanId },
+      data: {
+        status: LoanStatus.ACTIVE,
+        confirmationDate: new Date(),
+      },
+      include: {
+        item: { include: { photos: true } },
+        lender: true,
+        borrower: true,
+      },
+    });
+
+    const event: LoanStatusChangedEvent = {
+      loanId,
+      borrowerId: loan.borrowerId,
+      lenderUserId: loan.lenderId,
+      previousStatus: loan.status,
+      newStatus: LoanStatus.ACTIVE,
+    };
+    this.eventEmitter.emit(LOAN_EVENTS.STATUS_CHANGED, event);
+
+    return this.toLoanResponse(updated as LoanWithRelations);
   }
 
-  async contest(loanId: string, lenderId: string, dto: ContestLoanDto): Promise<LoanResponse> {
+  async contest(loanId: string, userId: string, dto: ContestLoanDto): Promise<LoanResponse> {
     const loan = await this.findLoanOrFail(loanId);
-    this.assertOwnership(loan, lenderId, `/v1/loans/${loanId}/contest`);
+    this.assertBorrowerRole(loan, userId, `/v1/loans/${loanId}/contest`);
 
     if (!isValidTransition(loan.status, LoanStatus.CONTESTED)) {
       throw new ConflictException(
@@ -344,7 +389,7 @@ export class LoansService {
     const event: LoanStatusChangedEvent = {
       loanId,
       borrowerId: loan.borrowerId,
-      lenderUserId: lenderId,
+      lenderUserId: loan.lenderId,
       previousStatus: loan.status,
       newStatus: LoanStatus.CONTESTED,
     };
@@ -511,6 +556,37 @@ export class LoansService {
     }
   }
 
+  /**
+   * Determines the user's role relative to a loan.
+   * Throws 403 if the user is neither the lender nor the borrower.
+   */
+  private resolveUserRole(loan: LoanWithRelations, userId: string, path: string): LoanRole {
+    if (loan.lenderId === userId) return 'lender';
+    if (loan.borrower.userId === userId) return 'borrower';
+
+    throw new ForbiddenException(
+      'forbidden',
+      'Forbidden',
+      'You do not have permission to change this loan status.',
+      path,
+    );
+  }
+
+  /**
+   * Asserts the calling user is the borrower linked to this loan.
+   * Used for confirm/contest (emprunteur uniquement per OpenAPI).
+   */
+  private assertBorrowerRole(loan: LoanWithRelations, userId: string, path: string): void {
+    if (loan.borrower.userId !== userId) {
+      throw new ForbiddenException(
+        'forbidden-status-transition',
+        'Forbidden Status Transition',
+        'Only the borrower can confirm or contest a loan.',
+        path,
+      );
+    }
+  }
+
   private toLoanResponse(loan: LoanWithRelations): LoanResponse {
     return {
       id: loan.id,
@@ -567,9 +643,12 @@ export class LoansService {
       phoneNumber: borrower.phoneNumber,
       userId: borrower.userId,
       statistics: {
-        ...DEFAULT_BORROWER_STATISTICS,
-        trustScore: borrower.trustScore,
         totalLoans: borrower.totalLoans,
+        returnedOnTime: borrower.returnedOnTime,
+        returnedLate: borrower.returnedLate,
+        notReturned: borrower.notReturned,
+        averageReturnDelay: borrower.averageReturnDelay,
+        trustScore: borrower.trustScore,
       },
     };
   }
