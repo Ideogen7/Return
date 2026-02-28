@@ -38,6 +38,7 @@ export interface LoanResponse {
   confirmationDate: string | null;
   returnedDate: string | null;
   notes: string | null;
+  contestReason: string | null;
   createdAt: string;
   updatedAt: string;
 }

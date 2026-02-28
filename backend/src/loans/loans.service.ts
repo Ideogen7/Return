@@ -522,6 +522,7 @@ export class LoansService {
       confirmationDate: loan.confirmationDate?.toISOString() ?? null,
       returnedDate: loan.returnedDate?.toISOString() ?? null,
       notes: loan.notes,
+      contestReason: loan.contestReason,
       createdAt: loan.createdAt.toISOString(),
       updatedAt: loan.updatedAt.toISOString(),
     };

@@ -194,7 +194,7 @@ export class ItemsService {
       throw new ConflictException(
         'item-currently-loaned',
         'Item Currently Loaned',
-        'Cannot delete an item that is associated with an active loan.',
+        'Cannot delete an item that is currently on loan.',
         `/v1/items/${itemId}`,
       );
     }

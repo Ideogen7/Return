@@ -854,6 +854,7 @@ describe('LoansService', () => {
         confirmationDate: null,
         returnedDate: null,
         notes: 'Test loan',
+        contestReason: null,
         createdAt: '2025-02-27T12:00:00.000Z',
         updatedAt: '2025-02-27T12:00:00.000Z',
       });

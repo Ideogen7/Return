@@ -682,6 +682,20 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          description: Le prêt a déjà été confirmé, contesté ou est dans un état terminal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invalid-status-transition
+                title: Invalid Status Transition
+                status: 409
+                detail: Cannot transition from RETURNED to CONTESTED.
+                instance: /v1/loans/loan-123/contest
+                timestamp: 2026-02-08T17:10:00Z
+                requestId: req-4c5d6e7f
 
   # =============================================================================
   # ITEMS ENDPOINTS
@@ -2019,6 +2033,15 @@ components:
           maxLength: 500
           example: 'Perceuse avec 2 batteries et chargeur'
           description: Notes optionnelles du prêteur
+        contestReason:
+          type: string
+          nullable: true
+          minLength: 10
+          maxLength: 500
+          example: "Je n'ai jamais emprunté cet objet. Il doit y avoir une erreur."
+          description: |
+            Raison de contestation fournie par l'emprunteur (null si le prêt n'a pas été contesté).
+            Renseigné uniquement via POST /loans/{loanId}/contest.
         createdAt:
           type: string
           format: date-time
