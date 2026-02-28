@@ -58,7 +58,8 @@ export class LoansController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<LoanResponse> {
     const loan = await this.loansService.create(req.user.userId, dto);
-    res.setHeader('Location', `/v1/loans/${loan.id}`);
+    const baseUrl = `${req.protocol}://${req.headers.host as string}`;
+    res.setHeader('Location', `${baseUrl}/v1/loans/${loan.id}`);
     return loan;
   }
 

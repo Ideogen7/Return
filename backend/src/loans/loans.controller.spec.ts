@@ -104,7 +104,11 @@ describe('LoansController', () => {
       service.create.mockResolvedValue(MOCK_LOAN_RESPONSE);
 
       const mockRes = { setHeader: jest.fn() };
-      const mockReq = { user: MOCK_AUTH_USER };
+      const mockReq = {
+        user: MOCK_AUTH_USER,
+        protocol: 'http',
+        headers: { host: 'localhost:3000' },
+      };
 
       const result = await controller.create(
         { item: 'item-id', borrower: 'borrower-id', returnDate: '2025-06-01' },
@@ -118,7 +122,10 @@ describe('LoansController', () => {
         borrower: 'borrower-id',
         returnDate: '2025-06-01',
       });
-      expect(mockRes.setHeader).toHaveBeenCalledWith('Location', `/v1/loans/${LOAN_ID}`);
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        'Location',
+        `http://localhost:3000/v1/loans/${LOAN_ID}`,
+      );
     });
   });
 

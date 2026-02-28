@@ -35,7 +35,7 @@ export function toSafeUser(user: User): SafeUser {
       language: user.language as SupportedLanguage,
       timezone: user.timezone,
     },
-    createdAt: user.createdAt,
-    lastLoginAt: user.lastLoginAt,
+    createdAt: user.createdAt.toISOString(),
+    lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
   };
 }

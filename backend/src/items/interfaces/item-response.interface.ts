@@ -2,13 +2,14 @@
 // Item Response Interfaces — aligned with OpenAPI Item schema
 // =============================================================================
 
+import type { ItemCategory } from '@prisma/client';
 import type { PhotoResponse } from './photo-response.interface.js';
 
 export interface ItemResponse {
   id: string;
   name: string;
   description: string | null;
-  category: string;
+  category: ItemCategory;
   estimatedValue: number | null;
   photos: PhotoResponse[];
   createdAt: string; // ISO 8601

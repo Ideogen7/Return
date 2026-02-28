@@ -22,7 +22,7 @@ const MOCK_SAFE_USER: SafeUser = {
     language: 'fr',
     timezone: 'Europe/Paris',
   },
-  createdAt: new Date('2025-01-01T00:00:00Z'),
+  createdAt: '2025-01-01T00:00:00.000Z',
   lastLoginAt: null,
 };
 

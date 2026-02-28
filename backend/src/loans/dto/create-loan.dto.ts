@@ -1,21 +1,22 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength, IsDateString } from 'class-validator';
+import { IsOptional, IsString, MaxLength, IsDateString } from 'class-validator';
 import { CreateItemDto } from '../../items/dto/create-item.dto.js';
 import { CreateBorrowerDto } from '../../borrowers/dto/create-borrower.dto.js';
+import { IsUuidOrDto } from '../../common/validators/is-uuid-or-dto.validator.js';
 
 /**
  * DTO for creating a loan.
  *
  * Per OpenAPI spec (RÈGLE DE DIAMANT), `item` and `borrower` can be either:
- * - A UUID string referencing an existing resource
- * - An inline CreateItemDto / CreateBorrowerDto object for creation
+ * - A UUID string referencing an existing resource → validated as UUID
+ * - An inline CreateItemDto / CreateBorrowerDto object → validated with nested DTO rules
  *
- * Discrimination is handled at the service level.
+ * Discrimination + validation handled by @IsUuidOrDto custom validator.
  */
 export class CreateLoanDto {
-  @IsNotEmpty()
+  @IsUuidOrDto(CreateItemDto)
   item!: string | CreateItemDto;
 
-  @IsNotEmpty()
+  @IsUuidOrDto(CreateBorrowerDto)
   borrower!: string | CreateBorrowerDto;
 
   @IsOptional()

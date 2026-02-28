@@ -106,6 +106,25 @@ export class UsersService {
   async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
     const user = await this.findUserOrThrow(userId);
 
+    // Vérification des prêts actifs (OpenAPI: 409 active-loans-exist)
+    const activeLoanCount = await this.prisma.loan.count({
+      where: {
+        lenderId: userId,
+        status: {
+          in: ['PENDING_CONFIRMATION', 'ACTIVE', 'ACTIVE_BY_DEFAULT', 'AWAITING_RETURN'],
+        },
+        deletedAt: null,
+      },
+    });
+    if (activeLoanCount > 0) {
+      throw new ConflictException(
+        'active-loans-exist',
+        'Active Loans Exist',
+        'Cannot delete account while active loans exist. Please close all loans first.',
+        '/v1/users/me',
+      );
+    }
+
     // Vérification du mot de passe
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
     if (!isPasswordValid) {

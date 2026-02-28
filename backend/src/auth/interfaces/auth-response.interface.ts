@@ -43,8 +43,8 @@ export interface SafeUser {
   role: UserRole;
   profilePicture: string | null;
   settings: UserSettings;
-  createdAt: Date;
-  lastLoginAt: Date | null;
+  createdAt: string;
+  lastLoginAt: string | null;
 }
 
 /**

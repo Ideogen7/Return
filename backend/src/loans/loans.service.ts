@@ -194,6 +194,38 @@ export class LoansService {
     return this.toLoanResponse(loan);
   }
 
+  /**
+   * Returns all loans for a given borrower belonging to the authenticated lender.
+   * Used by GET /borrowers/:borrowerId/loans (unpaginated array).
+   */
+  async findByBorrower(
+    borrowerId: string,
+    lenderId: string,
+    statusFilter?: LoanStatus[],
+  ): Promise<LoanResponse[]> {
+    const where: Record<string, unknown> = {
+      borrowerId,
+      lenderId,
+      deletedAt: null,
+    };
+
+    if (statusFilter && statusFilter.length > 0) {
+      where.status = { in: statusFilter };
+    }
+
+    const loans = await this.prisma.loan.findMany({
+      where,
+      include: {
+        item: { include: { photos: true } },
+        lender: true,
+        borrower: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return loans.map((loan) => this.toLoanResponse(loan as LoanWithRelations));
+  }
+
   // =========================================================================
   // UPDATE
   // =========================================================================
@@ -510,6 +542,8 @@ export class LoansService {
       throw new RateLimitException(
         `You have reached the maximum of ${MAX_LOANS_PER_DAY} loans per day.`,
         '/v1/loans',
+        'daily-loan-limit-exceeded',
+        'Daily Loan Limit Exceeded',
       );
     }
   }

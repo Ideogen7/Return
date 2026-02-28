@@ -529,8 +529,9 @@ paths:
         **Prêteur (propriétaire du prêt)** :
         - `PENDING_CONFIRMATION` → `ACTIVE` (si timeout 48h atteint)
         - `ACTIVE` → `RETURNED` (confirmer retour)
+        - `ACTIVE_BY_DEFAULT` → `RETURNED` (confirmer retour après confirmation automatique)
         - `AWAITING_RETURN` → `RETURNED` (confirmer retour tardif)
-        - `ACTIVE` / `AWAITING_RETURN` → `ABANDONED` (abandon manuel)
+        - `ACTIVE` / `ACTIVE_BY_DEFAULT` / `AWAITING_RETURN` → `ABANDONED` (abandon manuel)
 
         **Emprunteur** :
         - `PENDING_CONFIRMATION` → `ACTIVE` (accepter)

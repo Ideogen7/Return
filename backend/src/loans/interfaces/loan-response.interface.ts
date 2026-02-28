@@ -1,3 +1,4 @@
+import type { LoanStatus } from '@prisma/client';
 import type { PhotoResponse } from '../../items/interfaces/photo-response.interface.js';
 import type { BorrowerStatistics } from '../../borrowers/interfaces/borrower-response.interface.js';
 
@@ -34,7 +35,7 @@ export interface LoanResponse {
   lender: LoanLenderResponse;
   borrower: LoanBorrowerResponse;
   returnDate: string | null;
-  status: string;
+  status: LoanStatus;
   confirmationDate: string | null;
   returnedDate: string | null;
   notes: string | null;

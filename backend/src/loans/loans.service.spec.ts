@@ -273,7 +273,7 @@ describe('LoansService', () => {
       } catch (error) {
         const err = error as { response: ProblemDetails };
         expect(err.response.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
-        expect(err.response.type).toContain('rate-limit-exceeded');
+        expect(err.response.type).toContain('daily-loan-limit-exceeded');
       }
     });
 
