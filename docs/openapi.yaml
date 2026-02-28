@@ -719,7 +719,9 @@ paths:
           example: TOOLS
         - name: available
           in: query
-          description: Filtrer les objets disponibles (non prêtés actuellement)
+          description: >
+            Filtrer par disponibilité. `true` = objets disponibles (non prêtés),
+            `false` = objets actuellement prêtés. Omis = tous les objets.
           schema:
             type: boolean
           example: true
@@ -1200,6 +1202,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/active-loans-exist
+                title: Active Loans Exist
+                status: 409
+                detail: Cannot delete a borrower who has active loans.
+                instance: /v1/borrowers/borrower-123
+                timestamp: '2026-02-28T14:00:00Z'
+                requestId: req-1a2b3c4d
 
   /borrowers/{borrowerId}/statistics:
     parameters:
@@ -1995,6 +2005,7 @@ components:
         - borrower
         - status
         - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -2478,8 +2489,9 @@ components:
           description: Page actuelle (commence à 1)
         totalPages:
           type: integer
+          minimum: 0
           example: 5
-          description: Nombre total de pages
+          description: Nombre total de pages. Retourne 0 lorsque la liste est vide.
         totalItems:
           type: integer
           example: 87
