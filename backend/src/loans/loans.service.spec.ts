@@ -114,6 +114,10 @@ describe('LoansService', () => {
 
   beforeEach(async () => {
     prisma = mockDeep<PrismaService>();
+    // Pass through $transaction so callbacks receive the same mock client
+    (prisma.$transaction as jest.Mock).mockImplementation((fn: (tx: unknown) => Promise<unknown>) =>
+      fn(prisma),
+    );
     eventEmitter = { emit: jest.fn() };
     redisClient = createMockRedisClient();
     redisService = { getClient: jest.fn().mockReturnValue(redisClient) };

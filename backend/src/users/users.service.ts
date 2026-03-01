@@ -13,6 +13,7 @@ import {
   UnauthorizedException,
 } from '../common/exceptions/problem-details.exception.js';
 import { toSafeUser } from '../common/mappers/user.mapper.js';
+import { ACTIVE_LOAN_STATUSES } from '../common/constants/loan-statuses.js';
 import { isPrismaUniqueConstraintError } from '../common/utils/prisma-errors.util.js';
 import { PHOTO_STORAGE } from '../storage/interfaces/photo-storage.interface.js';
 import type { PhotoStorage } from '../storage/interfaces/photo-storage.interface.js';
@@ -111,7 +112,7 @@ export class UsersService {
       where: {
         lenderId: userId,
         status: {
-          in: ['PENDING_CONFIRMATION', 'ACTIVE', 'ACTIVE_BY_DEFAULT', 'AWAITING_RETURN'],
+          in: ACTIVE_LOAN_STATUSES,
         },
         deletedAt: null,
       },

@@ -32,6 +32,7 @@ import type {
 } from '../common/events/loan.events.js';
 import {
   LoanStatus,
+  Prisma,
   type Loan,
   type Item,
   type Photo,
@@ -40,6 +41,9 @@ import {
 } from '@prisma/client';
 
 const MAX_LOANS_PER_DAY = 15;
+
+/** Transaction client type for Prisma interactive transactions */
+type TxClient = Prisma.TransactionClient;
 
 /** Archived statuses that are excluded from default listing */
 const ARCHIVED_STATUSES: LoanStatus[] = [
@@ -86,32 +90,33 @@ export class LoansService {
       }
     }
 
-    // Resolve item: UUID string → existing, object → create inline
-    const itemId = await this.resolveItem(dto.item, lenderId);
+    // Atomic transaction: resolve/create item + borrower + loan in one go
+    // Prevents orphaned records if any step fails
+    const loan = await this.prisma.$transaction(async (tx) => {
+      const itemId = await this.resolveItem(tx, dto.item, lenderId);
+      const borrowerId = await this.resolveBorrower(tx, dto.borrower, lenderId);
 
-    // Resolve borrower: UUID string → existing, object → create inline
-    const borrowerId = await this.resolveBorrower(dto.borrower, lenderId);
-
-    const loan = await this.prisma.loan.create({
-      data: {
-        itemId,
-        lenderId,
-        borrowerId,
-        status: LoanStatus.PENDING_CONFIRMATION,
-        returnDate: dto.returnDate ? new Date(dto.returnDate) : null,
-        notes: dto.notes ?? null,
-      },
-      include: {
-        item: { include: { photos: true } },
-        lender: true,
-        borrower: true,
-      },
+      return tx.loan.create({
+        data: {
+          itemId,
+          lenderId,
+          borrowerId,
+          status: LoanStatus.PENDING_CONFIRMATION,
+          returnDate: dto.returnDate ? new Date(dto.returnDate) : null,
+          notes: dto.notes ?? null,
+        },
+        include: {
+          item: { include: { photos: true } },
+          lender: true,
+          borrower: true,
+        },
+      });
     });
 
-    // Increment daily counter
+    // Increment daily counter (outside transaction — Redis, not Prisma)
     await this.incrementDailyCount(lenderId);
 
-    // Emit event for inter-module communication
+    // Emit event for inter-module communication (outside transaction)
     const event: LoanCreatedEvent = {
       loanId: loan.id,
       borrowerId: loan.borrowerId,
@@ -320,8 +325,8 @@ export class LoansService {
     }
 
     const data: Record<string, unknown> = { status: newStatus };
-    if (notes !== undefined && notes !== null) {
-      data.notes = notes;
+    if (notes !== undefined) {
+      data.notes = notes; // null explicitly clears notes, undefined leaves unchanged
     }
 
     // Set confirmation/returned dates based on transition
@@ -434,10 +439,14 @@ export class LoansService {
   // PRIVATE HELPERS
   // =========================================================================
 
-  private async resolveItem(itemInput: string | CreateItemDto, lenderId: string): Promise<string> {
+  private async resolveItem(
+    tx: TxClient,
+    itemInput: string | CreateItemDto,
+    lenderId: string,
+  ): Promise<string> {
     // UUID string → reference existing item
     if (typeof itemInput === 'string') {
-      const item = await this.prisma.item.findUnique({
+      const item = await tx.item.findUnique({
         where: { id: itemInput },
       });
       if (!item) {
@@ -469,7 +478,7 @@ export class LoansService {
       );
     }
 
-    const item = await this.prisma.item.create({
+    const item = await tx.item.create({
       data: {
         name: dto.name,
         description: dto.description ?? null,
@@ -482,12 +491,13 @@ export class LoansService {
   }
 
   private async resolveBorrower(
+    tx: TxClient,
     borrowerInput: string | CreateBorrowerDto,
     lenderId: string,
   ): Promise<string> {
     // UUID string → reference existing borrower
     if (typeof borrowerInput === 'string') {
-      const borrower = await this.prisma.borrower.findUnique({
+      const borrower = await tx.borrower.findUnique({
         where: { id: borrowerInput },
       });
       if (!borrower) {
@@ -508,7 +518,7 @@ export class LoansService {
     const dto = borrowerInput;
 
     // Check uniqueness (lenderUserId + email)
-    const existing = await this.prisma.borrower.findUnique({
+    const existing = await tx.borrower.findUnique({
       where: {
         lenderUserId_email: {
           lenderUserId: lenderId,
@@ -522,7 +532,7 @@ export class LoansService {
       return existing.id;
     }
 
-    const borrower = await this.prisma.borrower.create({
+    const borrower = await tx.borrower.create({
       data: {
         firstName: dto.firstName,
         lastName: dto.lastName,

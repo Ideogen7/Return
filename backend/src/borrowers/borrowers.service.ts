@@ -12,19 +12,12 @@ import {
 } from './interfaces/borrower-response.interface.js';
 import type { CreateBorrowerDto } from './dto/create-borrower.dto.js';
 import type { UpdateBorrowerDto } from './dto/update-borrower.dto.js';
-import type { Borrower, LoanStatus } from '@prisma/client';
+import type { Borrower } from '@prisma/client';
+import { ACTIVE_LOAN_STATUSES } from '../common/constants/loan-statuses.js';
 
 // =============================================================================
 // BorrowersService — Logique métier du module Borrowers
 // =============================================================================
-
-/** Statuses where a loan is considered "active" (borrower cannot be deleted) */
-const ACTIVE_LOAN_STATUSES: LoanStatus[] = [
-  'PENDING_CONFIRMATION',
-  'ACTIVE',
-  'ACTIVE_BY_DEFAULT',
-  'AWAITING_RETURN',
-] as LoanStatus[];
 
 @Injectable()
 export class BorrowersService {

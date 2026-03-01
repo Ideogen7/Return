@@ -2,7 +2,7 @@
 // Custom validator: @IsUuidOrDto(DtoClass)
 // Handles oneOf [UUID string, nested DTO object] as per OpenAPI spec.
 //
-// - If value is a string → validates UUID v4 format
+// - If value is a string → validates UUID format (any version)
 // - If value is an object → transforms to DtoClass and runs full validation
 // - Otherwise → fails
 // =============================================================================

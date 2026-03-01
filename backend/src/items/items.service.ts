@@ -12,7 +12,8 @@ import type { ItemResponse, PaginatedItemsResponse } from './interfaces/item-res
 import type { PhotoResponse } from './interfaces/photo-response.interface.js';
 import type { CreateItemDto } from './dto/create-item.dto.js';
 import type { UpdateItemDto } from './dto/update-item.dto.js';
-import type { Item, Photo, ItemCategory, LoanStatus } from '@prisma/client';
+import type { Item, Photo, ItemCategory } from '@prisma/client';
+import { ACTIVE_LOAN_STATUSES } from '../common/constants/loan-statuses.js';
 
 // =============================================================================
 // ItemsService — Logique métier du module Items
@@ -20,14 +21,6 @@ import type { Item, Photo, ItemCategory, LoanStatus } from '@prisma/client';
 
 /** Maximum de photos par item (OpenAPI: maxItems 5) */
 const MAX_PHOTOS_PER_ITEM = 5;
-
-/** Statuses where a loan is considered "active" (item not available) */
-const ACTIVE_LOAN_STATUSES: LoanStatus[] = [
-  'PENDING_CONFIRMATION',
-  'ACTIVE',
-  'ACTIVE_BY_DEFAULT',
-  'AWAITING_RETURN',
-] as LoanStatus[];
 
 type ItemWithPhotos = Item & { photos: Photo[] };
 
