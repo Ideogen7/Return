@@ -1,0 +1,168 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { PaperProvider } from 'react-native-paper';
+import { server } from '../../../../__mocks__/server';
+import { http, HttpResponse } from 'msw';
+import { Text } from 'react-native';
+import { LoanDetailScreen } from '../LoanDetailScreen';
+import { LoanListScreen } from '../LoanListScreen';
+import { useLoanStore } from '../../../stores/useLoanStore';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import type { LoanStackParamList } from '../../../navigation/types';
+
+const Stack = createNativeStackNavigator<LoanStackParamList>();
+
+function DummyCreateLoan() {
+  return <Text>CreateLoanScreen</Text>;
+}
+
+function DummyConfirmLoan() {
+  return <Text>ConfirmLoanScreen</Text>;
+}
+
+function renderDetailScreen(loanId = '7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d') {
+  return render(
+    <PaperProvider>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen
+            name="LoanDetail"
+            component={LoanDetailScreen}
+            initialParams={{ id: loanId }}
+          />
+          <Stack.Screen name="LoanList" component={LoanListScreen} />
+          <Stack.Screen name="CreateLoan" component={DummyCreateLoan} />
+          <Stack.Screen name="ConfirmLoan" component={DummyConfirmLoan} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </PaperProvider>,
+  );
+}
+
+beforeAll(() => server.listen());
+afterEach(() => {
+  server.resetHandlers();
+  useLoanStore.getState().reset();
+});
+afterAll(() => server.close());
+
+describe('LoanDetailScreen', () => {
+  it('should render loan details', async () => {
+    renderDetailScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loan-detail')).toBeTruthy();
+    });
+
+    expect(screen.getByText('Perceuse Bosch')).toBeTruthy();
+    expect(screen.getByText(/Marie Dupont/)).toBeTruthy();
+  });
+
+  it('should show action buttons for ACTIVE loan', async () => {
+    renderDetailScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loan-detail')).toBeTruthy();
+    });
+
+    expect(screen.getByTestId('return-loan-btn')).toBeTruthy();
+    expect(screen.getByTestId('edit-loan-btn')).toBeTruthy();
+    expect(screen.getByTestId('abandon-loan-btn')).toBeTruthy();
+    expect(screen.getByTestId('delete-loan-btn')).toBeTruthy();
+  });
+
+  it('should hide action buttons for RETURNED loan', async () => {
+    server.use(
+      http.get('http://localhost:4010/loans/:id', ({ params }) => {
+        return HttpResponse.json(
+          {
+            id: params.id,
+            item: {
+              id: '9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d',
+              name: 'Perceuse Bosch',
+              category: 'TOOLS',
+              createdAt: '2026-02-10T10:00:00Z',
+            },
+            lender: { id: 'user-1', firstName: 'John', lastName: 'Doe', profilePicture: null },
+            borrower: {
+              id: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
+              firstName: 'Marie',
+              lastName: 'Dupont',
+              email: 'marie@example.com',
+            },
+            status: 'RETURNED',
+            returnDate: '2026-04-15',
+            confirmationDate: '2026-02-02T10:00:00Z',
+            returnedDate: '2026-04-10T10:00:00Z',
+            notes: null,
+            contestReason: null,
+            createdAt: '2026-02-01T10:00:00Z',
+            updatedAt: '2026-04-10T10:00:00Z',
+          },
+          { status: 200 },
+        );
+      }),
+    );
+
+    renderDetailScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loan-detail')).toBeTruthy();
+    });
+
+    expect(screen.queryByTestId('return-loan-btn')).toBeNull();
+    expect(screen.queryByTestId('abandon-loan-btn')).toBeNull();
+    expect(screen.queryByTestId('delete-loan-btn')).toBeNull();
+  });
+
+  it('should show delete confirmation dialog', async () => {
+    renderDetailScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('delete-loan-btn')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId('delete-loan-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-delete-dialog')).toBeTruthy();
+      expect(screen.getByTestId('confirm-delete-btn')).toBeTruthy();
+      expect(screen.getByTestId('cancel-delete-btn')).toBeTruthy();
+    });
+  });
+
+  it('should show abandon confirmation dialog', async () => {
+    renderDetailScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('abandon-loan-btn')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId('abandon-loan-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-abandon-dialog')).toBeTruthy();
+      expect(screen.getByTestId('confirm-abandon-btn')).toBeTruthy();
+    });
+  });
+
+  it('should delete and go back on confirm', async () => {
+    renderDetailScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('delete-loan-btn')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId('delete-loan-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-delete-btn')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId('confirm-delete-btn'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('loan-detail')).toBeNull();
+    });
+  });
+});

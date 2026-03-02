@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
+import { View, FlatList, Pressable, StyleSheet } from 'react-native';
 import { Text, Button, TextInput, RadioButton, HelperText, Icon } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { ui } from '../../config/theme.config';
@@ -99,7 +99,7 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
           data={items}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <RadioButton.Group onValueChange={setSelectedItemId} value={selectedItemId ?? ''}>
+            <Pressable onPress={() => setSelectedItemId(item.id)} testID={`select-item-${item.id}`}>
               <View
                 style={[
                   styles.listItem,
@@ -107,12 +107,17 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
                   selectedItemId === item.id && styles.listItemSelected,
                 ]}
               >
-                <RadioButton.Android value={item.id} color="#6B8E7B" />
+                <RadioButton.Android
+                  value={item.id}
+                  status={selectedItemId === item.id ? 'checked' : 'unchecked'}
+                  onPress={() => setSelectedItemId(item.id)}
+                  color="#6B8E7B"
+                />
                 <Text variant="bodyMedium" style={styles.listItemText}>
                   {item.name}
                 </Text>
               </View>
-            </RadioButton.Group>
+            </Pressable>
           )}
           ListEmptyComponent={
             <Text variant="bodyMedium" style={styles.emptyText}>
@@ -145,7 +150,7 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
         data={borrowers}
         keyExtractor={(b) => b.id}
         renderItem={({ item: b }) => (
-          <RadioButton.Group onValueChange={setSelectedBorrowerId} value={selectedBorrowerId ?? ''}>
+          <Pressable onPress={() => setSelectedBorrowerId(b.id)} testID={`select-borrower-${b.id}`}>
             <View
               style={[
                 styles.listItem,
@@ -153,12 +158,17 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
                 selectedBorrowerId === b.id && styles.listItemSelected,
               ]}
             >
-              <RadioButton.Android value={b.id} color="#6B8E7B" />
+              <RadioButton.Android
+                value={b.id}
+                status={selectedBorrowerId === b.id ? 'checked' : 'unchecked'}
+                onPress={() => setSelectedBorrowerId(b.id)}
+                color="#6B8E7B"
+              />
               <Text variant="bodyMedium" style={styles.listItemText}>
                 {b.firstName} {b.lastName}
               </Text>
             </View>
-          </RadioButton.Group>
+          </Pressable>
         )}
         ListEmptyComponent={
           <Text variant="bodyMedium" style={styles.emptyText}>
