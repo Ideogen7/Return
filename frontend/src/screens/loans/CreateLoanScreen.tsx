@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Snackbar } from 'react-native-paper';
+import { ActivityIndicator } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LoanWizard } from '../../components/loans/LoanWizard';
@@ -25,8 +25,14 @@ export function CreateLoanScreen({ navigation }: Props) {
 
   useEffect(() => {
     Promise.all([
-      useItemStore.getState().fetchItems().catch(() => {}),
-      useBorrowerStore.getState().fetchBorrowers().catch(() => {}),
+      useItemStore
+        .getState()
+        .fetchItems()
+        .catch(() => {}),
+      useBorrowerStore
+        .getState()
+        .fetchBorrowers()
+        .catch(() => {}),
     ]).finally(() => setDataLoading(false));
   }, []);
 

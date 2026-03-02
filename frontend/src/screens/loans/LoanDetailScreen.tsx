@@ -22,7 +22,13 @@ import type { AxiosError } from 'axios';
 
 type Props = NativeStackScreenProps<LoanStackParamList, 'LoanDetail'>;
 
-const EDITABLE_STATUSES = ['PENDING_CONFIRMATION', 'ACTIVE', 'ACTIVE_BY_DEFAULT', 'AWAITING_RETURN', 'CONTESTED'];
+const EDITABLE_STATUSES = [
+  'PENDING_CONFIRMATION',
+  'ACTIVE',
+  'ACTIVE_BY_DEFAULT',
+  'AWAITING_RETURN',
+  'CONTESTED',
+];
 const RETURNABLE_STATUSES = ['ACTIVE', 'ACTIVE_BY_DEFAULT', 'AWAITING_RETURN'];
 const ABANDONABLE_STATUSES = ['ACTIVE', 'ACTIVE_BY_DEFAULT', 'AWAITING_RETURN'];
 
@@ -178,7 +184,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
             <Text variant="labelMedium" style={styles.label}>
               {t('loans.contestReason')}
             </Text>
-            <Text variant="bodyMedium" style={[styles.value, { color: '#D97A6B' }]}>
+            <Text variant="bodyMedium" style={styles.contestValue}>
               {selectedLoan.contestReason}
             </Text>
           </View>
@@ -331,7 +337,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
               value={editReturnDate}
               onChangeText={setEditReturnDate}
               placeholder="YYYY-MM-DD"
-              style={{ marginBottom: 12 }}
+              style={styles.editInput}
               testID="edit-return-date-input"
             />
             <TextInput
@@ -376,4 +382,6 @@ const styles = StyleSheet.create({
   dangerButton: { borderRadius: 12, borderColor: '#FAEAE7' },
   buttonLabel: { fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
   buttonContent: { paddingVertical: 6 },
+  contestValue: { color: '#D97A6B' },
+  editInput: { marginBottom: 12 },
 });

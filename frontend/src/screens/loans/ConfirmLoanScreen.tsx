@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { ActivityIndicator, Text, Button } from 'react-native-paper';
+import { ActivityIndicator, Text, Button, HelperText } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ConfirmationDialog } from '../../components/loans/ConfirmationDialog';
@@ -17,6 +17,7 @@ export function ConfirmLoanScreen({ route, navigation }: Props) {
   const { selectedLoan, isLoading, error, fetchLoan } = useLoanStore();
   const [actionLoading, setActionLoading] = useState(false);
   const [dialogVisible, setDialogVisible] = useState(false);
+  const [apiError, setApiError] = useState<string | undefined>();
 
   useEffect(() => {
     fetchLoan(id)
@@ -26,13 +27,13 @@ export function ConfirmLoanScreen({ route, navigation }: Props) {
 
   const handleConfirm = async () => {
     setActionLoading(true);
+    setApiError(undefined);
     try {
       await useLoanStore.getState().confirmLoan(id);
       navigation.goBack();
     } catch (err) {
       const problem = parseProblemDetails(err as AxiosError);
-      const msg = problem ? getErrorMessage(problem, t) : t('errors.unknownError');
-      console.warn(msg);
+      setApiError(problem ? getErrorMessage(problem, t) : t('errors.unknownError'));
     } finally {
       setActionLoading(false);
     }
@@ -40,13 +41,13 @@ export function ConfirmLoanScreen({ route, navigation }: Props) {
 
   const handleContest = async (reason: string) => {
     setActionLoading(true);
+    setApiError(undefined);
     try {
       await useLoanStore.getState().contestLoan(id, { reason });
       navigation.goBack();
     } catch (err) {
       const problem = parseProblemDetails(err as AxiosError);
-      const msg = problem ? getErrorMessage(problem, t) : t('errors.unknownError');
-      console.warn(msg);
+      setApiError(problem ? getErrorMessage(problem, t) : t('errors.unknownError'));
     } finally {
       setActionLoading(false);
     }
@@ -75,6 +76,11 @@ export function ConfirmLoanScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container} testID="confirm-loan-screen">
+      {apiError && (
+        <HelperText type="error" testID="api-error" style={styles.apiError}>
+          {apiError}
+        </HelperText>
+      )}
       <ConfirmationDialog
         loan={selectedLoan}
         visible={dialogVisible}
@@ -95,4 +101,5 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   errorText: { color: '#6B7A8D', textAlign: 'center', marginBottom: 16 },
   backButton: { borderRadius: 12 },
+  apiError: { marginHorizontal: 16 },
 });
