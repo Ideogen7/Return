@@ -66,7 +66,7 @@ export const useLoanStore = create<LoanState>((set) => ({
   },
 
   fetchLoan: async (id) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, selectedLoan: null });
     try {
       const { data } = await apiClient.get<Loan>(`/loans/${id}`);
       set({ selectedLoan: data, isLoading: false });

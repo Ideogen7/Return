@@ -383,7 +383,8 @@ export const handlers = [
         id: 'new-loan-id-1234',
         status: 'PENDING_CONFIRMATION',
         confirmationDate: null,
-        ...body,
+        notes: (body.notes as string) ?? null,
+        returnDate: (body.returnDate as string) ?? null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -428,11 +429,12 @@ export const handlers = [
   // PATCH /loans/:id/status
   http.patch(`${API_MOCK}/loans/:id/status`, async ({ params, request }) => {
     const body = (await request.json()) as Record<string, unknown>;
+    const status = typeof body.status === 'string' ? body.status : mockLoan.status;
     return HttpResponse.json(
       {
         ...mockLoan,
         id: params.id,
-        status: body.status,
+        status,
         updatedAt: new Date().toISOString(),
       },
       { status: 200 },

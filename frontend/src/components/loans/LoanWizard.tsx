@@ -32,12 +32,17 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
     t('loans.wizardStep4'),
   ];
 
+  const isValidAmount = (value: string): boolean => {
+    const parsed = parseFloat(value.replace(',', '.'));
+    return Number.isFinite(parsed) && parsed > 0;
+  };
+
   const canNext = (): boolean => {
     switch (step) {
       case 1:
         return true;
       case 2:
-        return loanType === 'OBJECT' ? selectedItemId !== null : amount.length > 0;
+        return loanType === 'OBJECT' ? selectedItemId !== null : isValidAmount(amount);
       case 3:
         return selectedBorrowerId !== null;
       default:
@@ -46,13 +51,14 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
   };
 
   const handleSubmit = () => {
+    const parsedAmount = parseFloat(amount.replace(',', '.'));
     const itemValue =
       loanType === 'OBJECT'
         ? selectedItemId!
         : {
             name: `${t('loans.moneyLoan')} — ${amount} €`,
             category: 'MONEY' as const,
-            estimatedValue: parseFloat(amount.replace(',', '.')),
+            estimatedValue: Number.isFinite(parsedAmount) ? parsedAmount : 0,
           };
 
     onSubmit({

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, ActivityIndicator, IconButton, Snackbar } from 'react-native-paper';
+import { Button, ActivityIndicator, Snackbar } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ProfileCard } from '../../components/profile/ProfileCard';
@@ -46,16 +46,6 @@ export function ProfileScreen({ navigation }: Props) {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.avatarSection}>
         <ProfileCard user={user} />
-        <View style={styles.cameraButtonContainer}>
-          <IconButton
-            icon="camera"
-            size={18}
-            iconColor="#FFFFFF"
-            style={styles.cameraButton}
-            onPress={() => {}}
-            testID="camera-overlay-btn"
-          />
-        </View>
         <PhotoPicker onPhotoPicked={handleAvatarPicked} currentPhotoCount={0} />
       </View>
 
@@ -147,17 +137,5 @@ const styles = StyleSheet.create({
   logoutButton: { marginTop: 8 },
   logoutLabel: { fontSize: 14 },
   avatarSection: { position: 'relative' },
-  cameraButtonContainer: {
-    position: 'absolute',
-    top: 52,
-    left: 60,
-    zIndex: 1,
-  },
-  cameraButton: {
-    backgroundColor: '#6B8E7B',
-    borderRadius: 14,
-    width: 28,
-    height: 28,
-  },
   snackbarError: { backgroundColor: '#D97A6B' },
 });

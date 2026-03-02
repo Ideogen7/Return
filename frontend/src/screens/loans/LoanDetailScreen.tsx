@@ -114,7 +114,9 @@ export function LoanDetailScreen({ route, navigation }: Props) {
     return (
       <View style={styles.centerContainer} testID="loan-error">
         <Text variant="titleMedium" style={styles.errorText}>
-          {error ? t('errors.loanNotFound') : t('errors.unknownError')}
+          {error?.type?.includes('loan-not-found')
+            ? t('errors.loanNotFound')
+            : t('errors.unknownError')}
         </Text>
         <Button mode="outlined" onPress={() => navigation.goBack()} style={styles.backButton}>
           {t('common.back')}
