@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, ActivityIndicator } from 'react-native-paper';
+import { Button, ActivityIndicator, IconButton, Snackbar } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ProfileCard } from '../../components/profile/ProfileCard';
+import { PhotoPicker } from '../../components/items/PhotoPicker';
+import { buildPhotoFormData } from '../../utils/photo';
 import { useAuthStore } from '../../stores/useAuthStore';
 import type { AppStackParamList } from '../../navigation/types';
 
@@ -12,12 +14,25 @@ type Props = NativeStackScreenProps<AppStackParamList, 'Profile'>;
 export function ProfileScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { user, isLoading, logout } = useAuthStore();
+  const [snackbar, setSnackbar] = useState<{ message: string; type: 'success' | 'error' } | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!user) {
       useAuthStore.getState().hydrate();
     }
   }, [user]);
+
+  const handleAvatarPicked = async (uri: string) => {
+    try {
+      const formData = await buildPhotoFormData(uri);
+      await useAuthStore.getState().updateAvatar(formData);
+      setSnackbar({ message: t('profile.profileUpdated'), type: 'success' });
+    } catch {
+      setSnackbar({ message: t('errors.unknownError'), type: 'error' });
+    }
+  };
 
   if (isLoading || !user) {
     return (
@@ -29,7 +44,24 @@ export function ProfileScreen({ navigation }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <ProfileCard user={user} />
+      <View style={styles.avatarSection}>
+        <ProfileCard user={user} />
+        <View style={styles.cameraButtonContainer}>
+          <IconButton
+            icon="camera"
+            size={18}
+            iconColor="#FFFFFF"
+            style={styles.cameraButton}
+            onPress={() => {}}
+            testID="camera-overlay-btn"
+          />
+        </View>
+        <PhotoPicker
+          onPhotoPicked={handleAvatarPicked}
+          currentPhotoCount={0}
+          testID="avatar-photo-picker"
+        />
+      </View>
 
       <View style={styles.actions}>
         <Button
@@ -93,6 +125,15 @@ export function ProfileScreen({ navigation }: Props) {
           {t('auth.logout')}
         </Button>
       </View>
+      <Snackbar
+        visible={snackbar !== null}
+        onDismiss={() => setSnackbar(null)}
+        duration={3000}
+        style={snackbar?.type === 'error' ? styles.snackbarError : undefined}
+        testID="profile-snackbar"
+      >
+        {snackbar?.message ?? ''}
+      </Snackbar>
     </ScrollView>
   );
 }
@@ -109,4 +150,18 @@ const styles = StyleSheet.create({
   dangerButton: { borderRadius: 12, borderColor: '#FAEAE7' },
   logoutButton: { marginTop: 8 },
   logoutLabel: { fontSize: 14 },
+  avatarSection: { position: 'relative' },
+  cameraButtonContainer: {
+    position: 'absolute',
+    top: 52,
+    left: 60,
+    zIndex: 1,
+  },
+  cameraButton: {
+    backgroundColor: '#6B8E7B',
+    borderRadius: 14,
+    width: 28,
+    height: 28,
+  },
+  snackbarError: { backgroundColor: '#D97A6B' },
 });

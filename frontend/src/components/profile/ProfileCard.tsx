@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet } from 'react-native';
 import { Text, Divider, Icon } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { ui } from '../../config/theme.config';
@@ -18,9 +18,17 @@ export function ProfileCard({ user }: ProfileCardProps) {
   return (
     <View style={[styles.card, ui.card]} testID="profile-card">
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Icon source="account" size={32} color="#6B8E7B" />
-        </View>
+        {user.profilePicture ? (
+          <Image
+            source={{ uri: user.profilePicture }}
+            style={styles.avatarImage}
+            testID="profile-avatar-image"
+          />
+        ) : (
+          <View style={styles.avatar} testID="profile-avatar-icon">
+            <Icon source="account" size={32} color="#6B8E7B" />
+          </View>
+        )}
         <View style={styles.headerText}>
           <Text variant="headlineSmall" style={styles.name} testID="profile-name">
             {user.firstName} {user.lastName}
@@ -87,6 +95,12 @@ const styles = StyleSheet.create({
     marginRight: 16,
     borderWidth: 1,
     borderColor: '#B3D4C4',
+  },
+  avatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: 16,
   },
   headerText: { flex: 1 },
   name: { color: '#2D3748', fontWeight: '700' },

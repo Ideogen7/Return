@@ -22,6 +22,7 @@ interface AuthState {
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
   hydrate: () => Promise<void>;
+  updateAvatar: (formData: FormData) => Promise<void>;
   reset: () => void;
 }
 
@@ -131,6 +132,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       await clearTokens();
       set({ ...initialState });
+    }
+  },
+
+  updateAvatar: async (formData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data: updatedUser } = await apiClient.put<User>('/users/me/avatar', formData);
+      set({ user: updatedUser, isLoading: false });
+    } catch (err) {
+      set({ isLoading: false, error: extractProblemDetails(err) });
+      throw err;
     }
   },
 

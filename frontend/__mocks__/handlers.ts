@@ -139,6 +139,14 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  // PUT /users/me/avatar
+  http.put(`${API_REAL}/users/me/avatar`, () => {
+    return HttpResponse.json(
+      { ...mockUser, profilePicture: 'https://storage.return.app/users/avatar.jpg' },
+      { status: 200 },
+    );
+  }),
+
   // =========================================================================
   // USERS — Mot de passe
   // =========================================================================
