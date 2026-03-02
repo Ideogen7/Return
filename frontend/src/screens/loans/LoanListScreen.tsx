@@ -110,7 +110,9 @@ export function LoanListScreen({ navigation }: Props) {
         data={filteredLoans}
         keyExtractor={(loan) => loan.id}
         renderItem={({ item }) => <LoanCard loan={item} onPress={handlePress} />}
-        contentContainerStyle={filteredLoans.length === 0 ? styles.emptyContainer : styles.listContent}
+        contentContainerStyle={
+          filteredLoans.length === 0 ? styles.emptyContainer : styles.listContent
+        }
         ListEmptyComponent={
           <View style={styles.emptyState} testID="loan-empty">
             <Icon source="handshake-outline" size={64} color="#C9C4BB" />

@@ -54,16 +54,15 @@ export function LoanTimeline({ loan }: LoanTimelineProps) {
       </View>
 
       {steps.map((step, index) => {
-        const color = step.reached ? STATUS_COLORS.ACTIVE.light : '#C9C4BB';
         const isLast = index === steps.length - 1;
 
         return (
           <View key={step.label} style={styles.step}>
             <View style={styles.lineContainer}>
-              <View style={[styles.dot, { backgroundColor: color }]} />
+              <View style={[styles.dot, step.reached ? styles.dotReached : styles.dotUnreached]} />
               {!isLast && (
                 <View
-                  style={[styles.line, { backgroundColor: step.reached ? color : '#EDE9E2' }]}
+                  style={[styles.line, step.reached ? styles.lineReached : styles.lineUnreached]}
                 />
               )}
             </View>
@@ -93,7 +92,11 @@ const styles = StyleSheet.create({
   step: { flexDirection: 'row', minHeight: 48 },
   lineContainer: { alignItems: 'center', width: 24 },
   dot: { width: 12, height: 12, borderRadius: 6, marginTop: 4 },
+  dotReached: { backgroundColor: STATUS_COLORS.ACTIVE.light },
+  dotUnreached: { backgroundColor: '#C9C4BB' },
   line: { width: 2, flex: 1, marginVertical: 4 },
+  lineReached: { backgroundColor: STATUS_COLORS.ACTIVE.light },
+  lineUnreached: { backgroundColor: '#EDE9E2' },
   stepContent: { flex: 1, marginLeft: 12, paddingBottom: 12 },
   stepLabel: { color: '#A8B5BF' },
   stepLabelActive: { color: '#2D3748', fontWeight: '600' },
