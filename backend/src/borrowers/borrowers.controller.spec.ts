@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { BorrowersController } from './borrowers.controller.js';
 import { BorrowersService } from './borrowers.service.js';
+import { LoansService } from '../loans/loans.service.js';
 import type {
   BorrowerResponse,
   BorrowerStatistics,
@@ -66,7 +67,10 @@ describe('BorrowersController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BorrowersController],
-      providers: [{ provide: BorrowersService, useValue: service }],
+      providers: [
+        { provide: BorrowersService, useValue: service },
+        { provide: LoansService, useValue: mockDeep<LoansService>() },
+      ],
     }).compile();
 
     controller = module.get<BorrowersController>(BorrowersController);
@@ -141,7 +145,7 @@ describe('BorrowersController', () => {
   });
 
   // ===========================================================================
-  // GET /v1/borrowers/:id/statistics
+  // GET /v1/borrowers/:borrowerId/statistics
   // ===========================================================================
 
   describe('getStatistics', () => {
@@ -164,7 +168,7 @@ describe('BorrowersController', () => {
   });
 
   // ===========================================================================
-  // GET /v1/borrowers/:id
+  // GET /v1/borrowers/:borrowerId
   // ===========================================================================
 
   describe('findById', () => {
@@ -179,7 +183,7 @@ describe('BorrowersController', () => {
   });
 
   // ===========================================================================
-  // PATCH /v1/borrowers/:id
+  // PATCH /v1/borrowers/:borrowerId
   // ===========================================================================
 
   describe('update', () => {
@@ -199,7 +203,7 @@ describe('BorrowersController', () => {
   });
 
   // ===========================================================================
-  // DELETE /v1/borrowers/:id
+  // DELETE /v1/borrowers/:borrowerId
   // ===========================================================================
 
   describe('delete', () => {

@@ -13,6 +13,7 @@ import {
   UnauthorizedException,
 } from '../common/exceptions/problem-details.exception.js';
 import { toSafeUser } from '../common/mappers/user.mapper.js';
+import { ACTIVE_LOAN_STATUSES } from '../common/constants/loan-statuses.js';
 import { isPrismaUniqueConstraintError } from '../common/utils/prisma-errors.util.js';
 import { PHOTO_STORAGE } from '../storage/interfaces/photo-storage.interface.js';
 import type { PhotoStorage } from '../storage/interfaces/photo-storage.interface.js';
@@ -105,6 +106,25 @@ export class UsersService {
    */
   async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
     const user = await this.findUserOrThrow(userId);
+
+    // Vérification des prêts actifs (OpenAPI: 409 active-loans-exist)
+    const activeLoanCount = await this.prisma.loan.count({
+      where: {
+        lenderId: userId,
+        status: {
+          in: ACTIVE_LOAN_STATUSES,
+        },
+        deletedAt: null,
+      },
+    });
+    if (activeLoanCount > 0) {
+      throw new ConflictException(
+        'active-loans-exist',
+        'Active Loans Exist',
+        'Cannot delete account while active loans exist. Please close all loans first.',
+        '/v1/users/me',
+      );
+    }
 
     // Vérification du mot de passe
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);

@@ -24,6 +24,10 @@ const MOCK_BORROWER: Borrower = {
   lenderUserId: LENDER_USER_ID,
   trustScore: 0,
   totalLoans: 0,
+  returnedOnTime: 0,
+  returnedLate: 0,
+  notReturned: 0,
+  averageReturnDelay: null,
   createdAt: new Date('2025-01-01T00:00:00Z'),
   updatedAt: new Date('2025-01-01T00:00:00Z'),
 };
@@ -38,6 +42,10 @@ const MOCK_BORROWER_2: Borrower = {
   lenderUserId: LENDER_USER_ID,
   trustScore: 0,
   totalLoans: 0,
+  returnedOnTime: 0,
+  returnedLate: 0,
+  notReturned: 0,
+  averageReturnDelay: null,
   createdAt: new Date('2025-01-02T00:00:00Z'),
   updatedAt: new Date('2025-01-02T00:00:00Z'),
 };
@@ -453,6 +461,7 @@ describe('BorrowersService', () => {
   describe('delete', () => {
     it('should delete the borrower (204 scenario)', async () => {
       prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
+      prisma.loan.count.mockResolvedValue(0);
       prisma.borrower.delete.mockResolvedValue(MOCK_BORROWER);
 
       await service.delete(BORROWER_ID, LENDER_USER_ID);
@@ -488,5 +497,31 @@ describe('BorrowersService', () => {
 
     // NOTE: 409 active-loans-exist test will be added when Loans module is implemented.
     // For Sprint 2, borrowers have no active loans (no Loan model yet).
+
+    it('should throw 409 if borrower has active loans (LOAN-038)', async () => {
+      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
+      prisma.loan.count.mockResolvedValue(1);
+
+      try {
+        await service.delete(BORROWER_ID, LENDER_USER_ID);
+        fail('Expected ConflictException');
+      } catch (error: unknown) {
+        const body = (error as { getResponse: () => ProblemDetails }).getResponse();
+        expect(body.status).toBe(HttpStatus.CONFLICT);
+        expect(body.type).toContain('active-loans-exist');
+      }
+    });
+
+    it('should allow deletion when borrower has no active loans', async () => {
+      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
+      prisma.loan.count.mockResolvedValue(0);
+      prisma.borrower.delete.mockResolvedValue(MOCK_BORROWER);
+
+      await service.delete(BORROWER_ID, LENDER_USER_ID);
+
+      expect(prisma.borrower.delete).toHaveBeenCalledWith({
+        where: { id: BORROWER_ID },
+      });
+    });
   });
 });

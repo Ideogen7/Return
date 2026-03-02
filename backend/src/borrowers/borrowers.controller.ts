@@ -23,13 +23,16 @@ import {
   BorrowerSortBy,
   SortOrder,
 } from './dto/list-borrowers-query.dto.js';
+import { BorrowerLoansQueryDto } from './dto/borrower-loans-query.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { LoansService } from '../loans/loans.service.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
 import type {
   BorrowerResponse,
   BorrowerStatistics,
   PaginatedBorrowersResponse,
 } from './interfaces/borrower-response.interface.js';
+import type { LoanResponse } from '../loans/interfaces/loan-response.interface.js';
 
 // =============================================================================
 // BorrowersController — Endpoints CRUD contacts (emprunteurs)
@@ -40,16 +43,19 @@ import type {
 // Routes (préfixe global /v1 + prefix 'borrowers') :
 //   GET    /v1/borrowers                  → 200 OK + PaginatedBorrowersResponse
 //   POST   /v1/borrowers                  → 201 Created + Location header + BorrowerResponse
-//   GET    /v1/borrowers/:id              → 200 OK | 403 | 404
-//   GET    /v1/borrowers/:id/statistics   → 200 OK | 403 | 404
-//   PATCH  /v1/borrowers/:id              → 200 OK | 403 | 404 | 409
-//   DELETE /v1/borrowers/:id              → 204 No Content | 403 | 404 | 409
+//   GET    /v1/borrowers/:borrowerId              → 200 OK | 403 | 404
+//   GET    /v1/borrowers/:borrowerId/statistics   → 200 OK | 403 | 404
+//   PATCH  /v1/borrowers/:borrowerId              → 200 OK | 403 | 404 | 409
+//   DELETE /v1/borrowers/:borrowerId              → 204 No Content | 403 | 404 | 409
 // =============================================================================
 
 @Controller('borrowers')
 @UseGuards(JwtAuthGuard)
 export class BorrowersController {
-  constructor(private readonly borrowersService: BorrowersService) {}
+  constructor(
+    private readonly borrowersService: BorrowersService,
+    private readonly loansService: LoansService,
+  ) {}
 
   /**
    * POST /v1/borrowers
@@ -84,48 +90,65 @@ export class BorrowersController {
   }
 
   /**
-   * GET /v1/borrowers/:id/statistics
+   * GET /v1/borrowers/:borrowerId/statistics
    */
-  @Get(':id/statistics')
+  @Get(':borrowerId/statistics')
   async getStatistics(
     @Request() req: { user: AuthenticatedUser },
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('borrowerId', ParseUUIDPipe) borrowerId: string,
   ): Promise<BorrowerStatistics> {
-    return this.borrowersService.getStatistics(id, req.user.userId);
+    return this.borrowersService.getStatistics(borrowerId, req.user.userId);
   }
 
   /**
-   * GET /v1/borrowers/:id
+   * GET /v1/borrowers/:id/loans
+   *
+   * Retourne tous les prêts associés à cet emprunteur (non paginé).
+   * Filtre optionnel par statut.
    */
-  @Get(':id')
+  @Get(':borrowerId/loans')
+  async getBorrowerLoans(
+    @Request() req: { user: AuthenticatedUser },
+    @Param('borrowerId', ParseUUIDPipe) borrowerId: string,
+    @Query() query: BorrowerLoansQueryDto,
+  ): Promise<LoanResponse[]> {
+    // Verify borrower exists and belongs to the authenticated lender
+    await this.borrowersService.findById(borrowerId, req.user.userId);
+    return this.loansService.findByBorrower(borrowerId, req.user.userId, query.status);
+  }
+
+  /**
+   * GET /v1/borrowers/:borrowerId
+   */
+  @Get(':borrowerId')
   async findById(
     @Request() req: { user: AuthenticatedUser },
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('borrowerId', ParseUUIDPipe) borrowerId: string,
   ): Promise<BorrowerResponse> {
-    return this.borrowersService.findById(id, req.user.userId);
+    return this.borrowersService.findById(borrowerId, req.user.userId);
   }
 
   /**
-   * PATCH /v1/borrowers/:id
+   * PATCH /v1/borrowers/:borrowerId
    */
-  @Patch(':id')
+  @Patch(':borrowerId')
   async update(
     @Request() req: { user: AuthenticatedUser },
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('borrowerId', ParseUUIDPipe) borrowerId: string,
     @Body() dto: UpdateBorrowerDto,
   ): Promise<BorrowerResponse> {
-    return this.borrowersService.update(id, req.user.userId, dto);
+    return this.borrowersService.update(borrowerId, req.user.userId, dto);
   }
 
   /**
-   * DELETE /v1/borrowers/:id
+   * DELETE /v1/borrowers/:borrowerId
    */
-  @Delete(':id')
+  @Delete(':borrowerId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(
     @Request() req: { user: AuthenticatedUser },
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('borrowerId', ParseUUIDPipe) borrowerId: string,
   ): Promise<void> {
-    return this.borrowersService.delete(id, req.user.userId);
+    return this.borrowersService.delete(borrowerId, req.user.userId);
   }
 }

@@ -6,7 +6,6 @@ import {
   NotFoundException,
 } from '../common/exceptions/problem-details.exception.js';
 import {
-  DEFAULT_BORROWER_STATISTICS,
   type BorrowerResponse,
   type BorrowerStatistics,
   type PaginatedBorrowersResponse,
@@ -14,6 +13,7 @@ import {
 import type { CreateBorrowerDto } from './dto/create-borrower.dto.js';
 import type { UpdateBorrowerDto } from './dto/update-borrower.dto.js';
 import type { Borrower } from '@prisma/client';
+import { ACTIVE_LOAN_STATUSES } from '../common/constants/loan-statuses.js';
 
 // =============================================================================
 // BorrowersService — Logique métier du module Borrowers
@@ -91,9 +91,12 @@ export class BorrowersService {
     this.assertOwnership(borrower, lenderUserId, `/v1/borrowers/${borrowerId}/statistics`);
 
     return {
-      ...DEFAULT_BORROWER_STATISTICS,
-      trustScore: borrower.trustScore,
       totalLoans: borrower.totalLoans,
+      returnedOnTime: borrower.returnedOnTime,
+      returnedLate: borrower.returnedLate,
+      notReturned: borrower.notReturned,
+      averageReturnDelay: borrower.averageReturnDelay,
+      trustScore: borrower.trustScore,
     };
   }
 
@@ -140,6 +143,23 @@ export class BorrowersService {
   async delete(borrowerId: string, lenderUserId: string): Promise<void> {
     const borrower = await this.findBorrowerOrFail(borrowerId);
     this.assertOwnership(borrower, lenderUserId, `/v1/borrowers/${borrowerId}`);
+
+    // LOAN-038: Cannot delete a borrower with active loans
+    const activeLoanCount = await this.prisma.loan.count({
+      where: {
+        borrowerId,
+        status: { in: ACTIVE_LOAN_STATUSES },
+        deletedAt: null,
+      },
+    });
+    if (activeLoanCount > 0) {
+      throw new ConflictException(
+        'active-loans-exist',
+        'Active Loans Exist',
+        'Cannot delete a borrower who has active loans.',
+        `/v1/borrowers/${borrowerId}`,
+      );
+    }
 
     await this.prisma.borrower.delete({ where: { id: borrowerId } });
   }
@@ -195,9 +215,12 @@ export class BorrowersService {
       phoneNumber: borrower.phoneNumber,
       userId: borrower.userId,
       statistics: {
-        ...DEFAULT_BORROWER_STATISTICS,
-        trustScore: borrower.trustScore,
         totalLoans: borrower.totalLoans,
+        returnedOnTime: borrower.returnedOnTime,
+        returnedLate: borrower.returnedLate,
+        notReturned: borrower.notReturned,
+        averageReturnDelay: borrower.averageReturnDelay,
+        trustScore: borrower.trustScore,
       },
     };
   }
