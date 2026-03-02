@@ -56,11 +56,7 @@ export function ProfileScreen({ navigation }: Props) {
             testID="camera-overlay-btn"
           />
         </View>
-        <PhotoPicker
-          onPhotoPicked={handleAvatarPicked}
-          currentPhotoCount={0}
-          testID="avatar-photo-picker"
-        />
+        <PhotoPicker onPhotoPicked={handleAvatarPicked} currentPhotoCount={0} />
       </View>
 
       <View style={styles.actions}>
