@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { Icon } from 'react-native-paper';
+import { LoanNavigator } from './LoanNavigator';
 import { BorrowerNavigator } from './BorrowerNavigator';
 import { ItemNavigator } from './ItemNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
@@ -33,6 +34,16 @@ export function AppNavigator() {
         },
       }}
     >
+      <Tab.Screen
+        name="LoanTab"
+        component={LoanNavigator}
+        options={{
+          title: t('navigation.loans'),
+          tabBarIcon: ({ color, size }) => (
+            <Icon source="handshake-outline" color={color} size={size} />
+          ),
+        }}
+      />
       <Tab.Screen
         name="BorrowerTab"
         component={BorrowerNavigator}

@@ -5,6 +5,7 @@ export type AuthStackParamList = {
 
 // Tabs principaux
 export type AppTabParamList = {
+  LoanTab: undefined;
   BorrowerTab: undefined;
   ItemTab: undefined;
   ProfileTab: undefined;
@@ -28,6 +29,14 @@ export type ItemStackParamList = {
   CreateItem: undefined;
   ItemDetail: { id: string };
   EditItem: { id: string };
+};
+
+// Stack Loans
+export type LoanStackParamList = {
+  LoanList: undefined;
+  CreateLoan: undefined;
+  LoanDetail: { id: string };
+  ConfirmLoan: { id: string };
 };
 
 // Stack Borrowers
