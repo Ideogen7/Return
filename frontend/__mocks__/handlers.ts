@@ -25,6 +25,14 @@ const mockBorrower = {
   email: 'marie.dupont@example.com',
   phoneNumber: '+33612345678',
   userId: null,
+  statistics: {
+    totalLoans: 5,
+    returnedOnTime: 3,
+    returnedLate: 1,
+    notReturned: 1,
+    averageReturnDelay: 2,
+    trustScore: 75,
+  },
 };
 
 const mockBorrowerStats = {
