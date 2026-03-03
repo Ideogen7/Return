@@ -55,6 +55,7 @@ const ERROR_TYPE_MAP: Record<string, string> = {
   'https://api.return.app/errors/loan-already-returned': 'errors.loanAlreadyReturned',
   'https://api.return.app/errors/forbidden-status-transition': 'errors.forbiddenStatusTransition',
   'https://api.return.app/errors/invalid-status-transition': 'errors.invalidStatusTransition',
+  'https://api.return.app/errors/invalid-return-date': 'errors.invalidReturnDate',
 };
 
 // Traduit un ProblemDetails en message lisible

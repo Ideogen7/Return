@@ -55,7 +55,12 @@
     "memberSince": "Membre depuis",
     "lastLogin": "Dernière connexion",
     "role": "Rôle",
-    "lender": "Prêteur"
+    "lender": "Prêteur",
+    "statistics": "Statistiques",
+    "totalLoans": "Total des prêts",
+    "activeLoans": "Prêts en cours",
+    "returnedLoans": "Rendus",
+    "overdueLoans": "En retard"
   },
   "settings": {
     "title": "Paramètres",
@@ -112,7 +117,8 @@
     "dailyLoanLimitExceeded": "Limite quotidienne de prêts atteinte",
     "loanAlreadyReturned": "Ce prêt a déjà été rendu",
     "forbiddenStatusTransition": "Vous n'êtes pas autorisé à effectuer cette transition de statut",
-    "invalidStatusTransition": "Transition de statut invalide"
+    "invalidStatusTransition": "Transition de statut invalide",
+    "invalidReturnDate": "La date de retour doit être dans le futur"
   },
   "items": {
     "title": "Objets",
@@ -204,7 +210,11 @@
     "statusAwaitingReturn": "Retour attendu",
     "statusReturned": "Rendu",
     "statusNotReturned": "Non rendu",
-    "statusAbandoned": "Abandonné"
+    "statusAbandoned": "Abandonné",
+    "myLoans": "Mes prêts",
+    "myBorrowings": "Mes emprunts",
+    "emptyBorrowings": "Aucun emprunt",
+    "emptyBorrowingsSubtitle": "Les prêts qui vous sont adressés apparaîtront ici"
   },
   "navigation": {
     "loans": "Prêts",

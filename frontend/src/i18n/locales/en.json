@@ -55,7 +55,12 @@
     "memberSince": "Member since",
     "lastLogin": "Last login",
     "role": "Role",
-    "lender": "Lender"
+    "lender": "Lender",
+    "statistics": "Statistics",
+    "totalLoans": "Total loans",
+    "activeLoans": "Active loans",
+    "returnedLoans": "Returned",
+    "overdueLoans": "Overdue"
   },
   "settings": {
     "title": "Settings",
@@ -112,7 +117,8 @@
     "dailyLoanLimitExceeded": "Daily loan limit exceeded",
     "loanAlreadyReturned": "This loan has already been returned",
     "forbiddenStatusTransition": "You are not authorized to perform this status transition",
-    "invalidStatusTransition": "Invalid status transition"
+    "invalidStatusTransition": "Invalid status transition",
+    "invalidReturnDate": "Return date must be in the future"
   },
   "items": {
     "title": "Items",
@@ -204,7 +210,11 @@
     "statusAwaitingReturn": "Awaiting return",
     "statusReturned": "Returned",
     "statusNotReturned": "Not returned",
-    "statusAbandoned": "Abandoned"
+    "statusAbandoned": "Abandoned",
+    "myLoans": "My loans",
+    "myBorrowings": "My borrowings",
+    "emptyBorrowings": "No borrowings",
+    "emptyBorrowingsSubtitle": "Loans addressed to you will appear here"
   },
   "navigation": {
     "loans": "Loans",
