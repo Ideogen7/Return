@@ -30,12 +30,13 @@ type Props = NativeStackScreenProps<LoanStackParamList, 'LoanList'>;
 export function LoanListScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { loans, isLoading, error, fetchLoans } = useLoanStore();
+  const [perspective, setPerspective] = useState<'lender' | 'borrower'>('lender');
   const [tab, setTab] = useState<'active' | 'archived'>('active');
   const [statusFilter, setStatusFilter] = useState<LoanStatus | undefined>();
 
   useEffect(() => {
-    fetchLoans({ includeArchived: tab === 'archived' }).catch(() => {});
-  }, [fetchLoans, tab]);
+    fetchLoans({ role: perspective, includeArchived: tab === 'archived' }).catch(() => {});
+  }, [fetchLoans, tab, perspective]);
 
   const handlePress = (id: string) => {
     navigation.navigate('LoanDetail', { id });
@@ -74,6 +75,18 @@ export function LoanListScreen({ navigation }: Props) {
   return (
     <View style={styles.container} testID="loan-list">
       <View style={styles.tabs}>
+        <SegmentedButtons
+          value={perspective}
+          onValueChange={(v) => {
+            setPerspective(v as 'lender' | 'borrower');
+            setStatusFilter(undefined);
+          }}
+          buttons={[
+            { value: 'lender', label: t('loans.myLoans') },
+            { value: 'borrower', label: t('loans.myBorrowings') },
+          ]}
+          style={styles.segmented}
+        />
         <SegmentedButtons
           value={tab}
           onValueChange={(v) => setTab(v as 'active' | 'archived')}
@@ -117,21 +130,25 @@ export function LoanListScreen({ navigation }: Props) {
           <View style={styles.emptyState} testID="loan-empty">
             <Icon source="handshake-outline" size={64} color="#C9C4BB" />
             <Text variant="titleMedium" style={styles.emptyTitle}>
-              {t('loans.emptyList')}
+              {perspective === 'borrower' ? t('loans.emptyBorrowings') : t('loans.emptyList')}
             </Text>
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
-              {t('loans.emptyListSubtitle')}
+              {perspective === 'borrower'
+                ? t('loans.emptyBorrowingsSubtitle')
+                : t('loans.emptyListSubtitle')}
             </Text>
           </View>
         }
       />
-      <FAB
-        icon="plus"
-        style={styles.fab}
-        onPress={() => navigation.navigate('CreateLoan')}
-        testID="add-loan-fab"
-        color="#FFFFFF"
-      />
+      {perspective === 'lender' && (
+        <FAB
+          icon="plus"
+          style={styles.fab}
+          onPress={() => navigation.navigate('CreateLoan')}
+          testID="add-loan-fab"
+          color="#FFFFFF"
+        />
+      )}
     </View>
   );
 }
