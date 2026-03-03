@@ -1,0 +1,129 @@
+import { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Text, Button, Dialog, Portal, TextInput, HelperText } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
+import type { Loan } from '../../types/api.types';
+
+interface ConfirmationDialogProps {
+  loan: Loan;
+  visible: boolean;
+  onDismiss: () => void;
+  onConfirm: () => void;
+  onContest: (reason: string) => void;
+  isLoading: boolean;
+}
+
+const MIN_REASON_LENGTH = 10;
+const MAX_REASON_LENGTH = 500;
+
+export function ConfirmationDialog({
+  loan,
+  visible,
+  onDismiss,
+  onConfirm,
+  onContest,
+  isLoading,
+}: ConfirmationDialogProps) {
+  const { t } = useTranslation();
+  const [showContestForm, setShowContestForm] = useState(false);
+  const [reason, setReason] = useState('');
+
+  const isReasonValid = reason.length >= MIN_REASON_LENGTH && reason.length <= MAX_REASON_LENGTH;
+
+  const handleContest = () => {
+    if (isReasonValid) {
+      onContest(reason);
+      setReason('');
+      setShowContestForm(false);
+    }
+  };
+
+  const handleDismiss = () => {
+    setShowContestForm(false);
+    setReason('');
+    onDismiss();
+  };
+
+  return (
+    <Portal>
+      <Dialog visible={visible} onDismiss={handleDismiss} testID="confirmation-dialog">
+        <Dialog.Title>{t('loans.confirmLoan')}</Dialog.Title>
+        <Dialog.Content>
+          <View style={styles.info}>
+            <Text variant="bodyMedium" style={styles.label}>
+              {loan.item.name}
+            </Text>
+            <Text variant="bodySmall" style={styles.sub}>
+              {t('navigation.contacts')}: {loan.lender.firstName} {loan.lender.lastName}
+            </Text>
+            {loan.returnDate && (
+              <Text variant="bodySmall" style={styles.sub}>
+                {t('loans.returnDate')}: {new Date(loan.returnDate).toLocaleDateString()}
+              </Text>
+            )}
+          </View>
+
+          {showContestForm && (
+            <View style={styles.contestForm}>
+              <TextInput
+                label={t('loans.contestReason')}
+                value={reason}
+                onChangeText={setReason}
+                multiline
+                numberOfLines={3}
+                maxLength={MAX_REASON_LENGTH}
+                testID="contest-reason-input"
+              />
+              <HelperText type={reason.length > 0 && !isReasonValid ? 'error' : 'info'}>
+                {reason.length}/{MAX_REASON_LENGTH} (min {MIN_REASON_LENGTH})
+              </HelperText>
+            </View>
+          )}
+        </Dialog.Content>
+        <Dialog.Actions>
+          {showContestForm ? (
+            <>
+              <Button onPress={() => setShowContestForm(false)} testID="cancel-contest-btn">
+                {t('common.cancel')}
+              </Button>
+              <Button
+                onPress={handleContest}
+                disabled={!isReasonValid || isLoading}
+                loading={isLoading}
+                textColor="#D97A6B"
+                testID="submit-contest-btn"
+              >
+                {t('loans.contestLoan')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                onPress={() => setShowContestForm(true)}
+                textColor="#D97A6B"
+                testID="contest-btn"
+              >
+                {t('loans.contestLoan')}
+              </Button>
+              <Button
+                onPress={onConfirm}
+                loading={isLoading}
+                disabled={isLoading}
+                testID="confirm-btn"
+              >
+                {t('loans.confirmLoan')}
+              </Button>
+            </>
+          )}
+        </Dialog.Actions>
+      </Dialog>
+    </Portal>
+  );
+}
+
+const styles = StyleSheet.create({
+  info: { marginBottom: 12 },
+  label: { color: '#2D3748', fontWeight: '600' },
+  sub: { color: '#6B7A8D', marginTop: 4 },
+  contestForm: { marginTop: 12 },
+});

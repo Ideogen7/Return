@@ -145,6 +145,61 @@ export interface UpdateItemDto {
   estimatedValue?: number | null;
 }
 
+// --- Prêts (Loans) ---
+
+export type LoanStatus =
+  | 'PENDING_CONFIRMATION'
+  | 'ACTIVE'
+  | 'ACTIVE_BY_DEFAULT'
+  | 'CONTESTED'
+  | 'AWAITING_RETURN'
+  | 'RETURNED'
+  | 'NOT_RETURNED'
+  | 'ABANDONED';
+
+export interface UserSummary {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profilePicture?: string | null;
+}
+
+export interface Loan {
+  id: string;
+  item: Item;
+  lender: UserSummary;
+  borrower: Borrower;
+  status: LoanStatus;
+  returnDate?: string | null;
+  confirmationDate?: string | null;
+  returnedDate?: string | null;
+  notes?: string | null;
+  contestReason?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLoanDto {
+  item: CreateItemDto | string;
+  borrower: CreateBorrowerDto | string;
+  returnDate?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateLoanDto {
+  returnDate?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateLoanStatusDto {
+  status: LoanStatus;
+  notes?: string | null;
+}
+
+export interface ContestLoanDto {
+  reason: string;
+}
+
 // --- Pagination ---
 
 export interface PaginationMetadata {

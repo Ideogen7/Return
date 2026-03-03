@@ -25,6 +25,14 @@ const mockBorrower = {
   email: 'marie.dupont@example.com',
   phoneNumber: '+33612345678',
   userId: null,
+  statistics: {
+    totalLoans: 5,
+    returnedOnTime: 3,
+    returnedLate: 1,
+    notReturned: 1,
+    averageReturnDelay: 2,
+    trustScore: 75,
+  },
 };
 
 const mockBorrowerStats = {
@@ -51,6 +59,26 @@ const mockItem = {
   estimatedValue: 89.99,
   photos: [{ ...mockPhoto }],
   createdAt: '2026-02-10T10:00:00Z',
+};
+
+const mockLoan = {
+  id: '7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d',
+  item: { ...mockItem },
+  lender: {
+    id: mockUser.id,
+    firstName: mockUser.firstName,
+    lastName: mockUser.lastName,
+    profilePicture: null,
+  },
+  borrower: { ...mockBorrower },
+  status: 'ACTIVE' as const,
+  returnDate: '2026-04-15',
+  confirmationDate: '2026-02-02T10:00:00Z',
+  returnedDate: null,
+  notes: 'Avec 2 batteries et chargeur',
+  contestReason: null,
+  createdAt: '2026-02-01T10:00:00Z',
+  updatedAt: '2026-02-02T10:00:00Z',
 };
 
 const mockSettings = {
@@ -137,6 +165,14 @@ export const handlers = [
   // DELETE /users/me
   http.delete(`${API_REAL}/users/me`, () => {
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  // PUT /users/me/avatar
+  http.put(`${API_REAL}/users/me/avatar`, () => {
+    return HttpResponse.json(
+      { ...mockUser, profilePicture: 'https://storage.return.app/users/avatar.jpg' },
+      { status: 200 },
+    );
   }),
 
   // =========================================================================
@@ -332,21 +368,7 @@ export const handlers = [
   http.get(`${API_MOCK}/loans`, () => {
     return HttpResponse.json(
       {
-        data: [
-          {
-            id: '7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d',
-            type: 'OBJECT',
-            status: 'ACTIVE',
-            item: { id: '9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d', name: 'Perceuse Bosch' },
-            borrower: {
-              id: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
-              firstName: 'Marie',
-              lastName: 'Dupont',
-            },
-            returnDate: '2026-04-15',
-            createdAt: '2026-02-01T10:00:00Z',
-          },
-        ],
+        data: [{ ...mockLoan }],
         pagination: {
           currentPage: 1,
           itemsPerPage: 20,
@@ -360,7 +382,25 @@ export const handlers = [
     );
   }),
 
-  // GET /loans/:id — 404 example
+  // POST /loans
+  http.post(`${API_MOCK}/loans`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        ...mockLoan,
+        id: 'new-loan-id-1234',
+        status: 'PENDING_CONFIRMATION',
+        confirmationDate: null,
+        notes: (body.notes as string) ?? null,
+        returnDate: (body.returnDate as string) ?? null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      { status: 201 },
+    );
+  }),
+
+  // GET /loans/:id
   http.get(`${API_MOCK}/loans/:id`, ({ params }) => {
     if (params.id === 'not-found') {
       return HttpResponse.json(
@@ -377,19 +417,62 @@ export const handlers = [
       );
     }
 
+    return HttpResponse.json({ ...mockLoan, id: params.id }, { status: 200 });
+  }),
+
+  // PATCH /loans/:id
+  http.patch(`${API_MOCK}/loans/:id`, async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      { ...mockLoan, id: params.id, ...body, updatedAt: new Date().toISOString() },
+      { status: 200 },
+    );
+  }),
+
+  // DELETE /loans/:id
+  http.delete(`${API_MOCK}/loans/:id`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // PATCH /loans/:id/status
+  http.patch(`${API_MOCK}/loans/:id/status`, async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const status = typeof body.status === 'string' ? body.status : mockLoan.status;
     return HttpResponse.json(
       {
+        ...mockLoan,
         id: params.id,
-        type: 'OBJECT',
+        status,
+        updatedAt: new Date().toISOString(),
+      },
+      { status: 200 },
+    );
+  }),
+
+  // POST /loans/:id/confirm
+  http.post(`${API_MOCK}/loans/:id/confirm`, ({ params }) => {
+    return HttpResponse.json(
+      {
+        ...mockLoan,
+        id: params.id,
         status: 'ACTIVE',
-        item: { id: '9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d', name: 'Perceuse Bosch' },
-        borrower: {
-          id: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
-          firstName: 'Marie',
-          lastName: 'Dupont',
-        },
-        returnDate: '2026-04-15',
-        createdAt: '2026-02-01T10:00:00Z',
+        confirmationDate: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      { status: 200 },
+    );
+  }),
+
+  // POST /loans/:id/contest
+  http.post(`${API_MOCK}/loans/:id/contest`, async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        ...mockLoan,
+        id: params.id,
+        status: 'CONTESTED',
+        contestReason: body.reason,
+        updatedAt: new Date().toISOString(),
       },
       { status: 200 },
     );
