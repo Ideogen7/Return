@@ -4,6 +4,7 @@ import { Button, ActivityIndicator, Snackbar } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ProfileCard } from '../../components/profile/ProfileCard';
+import { LenderStats } from '../../components/profile/LenderStats';
 import { PhotoPicker } from '../../components/items/PhotoPicker';
 import { buildPhotoFormData } from '../../utils/photo';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -26,7 +27,7 @@ export function ProfileScreen({ navigation }: Props) {
 
   const handleAvatarPicked = async (uri: string) => {
     try {
-      const formData = await buildPhotoFormData(uri);
+      const formData = await buildPhotoFormData(uri, 'avatar');
       await useAuthStore.getState().updateAvatar(formData);
       setSnackbar({ message: t('profile.profileUpdated'), type: 'success' });
     } catch {
@@ -48,6 +49,8 @@ export function ProfileScreen({ navigation }: Props) {
         <ProfileCard user={user} />
         <PhotoPicker onPhotoPicked={handleAvatarPicked} currentPhotoCount={0} />
       </View>
+
+      <LenderStats />
 
       <View style={styles.actions}>
         <Button
