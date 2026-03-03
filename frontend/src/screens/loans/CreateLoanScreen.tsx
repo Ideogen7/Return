@@ -20,9 +20,6 @@ export function CreateLoanScreen({ navigation }: Props) {
   const [apiError, setApiError] = useState<string | undefined>();
   const [dataLoading, setDataLoading] = useState(true);
 
-  const items = useItemStore((s) => s.items);
-  const borrowers = useBorrowerStore((s) => s.borrowers);
-
   useEffect(() => {
     Promise.all([
       useItemStore
@@ -60,13 +57,7 @@ export function CreateLoanScreen({ navigation }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.container} testID="create-loan-screen">
-      <LoanWizard
-        onSubmit={handleSubmit}
-        isLoading={isLoading}
-        error={apiError}
-        items={items}
-        borrowers={borrowers}
-      />
+      <LoanWizard onSubmit={handleSubmit} isLoading={isLoading} error={apiError} />
     </ScrollView>
   );
 }

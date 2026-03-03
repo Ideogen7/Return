@@ -1,9 +1,24 @@
 import { useState } from 'react';
-import { View, FlatList, Pressable, StyleSheet } from 'react-native';
-import { Text, Button, TextInput, RadioButton, HelperText, Icon } from 'react-native-paper';
+import { View, FlatList, Pressable, StyleSheet, ScrollView } from 'react-native';
+import {
+  Text,
+  Button,
+  TextInput,
+  RadioButton,
+  HelperText,
+  Icon,
+  Portal,
+  Dialog,
+} from 'react-native-paper';
+import { DatePickerInput } from 'react-native-paper-dates';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../config/i18n.config';
 import { ui } from '../../config/theme.config';
-import type { Item, Borrower, CreateLoanDto } from '../../types/api.types';
+import { useItemStore } from '../../stores/useItemStore';
+import { useBorrowerStore } from '../../stores/useBorrowerStore';
+import { ItemForm } from '../items/ItemForm';
+import { BorrowerForm } from '../borrowers/BorrowerForm';
+import type { CreateLoanDto, CreateItemDto, CreateBorrowerDto } from '../../types/api.types';
 
 type LoanType = 'OBJECT' | 'MONEY';
 
@@ -11,19 +26,28 @@ interface LoanWizardProps {
   onSubmit: (data: CreateLoanDto) => void;
   isLoading: boolean;
   error?: string;
-  items: Item[];
-  borrowers: Borrower[];
 }
 
-export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: LoanWizardProps) {
+export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
   const { t } = useTranslation();
+  const { items } = useItemStore();
+  const { borrowers } = useBorrowerStore();
+
   const [step, setStep] = useState(1);
   const [loanType, setLoanType] = useState<LoanType>('OBJECT');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [selectedBorrowerId, setSelectedBorrowerId] = useState<string | null>(null);
   const [returnDate, setReturnDate] = useState('');
+  const [returnDateObj, setReturnDateObj] = useState<Date | undefined>();
   const [notes, setNotes] = useState('');
+
+  const [showItemDialog, setShowItemDialog] = useState(false);
+  const [itemDialogLoading, setItemDialogLoading] = useState(false);
+  const [itemDialogError, setItemDialogError] = useState<string | undefined>();
+  const [showBorrowerDialog, setShowBorrowerDialog] = useState(false);
+  const [borrowerDialogLoading, setBorrowerDialogLoading] = useState(false);
+  const [borrowerDialogError, setBorrowerDialogError] = useState<string | undefined>();
 
   const STEP_TITLES = [
     t('loans.wizardStep1'),
@@ -69,6 +93,34 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
     });
   };
 
+  const handleInlineItemCreate = async (data: CreateItemDto) => {
+    setItemDialogLoading(true);
+    setItemDialogError(undefined);
+    try {
+      const newItem = await useItemStore.getState().createItem(data);
+      setSelectedItemId(newItem.id);
+      setShowItemDialog(false);
+    } catch {
+      setItemDialogError(t('errors.unknownError'));
+    } finally {
+      setItemDialogLoading(false);
+    }
+  };
+
+  const handleInlineBorrowerCreate = async (data: CreateBorrowerDto) => {
+    setBorrowerDialogLoading(true);
+    setBorrowerDialogError(undefined);
+    try {
+      const newBorrower = await useBorrowerStore.getState().createBorrower(data);
+      setSelectedBorrowerId(newBorrower.id);
+      setShowBorrowerDialog(false);
+    } catch {
+      setBorrowerDialogError(t('errors.unknownError'));
+    } finally {
+      setBorrowerDialogLoading(false);
+    }
+  };
+
   const renderStep1 = () => (
     <View style={styles.stepContent} testID="wizard-step-1">
       <Text variant="titleMedium" style={styles.stepTitle}>
@@ -101,37 +153,51 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
       </Text>
 
       {loanType === 'OBJECT' ? (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <Pressable onPress={() => setSelectedItemId(item.id)} testID={`select-item-${item.id}`}>
-              <View
-                style={[
-                  styles.listItem,
-                  ui.card,
-                  selectedItemId === item.id && styles.listItemSelected,
-                ]}
+        <>
+          <FlatList
+            data={items}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => setSelectedItemId(item.id)}
+                testID={`select-item-${item.id}`}
               >
-                <RadioButton.Android
-                  value={item.id}
-                  status={selectedItemId === item.id ? 'checked' : 'unchecked'}
-                  onPress={() => setSelectedItemId(item.id)}
-                  color="#6B8E7B"
-                />
-                <Text variant="bodyMedium" style={styles.listItemText}>
-                  {item.name}
-                </Text>
-              </View>
-            </Pressable>
-          )}
-          ListEmptyComponent={
-            <Text variant="bodyMedium" style={styles.emptyText}>
-              {t('items.emptyList')}
-            </Text>
-          }
-          style={styles.list}
-        />
+                <View
+                  style={[
+                    styles.listItem,
+                    ui.card,
+                    selectedItemId === item.id && styles.listItemSelected,
+                  ]}
+                >
+                  <RadioButton.Android
+                    value={item.id}
+                    status={selectedItemId === item.id ? 'checked' : 'unchecked'}
+                    onPress={() => setSelectedItemId(item.id)}
+                    color="#6B8E7B"
+                  />
+                  <Text variant="bodyMedium" style={styles.listItemText}>
+                    {item.name}
+                  </Text>
+                </View>
+              </Pressable>
+            )}
+            ListEmptyComponent={
+              <Text variant="bodyMedium" style={styles.emptyText}>
+                {t('items.emptyList')}
+              </Text>
+            }
+            style={styles.list}
+          />
+          <Button
+            mode="outlined"
+            icon="plus"
+            onPress={() => setShowItemDialog(true)}
+            style={styles.inlineCreateBtn}
+            testID="inline-create-item-btn"
+          >
+            {t('items.addItem')}
+          </Button>
+        </>
       ) : (
         <TextInput
           label={t('loans.selectAmount')}
@@ -183,6 +249,15 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
         }
         style={styles.list}
       />
+      <Button
+        mode="outlined"
+        icon="plus"
+        onPress={() => setShowBorrowerDialog(true)}
+        style={styles.inlineCreateBtn}
+        testID="inline-create-borrower-btn"
+      >
+        {t('borrowers.addContact')}
+      </Button>
     </View>
   );
 
@@ -225,13 +300,18 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
           </View>
         </View>
 
-        <TextInput
+        <DatePickerInput
+          locale={i18n.language}
           label={t('loans.returnDate')}
-          value={returnDate}
-          onChangeText={setReturnDate}
-          placeholder="YYYY-MM-DD"
-          style={[styles.input, ui.input]}
+          value={returnDateObj}
+          onChange={(d) => {
+            setReturnDateObj(d);
+            setReturnDate(d ? d.toISOString().slice(0, 10) : '');
+          }}
+          inputMode="start"
+          mode="outlined"
           testID="return-date-input"
+          style={[styles.input, ui.input]}
         />
 
         <TextInput
@@ -317,6 +397,46 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
           </Button>
         )}
       </View>
+
+      <Portal>
+        <Dialog
+          visible={showItemDialog}
+          onDismiss={() => setShowItemDialog(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title>{t('items.addItem')}</Dialog.Title>
+          <Dialog.ScrollArea>
+            <ScrollView>
+              <ItemForm
+                mode="create"
+                onSubmit={handleInlineItemCreate}
+                isLoading={itemDialogLoading}
+                error={itemDialogError}
+                submitLabel={t('common.save')}
+              />
+            </ScrollView>
+          </Dialog.ScrollArea>
+        </Dialog>
+
+        <Dialog
+          visible={showBorrowerDialog}
+          onDismiss={() => setShowBorrowerDialog(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title>{t('borrowers.addContact')}</Dialog.Title>
+          <Dialog.ScrollArea>
+            <ScrollView>
+              <BorrowerForm
+                mode="create"
+                onSubmit={handleInlineBorrowerCreate}
+                isLoading={borrowerDialogLoading}
+                error={borrowerDialogError}
+                submitLabel={t('common.save')}
+              />
+            </ScrollView>
+          </Dialog.ScrollArea>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -355,4 +475,6 @@ const styles = StyleSheet.create({
   buttons: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 16, gap: 12 },
   backButton: { flex: 1, borderRadius: 12, borderColor: '#C9C4BB' },
   nextButton: { flex: 1, borderRadius: 12 },
+  inlineCreateBtn: { marginTop: 8, borderRadius: 12, borderColor: '#C9C4BB' },
+  dialog: { maxHeight: '80%' },
 });
