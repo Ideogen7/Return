@@ -60,7 +60,7 @@ describe('LoanListScreen', () => {
 
   it('should render empty state when no loans', async () => {
     server.use(
-      http.get('http://localhost:4010/loans', () => {
+      http.get('http://localhost:3000/v1/loans', () => {
         return HttpResponse.json(
           {
             data: [],
@@ -96,6 +96,24 @@ describe('LoanListScreen', () => {
 
     await waitFor(() => {
       expect(screen.getByText('CreateLoanScreen')).toBeTruthy();
+    });
+  });
+
+  it('should hide FAB when perspective is borrower', async () => {
+    renderListScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loan-list')).toBeTruthy();
+    });
+
+    // FAB visible by default (lender perspective)
+    expect(screen.getByTestId('add-loan-fab')).toBeTruthy();
+
+    // Switch to borrower perspective
+    fireEvent.press(screen.getByText('My borrowings'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('add-loan-fab')).toBeNull();
     });
   });
 

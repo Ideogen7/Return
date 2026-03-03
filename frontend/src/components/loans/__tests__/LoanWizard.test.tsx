@@ -1,39 +1,31 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
+import { server } from '../../../../__mocks__/server';
 import { LoanWizard } from '../LoanWizard';
-import type { Item, Borrower } from '../../../types/api.types';
+import { useItemStore } from '../../../stores/useItemStore';
+import { useBorrowerStore } from '../../../stores/useBorrowerStore';
 
-const mockItems: Item[] = [
-  {
-    id: 'item-1',
-    name: 'Perceuse Bosch',
-    category: 'TOOLS',
-    createdAt: '2026-02-01T10:00:00Z',
-  },
-];
-
-const mockBorrowers: Borrower[] = [
-  {
-    id: 'borrower-1',
-    firstName: 'Marie',
-    lastName: 'Dupont',
-    email: 'marie@example.com',
-  },
-];
+beforeAll(() => server.listen());
+afterEach(() => {
+  server.resetHandlers();
+  useItemStore.getState().reset();
+  useBorrowerStore.getState().reset();
+});
+afterAll(() => server.close());
 
 const mockSubmit = jest.fn();
 
-function renderWizard(props?: { items?: Item[]; borrowers?: Borrower[] }) {
+function renderWizard() {
   return render(
     <PaperProvider>
-      <LoanWizard
-        onSubmit={mockSubmit}
-        isLoading={false}
-        items={props?.items ?? mockItems}
-        borrowers={props?.borrowers ?? mockBorrowers}
-      />
+      <LoanWizard onSubmit={mockSubmit} isLoading={false} />
     </PaperProvider>,
   );
+}
+
+async function setupStoresWithData() {
+  await useItemStore.getState().fetchItems();
+  await useBorrowerStore.getState().fetchBorrowers();
 }
 
 beforeEach(() => {
@@ -51,6 +43,7 @@ describe('LoanWizard', () => {
   });
 
   it('should navigate through 4 steps for OBJECT flow', async () => {
+    await setupStoresWithData();
     renderWizard();
 
     // Step 1: select OBJECT (default)
@@ -64,7 +57,7 @@ describe('LoanWizard', () => {
     expect(screen.getByText('Perceuse Bosch')).toBeTruthy();
 
     // Select the item
-    fireEvent.press(screen.getByTestId('select-item-item-1'));
+    fireEvent.press(screen.getByTestId('select-item-9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d'));
     fireEvent.press(screen.getByTestId('wizard-next-btn'));
 
     // Step 3: select borrower
@@ -73,7 +66,7 @@ describe('LoanWizard', () => {
     });
     expect(screen.getByText('Marie Dupont')).toBeTruthy();
 
-    fireEvent.press(screen.getByTestId('select-borrower-borrower-1'));
+    fireEvent.press(screen.getByTestId('select-borrower-5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f'));
     fireEvent.press(screen.getByTestId('wizard-next-btn'));
 
     // Step 4: summary
@@ -84,6 +77,7 @@ describe('LoanWizard', () => {
   });
 
   it('should navigate through 4 steps for MONEY flow', async () => {
+    await setupStoresWithData();
     renderWizard();
 
     // Step 1: select MONEY
@@ -104,7 +98,7 @@ describe('LoanWizard', () => {
       expect(screen.getByTestId('wizard-step-3')).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId('select-borrower-borrower-1'));
+    fireEvent.press(screen.getByTestId('select-borrower-5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f'));
     fireEvent.press(screen.getByTestId('wizard-next-btn'));
 
     // Step 4: submit
@@ -117,7 +111,7 @@ describe('LoanWizard', () => {
     expect(mockSubmit).toHaveBeenCalledTimes(1);
     expect(mockSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
-        borrower: 'borrower-1',
+        borrower: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
       }),
     );
   });
@@ -138,5 +132,39 @@ describe('LoanWizard', () => {
     await waitFor(() => {
       expect(screen.getByTestId('wizard-step-1')).toBeTruthy();
     });
+  });
+
+  it('should show inline create item button on step 2', async () => {
+    renderWizard();
+
+    // Go to step 2
+    fireEvent.press(screen.getByTestId('wizard-next-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('wizard-step-2')).toBeTruthy();
+    });
+
+    expect(screen.getByTestId('inline-create-item-btn')).toBeTruthy();
+  });
+
+  it('should show inline create borrower button on step 3', async () => {
+    await setupStoresWithData();
+    renderWizard();
+
+    // Go to step 2
+    fireEvent.press(screen.getByTestId('wizard-next-btn'));
+    await waitFor(() => {
+      expect(screen.getByTestId('wizard-step-2')).toBeTruthy();
+    });
+
+    // Select item and go to step 3
+    fireEvent.press(screen.getByTestId('select-item-9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d'));
+    fireEvent.press(screen.getByTestId('wizard-next-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('wizard-step-3')).toBeTruthy();
+    });
+
+    expect(screen.getByTestId('inline-create-borrower-btn')).toBeTruthy();
   });
 });

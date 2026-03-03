@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../__mocks__/server';
 import { useLoanStore } from '../useLoanStore';
 
-const API_BASE = 'http://localhost:4010';
+const API_BASE = 'http://localhost:3000/v1';
 
 beforeAll(() => server.listen());
 afterEach(() => {
@@ -22,6 +22,34 @@ describe('useLoanStore', () => {
       expect(state.loans[0]!.borrower.firstName).toBe('Marie');
       expect(state.isLoading).toBe(false);
       expect(state.error).toBeNull();
+    });
+
+    it('should pass role=borrower query param', async () => {
+      let capturedUrl = '';
+      server.use(
+        http.get(`${API_BASE}/loans`, ({ request }) => {
+          capturedUrl = request.url;
+          return HttpResponse.json(
+            {
+              data: [],
+              pagination: {
+                currentPage: 1,
+                itemsPerPage: 20,
+                totalItems: 0,
+                totalPages: 0,
+                hasNextPage: false,
+                hasPreviousPage: false,
+              },
+            },
+            { status: 200 },
+          );
+        }),
+      );
+
+      await useLoanStore.getState().fetchLoans({ role: 'borrower' });
+
+      expect(capturedUrl).toContain('role=borrower');
+      expect(useLoanStore.getState().isLoading).toBe(false);
     });
 
     it('should set error on fetch failure', async () => {
