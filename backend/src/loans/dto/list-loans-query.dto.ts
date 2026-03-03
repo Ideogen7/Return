@@ -2,6 +2,11 @@ import { IsArray, IsBoolean, IsEnum, IsInt, IsOptional, IsUUID, Max, Min } from 
 import { Transform, Type } from 'class-transformer';
 import { LoanStatus } from '@prisma/client';
 
+export enum LoanQueryRole {
+  LENDER = 'lender',
+  BORROWER = 'borrower',
+}
+
 export enum LoanSortBy {
   CREATED_AT = 'createdAt',
   RETURN_DATE = 'returnDate',
@@ -58,4 +63,8 @@ export class ListLoansQueryDto {
   @IsOptional()
   @IsEnum(SortOrder)
   sortOrder?: SortOrder = SortOrder.DESC;
+
+  @IsOptional()
+  @IsEnum(LoanQueryRole)
+  role?: LoanQueryRole = LoanQueryRole.LENDER;
 }

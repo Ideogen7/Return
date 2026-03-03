@@ -132,8 +132,9 @@ export class LoansService {
   // =========================================================================
 
   async findAll(
-    lenderId: string,
+    userId: string,
     query: {
+      role?: 'lender' | 'borrower';
       status?: LoanStatus[];
       borrowerId?: string;
       includeArchived?: boolean;
@@ -147,9 +148,14 @@ export class LoansService {
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {
-      lenderId,
       deletedAt: null,
     };
+
+    if (query.role === 'borrower') {
+      where.borrower = { userId };
+    } else {
+      where.lenderId = userId;
+    }
 
     // Status filter
     if (query.status && query.status.length > 0) {
@@ -193,9 +199,9 @@ export class LoansService {
     };
   }
 
-  async findById(loanId: string, lenderId: string): Promise<LoanResponse> {
+  async findById(loanId: string, userId: string): Promise<LoanResponse> {
     const loan = await this.findLoanOrFail(loanId);
-    this.assertOwnership(loan, lenderId, `/v1/loans/${loanId}`);
+    this.resolveUserRole(loan, userId, `/v1/loans/${loanId}`);
     return this.toLoanResponse(loan);
   }
 
