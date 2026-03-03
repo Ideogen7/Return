@@ -22,6 +22,8 @@ module.exports = {
         'deps',
         'integration',
         'items',
+        'profile',
+        'borrowers',
       ],
     ],
     'subject-case': [2, 'never', ['start-case', 'pascal-case', 'upper-case']],
