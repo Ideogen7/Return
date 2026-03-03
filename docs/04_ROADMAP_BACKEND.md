@@ -422,6 +422,54 @@ Cyclé TDD par comportement.
 
 ---
 
+## Sprint 4.5 : Intégration & Corrections Post-Sprint 4 (3 jours)
+
+### Objectif
+
+Corriger les lacunes révélées par les tests d'intégration avec le backend réel après le Sprint 4.
+Le problème critique est que **l'emprunteur ne peut pas voir les prêts qui lui sont adressés** car
+`Borrower.userId` n'est jamais peuplé. Ce sprint consolide les Sprints 0-4 avant d'attaquer les Sprints 5-6.
+
+> **Cause racine** : `Borrower.userId` est nullable (`@map("user_id")`). Quand un prêteur crée un contact
+> via `POST /borrowers` ou implicitement via `POST /loans`, le champ `userId` reste `NULL`. L'événement
+> `user.registered` est bien émis par `AuthService.register()` mais **aucun listener** n'existe dans
+> `BorrowersService` pour associer le `Borrower` au nouveau `User` par correspondance d'email.
+> En conséquence, `GET /loans?role=borrower` (qui filtre `WHERE borrower.userId = currentUserId`) retourne
+> toujours une liste vide.
+
+### Phase 4.5.1 : Listener de liaison emprunteur-utilisateur (Jour 1)
+
+| ID              | Titre                                                                                                              | Dépendance | Critère de Fin                                                                           | Temps |
+|-----------------|--------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------------------|-------|
+| **INTEG-001**   | Test TDD : quand `user.registered` émis, les `Borrower` avec même email reçoivent `userId`                        | LOAN-037   | Test RED écrit (écoute événement, vérifie `userId` mis à jour)                           | 1h    |
+| **INTEG-002**   | Implémenter `@OnEvent('user.registered')` dans `BorrowersService` : chercher tous `Borrower` par email, mettre à jour `userId` | INTEG-001  | Test GREEN passe, `Borrower.userId` lié                                                  | 1h30  |
+| **INTEG-003**   | Test TDD : si aucun `Borrower` ne matche l'email du nouvel utilisateur, le listener ne fait rien (pas d'erreur)    | INTEG-002  | Test GREEN, aucun side effect                                                            | 30min |
+| **INTEG-004**   | Test TDD : si plusieurs `Borrower` (de différents prêteurs) ont le même email, tous reçoivent le `userId`         | INTEG-002  | Test GREEN, `updateMany` appliqué                                                        | 30min |
+
+> **Note** : Un même utilisateur peut être emprunteur de plusieurs prêteurs. Chaque prêteur a son propre
+> enregistrement `Borrower` pour la même personne. Le listener doit mettre à jour **tous** les `Borrower`
+> avec l'email correspondant (via `prisma.borrower.updateMany()`).
+
+### Phase 4.5.2 : Migration de rattachement des données existantes (Jour 2)
+
+| ID              | Titre                                                                                                              | Dépendance | Critère de Fin                                                                           | Temps |
+|-----------------|--------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------------------|-------|
+| **INTEG-005**   | Créer migration Prisma : rattacher les `Borrower` existants dont l'email correspond à un `User.email` inscrit     | INTEG-002  | Migration appliquée, `Borrower.userId` peuplé pour les correspondances existantes        | 1h    |
+| **INTEG-006**   | Test d'intégration : `GET /loans?role=borrower` retourne les prêts de l'emprunteur après liaison                  | INTEG-002  | Test Supertest passe, réponse non vide                                                   | 1h    |
+| **INTEG-007**   | Test d'intégration : `GET /loans/{id}` accessible par l'emprunteur (via `resolveUserRole`)                        | INTEG-006  | Test Supertest 200 OK pour l'emprunteur                                                  | 30min |
+| **INTEG-008**   | Test d'intégration : `GET /loans?role=borrower` par un utilisateur tiers (ni prêteur ni emprunteur) retourne vide | INTEG-006  | Test Supertest 200 avec `data: []`                                                       | 30min |
+
+### Phase 4.5.3 : Review + Buffer intégration (Jour 3)
+
+| ID              | Titre                                                                                                              | Dépendance | Critère de Fin                                                                           | Temps |
+|-----------------|--------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------------------|-------|
+| **INTEG-009**   | Mettre à jour `openapi.yaml` si ajustements nécessaires (documentation du comportement de liaison)                 | INTEG-005  | Spec à jour                                                                              | 30min |
+| **INTEG-010**   | Review code + fix bugs d'intégration avec le frontend                                                              | INTEG-008  | Tous les tests passent, CI verte                                                         | 2h    |
+
+🏁 **Livrable Sprint 4.5** : **Perspective emprunteur fonctionnelle** (`Borrower.userId` lié automatiquement à l'inscription, `GET /loans?role=borrower` retourne les prêts, migration de rattachement des données existantes).
+
+---
+
 ## Sprint 5 : Module Reminders + Notifications (5 jours)
 
 ### Objectif
@@ -603,16 +651,17 @@ Cyclé TDD par comportement.
 
 ## Résumé des Sprints
 
-| Sprint       | Durée           | Modules                    | Endpoints livres                                  | Tests          |
-| ------------ | --------------- | -------------------------- | ------------------------------------------------- | -------------- |
-| **Sprint 0** | 3-4 jours       | Setup infrastructuré       | 2 (health + ready) + Docker                       | CI/CD          |
-| **Sprint 1** | 5 jours         | Auth + Users               | 10 (Auth: 4, Users: 6)                            | ~20 tests      |
-| **Sprint 2** | 4 jours         | Borrowers                  | 5                                                 | ~8 tests       |
-| **Sprint 3** | 4 jours         | Items + Avatar             | 7 (Items: 6, Avatar: 1)                           | ~10 tests      |
-| **Sprint 4** | 8 jours         | Loans (coeur métier)       | 8 + intégration inter-modules                     | ~20 tests      |
-| **Sprint 5** | 5 jours         | Reminders + Notifications  | 3 + système auto                                  | ~12 tests      |
-| **Sprint 6** | 4 jours         | History + R2 + Déploiement | 5 (History: 2, Borrower stats/loans: 2, E2E) + R2 | E2E complet    |
-| **TOTAL**    | **38-42 jours** | **7 modules**              | **~40 endpoints** (+ 3 réservés V2)               | **~66+ tests** |
+| Sprint           | Durée           | Modules                          | Endpoints livres                                  | Tests          |
+| ---------------- | --------------- | -------------------------------- | ------------------------------------------------- | -------------- |
+| **Sprint 0**     | 3-4 jours       | Setup infrastructuré             | 2 (health + ready) + Docker                       | CI/CD          |
+| **Sprint 1**     | 5 jours         | Auth + Users                     | 10 (Auth: 4, Users: 6)                            | ~20 tests      |
+| **Sprint 2**     | 4 jours         | Borrowers                        | 5                                                 | ~8 tests       |
+| **Sprint 3**     | 4 jours         | Items + Avatar                   | 7 (Items: 6, Avatar: 1)                           | ~10 tests      |
+| **Sprint 4**     | 8 jours         | Loans (coeur métier)             | 8 + intégration inter-modules                     | ~20 tests      |
+| **Sprint 4.5**   | 3 jours         | Corrections intégration Loans    | 0 (listener événement + migration rattachement)   | ~8 tests       |
+| **Sprint 5**     | 5 jours         | Reminders + Notifications        | 3 + système auto                                  | ~12 tests      |
+| **Sprint 6**     | 4 jours         | History + R2 + Déploiement       | 5 (History: 2, Borrower stats/loans: 2, E2E) + R2 | E2E complet    |
+| **TOTAL**        | **41-45 jours** | **7 modules + 1 correctif**     | **~40 endpoints** (+ 3 réservés V2)               | **~74+ tests** |
 
 > **Endpoints réservés V2** : 3 endpoints Reminders (`GET /loans/{id}/reminders`, `GET /reminders/{id}`,
 > `POST /reminders/{id}/cancel`) sont définis dans `openapi.yaml` mais ne sont pas implémentés en V1 car
@@ -626,14 +675,15 @@ Cyclé TDD par comportement.
 
 ## Points de Synchronisation Frontend/Backend
 
-| Moment           | Frontend peut brancher         | Backend disponible                |
-| ---------------- | ------------------------------ | --------------------------------- |
-| **Fin Sprint 1** | Authentification + Profil      | `/auth/*` + `/users/me`           |
-| **Fin Sprint 2** | Gestion emprunteurs            | `/borrowers/*`                    |
-| **Fin Sprint 3** | Enregistrement objets + photos | `/items/*`                        |
-| **Fin Sprint 4** | Création et suivi de prêts     | `/loans/*`                        |
-| **Fin Sprint 5** | Notifications push             | `/notifications/*` + rappels auto |
-| **Fin Sprint 6** | Statistiques complètes         | `/history/*` + seed data          |
+| Moment             | Frontend peut brancher               | Backend disponible                                         |
+| ------------------ | ------------------------------------ | ---------------------------------------------------------- |
+| **Fin Sprint 1**   | Authentification + Profil            | `/auth/*` + `/users/me`                                    |
+| **Fin Sprint 2**   | Gestion emprunteurs                  | `/borrowers/*`                                             |
+| **Fin Sprint 3**   | Enregistrement objets + photos       | `/items/*`                                                 |
+| **Fin Sprint 4**   | Création et suivi de prêts (prêteur) | `/loans/*`                                                 |
+| **Fin Sprint 4.5** | Perspective emprunteur fonctionnelle | `Borrower.userId` lié + `GET /loans?role=borrower` correct |
+| **Fin Sprint 5**   | Notifications push                   | `/notifications/*` + rappels auto                          |
+| **Fin Sprint 6**   | Statistiques complètes               | `/history/*` + seed data                                   |
 
 ---
 
@@ -652,5 +702,5 @@ A valider avant de passer au sprint suivant :
 ---
 
 **Co-validé par** : Esdras GBEDOZIN & Ismael AIHOU
-**Date de dernière mise à jour** : 12 février 2026
-**Version** : 1.1 -- MVP Baseline (post contre-expertise)
+**Date de dernière mise à jour** : 3 mars 2026
+**Version** : 1.2 -- Post-intégration Sprint 4 (ajout Sprint 4.5)

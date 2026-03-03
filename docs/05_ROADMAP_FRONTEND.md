@@ -2,7 +2,7 @@
 
 **Return ↺ - Roadmap de Développement Frontend (React Native)**
 
-**Version** : 1.1 — MVP Baseline (post contre-expertise)
+**Version** : 1.2 — Post-intégration Sprint 4 (ajout Sprint 4.5)
 **Co-validé par** : Esdras GBEDOZIN & Ismael AIHOU
 **Date** : 12 février 2026
 
@@ -293,7 +293,7 @@ physique (OBJECT)** et **Argent (MONEY)**.
 ### Statuts de prêt (machine à états)
 
 ```
-PENDING_CONFIRMATION → ACTIVE (accepte) | ACTIVE_BY_DEFAULT (timeout 48h) | DISPUTED (refuse)
+PENDING_CONFIRMATION → ACTIVE (accepte) | ACTIVE_BY_DEFAULT (timeout 48h) | CONTESTED (refuse)
 ACTIVE / ACTIVE_BY_DEFAULT → AWAITING_RETURN (date dépassée)
 AWAITING_RETURN → RETURNED (rendu) | NOT_RETURNED (5 rappels ignorés) | ABANDONED (abandon manuel)
 ```
@@ -316,14 +316,14 @@ AWAITING_RETURN → RETURNED (rendu) | NOT_RETURNED (5 rappels ignorés) | ABAND
 | ID           | Titre                                                                                                   | Dépendance | Critère de Fin               | Temps |
 |--------------|---------------------------------------------------------------------------------------------------------|------------|------------------------------|-------|
 | **LOAN-001** | Créer `useLoanStore` (state: loans[], filters, selectedLoan)                                            | SETUP-006  | Store créé avec actions CRUD | 1h30  |
-| **LOAN-002** | Créer actions `fetchLoans(filters)`, `createLoan()`, `confirmLoan()`, `contestLoan()`, `updateStatus()` | LOAN-001   | Actions appellent API mock   | 3h    |
+| **LOAN-002** | Créer actions `fetchLoans(filters)`, `fetchLoan(id)`, `createLoan()`, `updateLoan()`, `deleteLoan()`, `confirmLoan()`, `contestLoan()`, `updateStatus()` | LOAN-001   | Actions appellent API mock   | 3h30  |
 
 ### Phase 4.2 : Composants UI (Dumb) (Jours 1-2)
 
 | ID           | Titre                                                                                                                                                                                                                        | Dépendance | Critère de Fin                | Temps |
 |--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|-------------------------------|-------|
 | **LOAN-003** | Créer composant `LoanCard` (photo objet + nom + emprunteur + status badge + type OBJECT/MONEY)                                                                                                                               | SETUP-007  | Card affichée dans liste      | 1h30  |
-| **LOAN-004** | Créer composant `StatusBadge` (PENDING_CONFIRMATION en orange, ACTIVE en vert, ACTIVE_BY_DEFAULT en vert clair, AWAITING_RETURN en rouge, DISPUTED en gris, RETURNED en bleu, NOT_RETURNED en noir, ABANDONED en gris foncé) | SETUP-007  | Badge colore selon status     | 1h    |
+| **LOAN-004** | Créer composant `StatusBadge` (PENDING_CONFIRMATION en orange, ACTIVE en vert, ACTIVE_BY_DEFAULT en vert clair, AWAITING_RETURN en rouge, CONTESTED en gris, RETURNED en bleu, NOT_RETURNED en noir, ABANDONED en gris foncé) | SETUP-007  | Badge coloré selon status (8 statuts) | 1h    |
 | **LOAN-005** | Créer composant `LoanWizard` (step 1: type OBJECT/MONEY, step 2: sélection objet existant ou saisie montant, step 3: sélection emprunteur existant, step 4: date retour + notes)                                             | SETUP-007  | Wizard 4 étapes fonctionnel   | 4h    |
 | **LOAN-006** | Créer composant `LoanTimeline` (affichage historique statuts)                                                                                                                                                                | SETUP-007  | Timeline verticale avec dates | 2h    |
 | **LOAN-007** | Créer composant `ConfirmationDialog` (pour emprunteur : "Accepter" / "Refuser")                                                                                                                                              | SETUP-007  | Dialog modale avec 2 boutons  | 1h    |
@@ -338,8 +338,8 @@ AWAITING_RETURN → RETURNED (rendu) | NOT_RETURNED (5 rappels ignorés) | ABAND
 |--------------|-----------------------------------------------------------------------------------------------------------|------------------------------|----------------------------------------------------------------|-------|
 | **LOAN-008** | Créer écran `LoanListScreen` (FlatList de LoanCard avec filtres status + onglets "En cours" / "Archives") | LOAN-002, LOAN-003, LOAN-004 | Liste filtree avec bouton "+ Nouveau pret"                     | 2h    |
 | **LOAN-009** | Créer écran `CreateLoanScreen` (LoanWizard — type OBJECT/MONEY + sélection emprunteur existant)           | LOAN-002, LOAN-005           | Création prêt via API mock (type + objet/montant + emprunteur) | 2h30  |
-| **LOAN-010** | Créer écran `LoanDetailScreen` (infos complètes + LoanTimeline + boutons actions selon status)            | LOAN-002, LOAN-006           | Affichage details + actions contextuelles                      | 2h    |
-| **LOAN-011** | Créer écran `ConfirmLoanScreen` (pour emprunteur : ConfirmationDialog)                                    | LOAN-002, LOAN-007           | Confirmation → status ACTIVE, Refus → status DISPUTED          | 1h30  |
+| **LOAN-010** | Créer écran `LoanDetailScreen` (infos complètes + LoanTimeline + boutons actions selon status + édition notes/date + suppression + abandon) | LOAN-002, LOAN-006 | Affichage détails + actions contextuelles (edit/delete/abandon) | 3h    |
+| **LOAN-011** | Créer écran `ConfirmLoanScreen` (pour emprunteur : ConfirmationDialog)                                    | LOAN-002, LOAN-007           | Confirmation → status ACTIVE, Refus → status CONTESTED         | 1h30  |
 | **LOAN-012** | Créer écran `ReturnLoanScreen` (bouton "Confirmer le retour")                                             | LOAN-002                     | Changement status → RETURNED via API mock                      | 1h    |
 
 > **Note LOAN-009** : Le frontend ne créé pas d'objet ni d'emprunteur inline lors de la création d'un pret.
@@ -353,7 +353,7 @@ AWAITING_RETURN → RETURNED (rendu) | NOT_RETURNED (5 rappels ignorés) | ABAND
 |--------------|---------------------------------------------------------------------------------------------------------------------|---------------------|-----------------------------------------------|-------|
 | **LOAN-013** | Ajouter onglet "Prêts" dans Tab Navigator (écran par defaut)                                                        | SETUP-003, LOAN-008 | Onglet accessible                             | 30min |
 | **LOAN-014** | Implémenter deep linking pour confirmation emprunteur (Universal Links iOS / App Links Android → ConfirmLoanScreen) | LOAN-011            | Lien `return://loans/{id}/confirm` fonctionne | 4-6h  |
-| **LOAN-015** | Afficher boutons conditionnels selon status (ex: bouton "Marquer rendu" si AWAITING_RETURN)                         | LOAN-010            | Boutons corrects selon machine à états        | 1h30  |
+| **LOAN-015** | Afficher boutons conditionnels selon status : "Marquer rendu" (ACTIVE/AWAITING_RETURN → RETURNED), "Abandonner" (ACTIVE/AWAITING_RETURN → ABANDONED), "Modifier" (notes/returnDate via PATCH), "Supprimer" (soft delete via DELETE, interdit si RETURNED) | LOAN-010 | Boutons corrects selon machine à états (8 statuts) | 2h |
 
 > **Note LOAN-014** : Le deep linking necessite la configuration des Universal Links (iOS :
 `apple-app-site-association`) et App Links (Android : `assetlinks.json`). L'emprunteur doit obligatoirement disposer d'
@@ -366,14 +366,82 @@ AWAITING_RETURN → RETURNED (rendu) | NOT_RETURNED (5 rappels ignorés) | ABAND
 
 | ID           | Titre                                                                   | Dépendance | Critère de Fin                            | Temps |
 |--------------|-------------------------------------------------------------------------|------------|-------------------------------------------|-------|
-| **LOAN-016** | Gerer erreur 400 si returnDate < today                                  | LOAN-009   | Message "Date de retour invalide" affiché | 45min |
+| **LOAN-016** | Gérer erreur 400 si returnDate < today                                  | LOAN-009   | Message "Date de retour invalide" affiché | 45min |
 | **LOAN-017** | Écrire test RNTL : LoanWizard flow (4 étapes, type OBJECT)              | LOAN-005   | Test RNTL passe                           | 1h30  |
 | **LOAN-018** | Écrire test RNTL : LoanWizard flow (type MONEY)                         | LOAN-005   | Test RNTL passe                           | 1h    |
 | **LOAN-019** | Écrire test RNTL : ConfirmationDialog accept/refuse                     | LOAN-007   | Test RNTL passe                           | 1h    |
-| **LOAN-020** | Écrire test RNTL : StatusBadge affichage correct par statut (7 statuts) | LOAN-004   | Test RNTL passe                           | 1h    |
+| **LOAN-020** | Écrire test RNTL : StatusBadge affichage correct par statut (8 statuts) | LOAN-004   | Test RNTL passe                           | 1h    |
+| **LOAN-021** | Ajouter 5 types d'erreur Loans dans `error.ts` + `en.json`/`fr.json` : `loan-not-found`, `daily-loan-limit-exceeded`, `loan-already-returned`, `forbidden-status-transition`, `invalid-status-transition` | LOAN-002 | Erreurs mappées et traduites FR/EN | 30min |
+| **LOAN-022** | Écrire tests RNTL : LoanDetailScreen — édition notes/date, suppression prêt, abandon | LOAN-010 | 3 tests RNTL passent | 1h30 |
 
-📦 **Livrable Sprint 4** : **Gestion complète des prêts** (workflow 7 statuts, 2 types OBJECT/MONEY, connecté au Mock
+📦 **Livrable Sprint 4** : **Gestion complète des prêts** (workflow 8 statuts, 2 types OBJECT/MONEY, édition/suppression/abandon, connecté au Mock
 Server), couvert par tests RNTL.
+
+---
+
+## Sprint 4.5 : Corrections Intégration & UX Post-Sprint 4 (3 jours)
+
+### Objectif
+
+Corriger les problèmes révélés par les tests d'intégration avec le backend réel :
+- **Bug critique** : l'emprunteur ne voit aucun prêt dans "Mes emprunts" (cause backend — voir roadmap backend Sprint 4.5)
+- **UX** : double SegmentedButtons empilés dans `LoanListScreen` (perspective + statut)
+- **UX** : onglet "Prêts" ambigu — doit couvrir prêts ET emprunts
+- **UX** : profil sans statistiques emprunteur (score de confiance personnel)
+
+> **Dépendance backend** : Les corrections UX frontend (Phase 4.5.2 et 4.5.3) peuvent démarrer en parallèle
+> du backend (Phase 4.5.1). Seul le test de bout en bout "emprunteur voit ses prêts" nécessite que le
+> listener `@OnEvent('user.registered')` soit implémenté côté backend.
+
+### Phase 4.5.1 : Refactoring LoanListScreen — UX contrôles (Jour 1)
+
+| ID              | Titre                                                                                                                                                 | Dépendance | Critère de Fin                                           | Temps |
+|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|------------|----------------------------------------------------------|-------|
+| **INTEG-F01**   | Refactorer `LoanListScreen` : remplacer les 2 SegmentedButtons empilés par un seul contrôle combiné (ex: Chips filtres ou SegmentedButtons + dropdown) | LOAN-008   | Un seul niveau de contrôle visible, UX mobile fluide     | 2h    |
+| **INTEG-F02**   | Implémenter le comportement combiné : la perspective (prêteur/emprunteur) détermine les données, le filtre (en cours/archives) affine l'affichage      | INTEG-F01  | Changement de perspective recharge les données correctes | 1h    |
+| **INTEG-F03**   | Masquer le FAB "+" en mode emprunteur (déjà fait, vérifier après refactoring)                                                                         | INTEG-F01  | FAB invisible quand perspective = borrower               | 15min |
+
+> **Proposition UX** : Utiliser un **SegmentedButtons** pour la perspective (Mes prêts / Mes emprunts) et
+> des **Chip** filtres en dessous pour le statut (En cours / Archives), ou intégrer le filtre statut dans
+> un menu/dropdown. L'objectif est d'éviter deux barres de boutons identiques empilées. Le choix final
+> de l'approche UX est laissé à l'implémenteur.
+
+### Phase 4.5.2 : Renommage onglet navigation (Jour 1)
+
+| ID              | Titre                                                                                                        | Dépendance | Critère de Fin                                                | Temps |
+|-----------------|--------------------------------------------------------------------------------------------------------------|------------|---------------------------------------------------------------|-------|
+| **INTEG-F04**   | Renommer l'onglet "Prêts" → "Suivi" dans `AppNavigator.tsx` + i18n (`navigation.loans` → `navigation.tracking`) | LOAN-013   | Onglet affiché "Suivi" en FR / "Tracking" en EN               | 30min |
+| **INTEG-F05**   | Mettre à jour `fr.json` et `en.json` : ajouter clé `navigation.tracking` + conserver `navigation.loans` pour rétrocompatibilité | INTEG-F04  | i18n FR : "Suivi", EN : "Tracking"                            | 15min |
+
+> **Note** : Le terme "Suivi" est neutre et englobe à la fois le suivi des prêts (prêteur) et le suivi des emprunts
+> (emprunteur). Le terme "Transaction" est interdit par le vocabulaire du projet (voir `CLAUDE.md`).
+> **Alternative** : "Prêts & Emprunts" — plus explicite mais long pour un onglet mobile. À valider en équipe.
+
+### Phase 4.5.3 : Statistiques emprunteur dans le profil (Jour 2)
+
+| ID              | Titre                                                                                                                 | Dépendance      | Critère de Fin                                          | Temps |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------|------------------|---------------------------------------------------------|-------|
+| **INTEG-F06**   | Créer composant `BorrowerStats` : charge les prêts via `fetchLoans({ role: 'borrower' })` et calcule les métriques    | LOAN-001         | Composant affiche : prêts reçus, rendus à temps, en retard, score de confiance | 2h    |
+| **INTEG-F07**   | Intégrer `BorrowerStats` dans `ProfileScreen` sous `LenderStats`                                                      | INTEG-F06        | Deux cards de stats visibles dans le profil (prêteur + emprunteur)             | 30min |
+| **INTEG-F08**   | Ajouter clés i18n pour `BorrowerStats` : `profile.borrowerStatistics`, `profile.loansReceived`, `profile.returnedOnTime`, `profile.returnedLate`, `profile.trustScore` | INTEG-F06 | Clés disponibles en FR et EN | 15min |
+
+> **Calcul du score de confiance** : `(returnedOnTime * 100 + returnedLate * 50) / totalLoans`
+> (formule identique à `BorrowerStatistics.trustScore` dans l'OpenAPI). Le calcul est fait côté client
+> à partir des prêts chargés via `useLoanStore.fetchLoans({ role: 'borrower', includeArchived: true })`.
+> Les statuts pris en compte : `RETURNED` (vérifié si avant/après `returnDate`) pour `returnedOnTime`/`returnedLate`,
+> `NOT_RETURNED` et `ABANDONED` pour non rendus.
+
+### Phase 4.5.4 : Tests + Validation (Jour 3)
+
+| ID              | Titre                                                                                                  | Dépendance         | Critère de Fin                                            | Temps |
+|-----------------|--------------------------------------------------------------------------------------------------------|--------------------|-----------------------------------------------------------|-------|
+| **INTEG-F09**   | Écrire test RNTL : `LoanListScreen` — contrôle combiné perspective/statut fonctionne                  | INTEG-F02          | Test RNTL passe                                           | 1h    |
+| **INTEG-F10**   | Écrire test RNTL : onglet "Suivi" affiché dans la navigation                                          | INTEG-F04          | Test RNTL passe                                           | 30min |
+| **INTEG-F11**   | Écrire test RNTL : `BorrowerStats` affiche les métriques calculées                                    | INTEG-F06          | Test RNTL passe                                           | 1h    |
+| **INTEG-F12**   | Test bout en bout : créer un prêt (prêteur) → vérifier qu'il apparaît dans "Mes emprunts" (emprunteur) | INTEG-F02, backend | Test fonctionnel valide (nécessite backend Sprint 4.5)    | 1h    |
+| **INTEG-F13**   | Vérifier que tous les tests existants (150+) passent après les modifications                           | INTEG-F09..F12     | `npx jest --verbose` : 0 échecs                          | 30min |
+
+📦 **Livrable Sprint 4.5** : **Perspective emprunteur UX corrigée** (onglet "Suivi", contrôle unique perspective/statut, statistiques emprunteur en profil), couverte par tests RNTL.
 
 ---
 
@@ -531,29 +599,31 @@ export const API_BASE_URL = (endpoint: string): string => {
 
 ## Résumé des Sprints Frontend
 
-| Sprint       | Durée        | Modules                  | Écrans livres                                                                      | Tests RNTL    |
-|--------------|--------------|--------------------------|------------------------------------------------------------------------------------|---------------|
-| **Sprint 0** | 3-4 jours    | Setup infrastructuré     | 0                                                                                  | CI/CD setup   |
-| **Sprint 1** | 5 jours      | Auth + Profil + Settings | 7 (Login, Register, Profile, EditProfile, ChangePassword, DeleteAccount, Settings) | 6 tests       |
-| **Sprint 2** | 4 jours      | Borrowers                | 4 (List, Create, Detail, Edit)                                                     | 2 tests       |
-| **Sprint 3** | 4 jours      | Items (Photos)           | 4 (List, Create, Detail, Edit)                                                     | 2 tests       |
-| **Sprint 4** | 8 jours      | Avatar + Loans           | 5 (List, Create, Detail, Confirm, Return) + avatar profil                          | 4+3 tests     |
-| **Sprint 5** | 5 jours      | Notifications            | 1 (NotificationList) + header badge                                                | 2 tests       |
-| **Sprint 6** | 4 jours      | Dashboard + History      | 3 (Dashboard, History, Statistics)                                                 | 1 test        |
-| **TOTAL**    | **38-42 j.** | **7 modules**            | **24 écrans**                                                                      | **17+ tests** |
+| Sprint           | Durée        | Modules                               | Écrans livres                                                                      | Tests RNTL    |
+|------------------|--------------|---------------------------------------|------------------------------------------------------------------------------------|---------------|
+| **Sprint 0**     | 3-4 jours    | Setup infrastructuré                  | 0                                                                                  | CI/CD setup   |
+| **Sprint 1**     | 5 jours      | Auth + Profil + Settings              | 7 (Login, Register, Profile, EditProfile, ChangePassword, DeleteAccount, Settings) | 6 tests       |
+| **Sprint 2**     | 4 jours      | Borrowers                             | 4 (List, Create, Detail, Edit)                                                     | 2 tests       |
+| **Sprint 3**     | 4 jours      | Items (Photos)                        | 4 (List, Create, Detail, Edit)                                                     | 2 tests       |
+| **Sprint 4**     | 8 jours      | Avatar + Loans                        | 5 (List, Create, Detail, Confirm, Return) + avatar profil                          | 4+3+3 tests   |
+| **Sprint 4.5**   | 3 jours      | Corrections intégration + UX          | 0 (refactoring LoanListScreen + BorrowerStats + renommage onglet)                  | 5 tests       |
+| **Sprint 5**     | 5 jours      | Notifications                         | 1 (NotificationList) + header badge                                                | 2 tests       |
+| **Sprint 6**     | 4 jours      | Dashboard + History                   | 3 (Dashboard, History, Statistics)                                                 | 1 test        |
+| **TOTAL**        | **41-45 j.** | **7 modules + 1 correctif**          | **24 écrans**                                                                      | **22+ tests** |
 
 ---
 
 ## Points de Synchronisation Frontend/Backend
 
-| Moment                   | Frontend basculé vers         | Backend disponible                             |
-|--------------------------|-------------------------------|------------------------------------------------|
-| **Fin Sprint 1 Backend** | Auth + Users + Settings réel  | `/auth/*` + `/users/me` + `/users/me/settings` |
-| **Fin Sprint 2 Backend** | Borrowers réel                | `/borrowers/*`                                 |
-| **Fin Sprint 3 Backend** | Items réel (Photos + R2)      | `/items/*`                                     |
-| **Fin Sprint 4 Backend** | Loans réel (workflow complet) | `/loans/*`                                     |
-| **Fin Sprint 5 Backend** | Notifications réelles (FCM)   | `/reminders/*` + `/notifications/*`            |
-| **Fin Sprint 6 Backend** | History + Déploiement réel    | `/history/*` + `/borrowers/{id}/loans`         |
+| Moment                     | Frontend basculé vers                | Backend disponible                                         |
+|----------------------------|--------------------------------------|------------------------------------------------------------|
+| **Fin Sprint 1 Backend**   | Auth + Users + Settings réel         | `/auth/*` + `/users/me` + `/users/me/settings`             |
+| **Fin Sprint 2 Backend**   | Borrowers réel                       | `/borrowers/*`                                             |
+| **Fin Sprint 3 Backend**   | Items réel (Photos + R2)             | `/items/*`                                                 |
+| **Fin Sprint 4 Backend**   | Loans réel (workflow complet)        | `/loans/*`                                                 |
+| **Fin Sprint 4.5 Backend** | Perspective emprunteur fonctionnelle | `Borrower.userId` lié + `GET /loans?role=borrower` correct |
+| **Fin Sprint 5 Backend**   | Notifications réelles (FCM)          | `/reminders/*` + `/notifications/*`                        |
+| **Fin Sprint 6 Backend**   | History + Déploiement réel           | `/history/*` + `/borrowers/{id}/loans`                     |
 
 ---
 
@@ -572,5 +642,5 @@ A valider avant de passer au sprint suivant :
 ---
 
 **Co-validé par** : Esdras GBEDOZIN & Ismael AIHOU
-**Date de dernière mise à jour** : 12 février 2026
-**Version** : 1.1 — MVP Baseline (post contre-expertise)
+**Date de dernière mise à jour** : 3 mars 2026
+**Version** : 1.2 — Post-intégration Sprint 4 (ajout Sprint 4.5)

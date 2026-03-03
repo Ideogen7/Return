@@ -97,6 +97,13 @@ Sprint 4 : Loans - Coeur Métier (8 jours)
 
 --- Buffer (1 jour) ---
 
+Sprint 4.5 : Intégration & Corrections Post-Sprint 4 (3 jours)
++- Backend  : [====================] 100% Jour 1-2 (Linking emprunteur-utilisateur + tests)
++- Frontend : [====================] 100% Jour 2-3 (UX LoanList + Renommage onglet + Stats profil)
+   SYNC POINT : Perspective emprunteur fonctionnelle bout en bout
+
+--- Buffer (1 jour) ---
+
 Sprint 5 : Reminders automatiques + Notifications (5 jours)
 +- Backend  : [==========] 50% Jour 1-3 -> [====================] 100% Jour 5
 |  +- Livrables : 5 rappels auto (J-3, J, J+7, J+14, J+21) + FCM Push (3 endpoints notifications)
@@ -112,7 +119,7 @@ Sprint 6 : History + Déploiement + Polish (4 jours)
    SYNC POINT FINAL : Frontend 100% Backend réel (Jour 4)
 ```
 
-**Total** : 4 + 1 + 5 + 1 + 4 + 1 + 4 + 1 + 8 + 1 + 5 + 1 + 4 = **40 jours** + **5 jours de marge générale** = **45 jours calendaires**
+**Total** : 4 + 1 + 5 + 1 + 4 + 1 + 4 + 1 + 8 + 1 + 3 + 1 + 5 + 1 + 4 = **44 jours** + **5 jours de marge générale** = **49 jours calendaires**
 
 > **Utilisation de la marge** : Les 5 jours de marge générale sont reserves à :
 > - Debugging d'intégration entre Backend et Frontend (2 jours)
@@ -133,8 +140,9 @@ Sprint 6 : History + Déploiement + Polish (4 jours)
 | **M-CHECK — Checkpoint Mi-Parcours**    | Jour 20-22 | Evaluation du scope restant vs temps disponible                                                              | Decision formelle : on continue le plan complet OU on coupe des features non-essentielles (stats avancees, deep linking, dashboard détaillé) pour tenir la date. Documenter la decision dans un ADR         |
 | **M3 — Enregistrement Objets (Photos)** | Jour 20    | Upload photos + CRUD Items Frontend vers Backend réel                                                        | Smoke tests : `POST /items` avec type OBJECT retourné 201 ; `POST /items` avec type MONEY retourné 201 ; upload photo vers R2 retourné URL ; `DELETE /items/{id}` avec prêt actif retourné 409              |
 | **M4 — Prêts Fonctionnels**             | Jour 29    | Workflow 8 statuts complet Frontend vers Backend réel                                                        | Smoke tests : créer prêt (PENDING) -> confirmer (ACTIVE) -> retournér (RETURNED) ; créer prêt -> contester (DISPUTED) ; timeout 48h passe en ACTIVE_BY_DEFAULT ; transition invalidé retourné 400           |
-| **M5 — Notifications Push**             | Jour 35    | Rappels automatiques et notifications temps réel fonctionnels                                                | Smoke tests : rappel J-3 planifié à la création du prêt ; notification push reçue sur device physique ; `GET /notifications` retourné la liste ; `PATCH /notifications/{id}/read` marque comme lu           |
-| **M6 — MVP Complet**                    | Jour 45    | App complète prete pour déploiement production                                                               | Smoke tests : flow complet register -> créer item -> créer prêt -> confirmer -> retournér -> consulter stats ; déploiement Fly.io OK ; build Expo OK (iOS + Android)                                        |
+| **M4.5 — Perspective Emprunteur**       | Jour 33    | Emprunteur voit ses prêts + UX corrigée + Stats profil                                                      | Smoke tests : inscription emprunteur → `Borrower.userId` lié ; `GET /loans?role=borrower` retourne les prêts ; onglet "Suivi" renommé ; pas de double SegmentedButtons ; stats prêteur/emprunteur en profil |
+| **M5 — Notifications Push**             | Jour 39    | Rappels automatiques et notifications temps réel fonctionnels                                                | Smoke tests : rappel J-3 planifié à la création du prêt ; notification push reçue sur device physique ; `GET /notifications` retourné la liste ; `PATCH /notifications/{id}/read` marque comme lu           |
+| **M6 — MVP Complet**                    | Jour 49    | App complète prete pour déploiement production                                                               | Smoke tests : flow complet register -> créer item -> créer prêt -> confirmer -> retournér -> consulter stats ; déploiement Fly.io OK ; build Expo OK (iOS + Android)                                        |
 
 ---
 
@@ -211,6 +219,27 @@ SYNC : Frontend basculé Loans vers Backend réel (fin J8).
 > **Note** : Redis et BullMQ sont configurés dans ce sprint car c'est le premier besoin réel (CRON timeout 48h).
 > Cela evite de configurér Redis pour BullMQ au Sprint 0 alors qu'il n'est pas utilisé avant le Sprint 4.
 > Redis est toutefois configuré dès leSprint 0 pour la blacklist JWT (logout/révocation).
+
+---
+
+### Sprint 4.5 : Intégration & Corrections Post-Sprint 4 (3 jours)
+
+> **Contexte** : Les tests d'intégration avec le backend réel après le Sprint 4 ont révélé des lacunes
+> dans le lien emprunteur-utilisateur, des problèmes d'UX et des fonctionnalités manquantes dans le profil.
+> Ce sprint correctif consolide les Sprints 0-4 avant d'attaquer les Sprints 5-6.
+
+| Jour   | Dev 1 (Backend)                                                                                       | Dev 2 (Frontend)                                                                        |
+|--------|-------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| **J1** | Listener `@OnEvent('user.registered')` : lier `Borrower.userId` par email + tests TDD                | Refactoring `LoanListScreen` : fusionner les 2 SegmentedButtons en un seul contrôle UX |
+| **J2** | Migration Prisma : rattacher les `Borrower` existants dont l'email matche un `User` + tests `findAll(role=borrower)` | Renommer onglet navigation "Prêts" → "Suivi" + Composant `BorrowerStats` en profil |
+| **J3** | Buffer intégration + fix bugs sync + review                                                           | Tests RNTL (perspective emprunteur, stats profil, onglet renommé) + fix bugs sync       |
+
+SYNC : Perspective emprunteur fonctionnelle bout en bout (fin J3).
+
+> **Cause racine** : `Borrower.userId` est nullable et n'est **jamais peuplé**. Quand un prêteur crée un contact,
+> `userId = NULL`. Quand cette personne s'inscrit, l'événement `user.registered` est émis par `AuthService`
+> mais **aucun listener** n'existe dans `BorrowersService` pour lier le record. Conséquence : `GET /loans?role=borrower`
+> avec `WHERE borrower.userId = currentUserId` retourne toujours une liste vide.
 
 ---
 
@@ -407,11 +436,37 @@ const MOCK_MODULES = {
 
 ---
 
-### SYNC 5 : Reminders + Notifications (Fin Sprint 5 — Jour 35)
+### SYNC 4.5 : Perspective Emprunteur (Fin Sprint 4.5 — Jour 33)
 
 **Backend disponible** :
 
-- `GET /loans/{id}/reminders` (200 OK)
+- `@OnEvent('user.registered')` → lie automatiquement `Borrower.userId` par correspondance email
+- `GET /loans?role=borrower` → retourne les prêts où l'utilisateur est emprunteur (fonctionnel après linking)
+- `GET /loans/{id}` → accessible par l'emprunteur (via `resolveUserRole`, déjà implémenté Sprint 4)
+- Migration Prisma : rattachement des `Borrower` existants dont l'email correspond à un `User` inscrit
+
+**Action Frontend** :
+
+- Onglet navigation renommé "Prêts" → "Suivi" (i18n `navigation.tracking`)
+- `LoanListScreen` : un seul contrôle combiné (perspective + statut) au lieu de 2 SegmentedButtons empilés
+- Composant `BorrowerStats` ajouté au `ProfileScreen` (stats emprunteur calculées depuis `fetchLoans({ role: 'borrower' })`)
+
+**Smoke tests de validation** :
+
+- [ ] Supertest : inscription d'un utilisateur dont l'email correspond à un `Borrower` → `Borrower.userId` mis à jour
+- [ ] Supertest : `GET /loans?role=borrower` retourne les prêts de l'emprunteur (non vide)
+- [ ] RNTL : onglet "Suivi" visible dans la navigation
+- [ ] RNTL : switch perspective lender/borrower fonctionne sans double SegmentedButtons
+- [ ] RNTL : profil affiche les statistiques emprunteur (prêts reçus, rendus, en retard)
+- [ ] Test manuel : prêteur crée un prêt → emprunteur le voit dans "Mes emprunts"
+
+---
+
+### SYNC 5 : Reminders + Notifications (Fin Sprint 5 — Jour 39)
+
+**Backend disponible** :
+
+- `GET /loans/{loanId}/reminders` (200 OK)
 - `GET /reminders/{id}` (200 OK)
 - `POST /reminders/{id}/cancel` (204 No Content, 409 Already sent)
 - `GET /notifications` (200 OK, filtre unreadOnly)
@@ -576,27 +631,28 @@ const MOCK_MODULES = {
 
 ---
 
-## Calendrier Récapitulatif (45 jours ~ 8 semaines)
+## Calendrier Récapitulatif (49 jours ~ 9 semaines)
 
-| Semaine       | Sprints                           | Modules Livres                                                                  | SYNC Points                               |
-|---------------|-----------------------------------|---------------------------------------------------------------------------------|-------------------------------------------|
-| **Semaine 1** | Sprint 0 (4j) + buffer (1j)       | Setup complet (NestJS, Expo, CI/CD, i18n, Mock Server, Redis blacklist, Docker) | —                                         |
-| **Semaine 2** | Sprint 1 (5j)                     | Auth + Users                                                                    | SYNC Auth (J10)                           |
-| **Semaine 3** | Buffer (1j) + Sprint 2 (4j)       | Borrowers                                                                       | SYNC Borrowers (J15)                      |
-| **Semaine 4** | Buffer (1j) + Sprint 3 (4j)       | Items + Photos R2                                                               | SYNC Items (J20)                          |
-| **Semaine 5** | Buffer (1j) + Sprint 4 début (4j) | Loans (coeur métier) — partie 1                                                 | M-CHECK : checkpoint mi-parcours (J20-22) |
-| **Semaine 6** | Sprint 4 fin (4j) + buffer (1j)   | Loans complet                                                                   | SYNC Loans (J29)                          |
-| **Semaine 7** | Sprint 5 (5j)                     | Reminders automatiques + Notifications Push                                     | SYNC Reminders (J35)                      |
-| **Semaine 8** | Buffer (1j) + Sprint 6 (4j)       | History + Dashboard + Polish + Déploiement                                      | SYNC FINAL (J45)                          |
+| Semaine       | Sprints                                    | Modules Livres                                                                  | SYNC Points                               |
+|---------------|--------------------------------------------|---------------------------------------------------------------------------------|-------------------------------------------|
+| **Semaine 1** | Sprint 0 (4j) + buffer (1j)               | Setup complet (NestJS, Expo, CI/CD, i18n, Mock Server, Redis blacklist, Docker) | —                                         |
+| **Semaine 2** | Sprint 1 (5j)                              | Auth + Users                                                                    | SYNC Auth (J10)                           |
+| **Semaine 3** | Buffer (1j) + Sprint 2 (4j)               | Borrowers                                                                       | SYNC Borrowers (J15)                      |
+| **Semaine 4** | Buffer (1j) + Sprint 3 (4j)               | Items + Photos R2                                                               | SYNC Items (J20)                          |
+| **Semaine 5** | Buffer (1j) + Sprint 4 début (4j)         | Loans (coeur métier) — partie 1                                                 | M-CHECK : checkpoint mi-parcours (J20-22) |
+| **Semaine 6** | Sprint 4 fin (4j) + buffer (1j)           | Loans complet                                                                   | SYNC Loans (J29)                          |
+| **Semaine 7** | Sprint 4.5 (3j) + buffer (1j)             | Corrections intégration + Perspective emprunteur + UX                           | SYNC 4.5 Emprunteur (J33)                |
+| **Semaine 8** | Sprint 5 (5j)                              | Reminders automatiques + Notifications Push                                     | SYNC Reminders (J39)                      |
+| **Semaine 9** | Buffer (1j) + Sprint 6 (4j)               | History + Dashboard + Polish + Déploiement                                      | SYNC FINAL (J49)                          |
 
 ---
 
-**Date de Livraison MVP** : Jour 45 après le début effectif du projet
+**Date de Livraison MVP** : Jour 49 après le début effectif du projet
 **First Public Release** : ~2 semaines après le MVP (TestFlight iOS + Google Play Beta — prevoir les allers-retours avec
 les stores)
 
 ---
 
 **Co-validé par** : Esdras GBEDOZIN & Ismael AIHOU
-**Date de dernière mise à jour** : 12 février 2026
-**Version** : 1.1 — MVP Baseline (post contre-expertise)
+**Date de dernière mise à jour** : 3 mars 2026
+**Version** : 1.2 — Post-intégration Sprint 4 (ajout Sprint 4.5)
