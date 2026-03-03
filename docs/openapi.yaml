@@ -234,7 +234,9 @@ paths:
         - Loans
       summary: Lister tous les prêts de l'utilisateur connecté
       description: |
-        Récupère la liste des prêts créés par l'utilisateur avec filtres et pagination.
+        Récupère la liste des prêts de l'utilisateur connecté selon la perspective choisie.
+        En mode 'lender' (défaut), retourne les prêts créés par l'utilisateur.
+        En mode 'borrower', retourne les prêts où l'utilisateur est emprunteur.
         Par défaut, retourne uniquement les prêts actifs (non archivés).
       operationId: listLoans
       parameters:
@@ -295,6 +297,17 @@ paths:
             enum: [asc, desc]
             default: desc
           example: asc
+        - name: role
+          in: query
+          description: |
+            Perspective de l'utilisateur. 'lender' retourne les prêts créés par l'utilisateur.
+            'borrower' retourne les prêts où l'utilisateur est emprunteur.
+            Par défaut 'lender'.
+          schema:
+            type: string
+            enum: [lender, borrower]
+            default: lender
+          example: lender
       responses:
         '200':
           description: Liste des prêts récupérée avec succès
@@ -382,7 +395,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/Loan'
         '400':
-          $ref: '#/components/responses/ValidationError'
+          description: Validation error ou date de retour invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                validationError:
+                  summary: Erreur de validation
+                  value:
+                    type: https://api.return.app/errors/validation-failed
+                    title: Validation Failed
+                    status: 400
+                    detail: The submitted data is invalid.
+                    instance: /v1/loans
+                invalidReturnDate:
+                  summary: Date de retour dans le passé
+                  value:
+                    type: https://api.return.app/errors/invalid-return-date
+                    title: Invalid Return Date
+                    status: 400
+                    detail: Return date must be in the future.
+                    instance: /v1/loans
         '401':
           $ref: '#/components/responses/Unauthorized'
         '429':
