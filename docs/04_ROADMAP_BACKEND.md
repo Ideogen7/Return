@@ -437,6 +437,11 @@ Le problème critique est que **l'emprunteur ne peut pas voir les prêts qui lui
 > En conséquence, `GET /loans?role=borrower` (qui filtre `WHERE borrower.userId = currentUserId`) retourne
 > toujours une liste vide.
 
+> **Modèle de droits rappel** :
+> - **Prêteur** : créer, voir, modifier (notes/date retour), supprimer, marquer rendu, abandonner
+> - **Emprunteur** : voir les prêts reçus, confirmer, contester (avec raison) — ne peut PAS modifier ni supprimer
+> - **Tiers** : aucun accès (403 Forbidden)
+
 ### Phase 4.5.1 : Listener de liaison emprunteur-utilisateur (Jour 1)
 
 | ID              | Titre                                                                                                              | Dépendance | Critère de Fin                                                                           | Temps |
@@ -450,23 +455,44 @@ Le problème critique est que **l'emprunteur ne peut pas voir les prêts qui lui
 > enregistrement `Borrower` pour la même personne. Le listener doit mettre à jour **tous** les `Borrower`
 > avec l'email correspondant (via `prisma.borrower.updateMany()`).
 
-### Phase 4.5.2 : Migration de rattachement des données existantes (Jour 2)
+### Phase 4.5.2 : Tests unitaires pour le code dual-perspective déjà implémenté (Jour 1-2)
+
+> **Contexte** : Le code `role=borrower` dans `findAll()` et `resolveUserRole()` dans `findById()` a été
+> implémenté au Sprint 4, mais **sans tests unitaires dédiés**. Ces tests doivent être écrits AVANT
+> d'ajouter la migration de rattachement.
 
 | ID              | Titre                                                                                                              | Dépendance | Critère de Fin                                                                           | Temps |
 |-----------------|--------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------------------|-------|
-| **INTEG-005**   | Créer migration Prisma : rattacher les `Borrower` existants dont l'email correspond à un `User.email` inscrit     | INTEG-002  | Migration appliquée, `Borrower.userId` peuplé pour les correspondances existantes        | 1h    |
-| **INTEG-006**   | Test d'intégration : `GET /loans?role=borrower` retourne les prêts de l'emprunteur après liaison                  | INTEG-002  | Test Supertest passe, réponse non vide                                                   | 1h    |
-| **INTEG-007**   | Test d'intégration : `GET /loans/{id}` accessible par l'emprunteur (via `resolveUserRole`)                        | INTEG-006  | Test Supertest 200 OK pour l'emprunteur                                                  | 30min |
-| **INTEG-008**   | Test d'intégration : `GET /loans?role=borrower` par un utilisateur tiers (ni prêteur ni emprunteur) retourne vide | INTEG-006  | Test Supertest 200 avec `data: []`                                                       | 30min |
+| **INTEG-005**   | Test TDD : `findAll(role=borrower)` retourne les prêts où `borrower.userId = currentUser`                         | INTEG-002  | Test GREEN, filtre `where.borrower.userId` vérifié                                       | 45min |
+| **INTEG-006**   | Test TDD : `findAll(role=borrower)` + `borrowerId` fourni → `borrowerId` est ignoré (pas de conflit logique)      | INTEG-005  | Test GREEN, le filtre `borrowerId` est sans effet en mode borrower                       | 30min |
+| **INTEG-007**   | Test TDD : `findById()` accessible par l'emprunteur (via `resolveUserRole`) — retourne le prêt                    | INTEG-002  | Test GREEN, réponse `LoanResponse`                                                       | 30min |
+| **INTEG-008**   | Test TDD : `findById()` par un tiers (ni prêteur ni emprunteur) → 403 Forbidden                                   | INTEG-007  | Test GREEN, `ForbiddenException` levée                                                   | 30min |
 
-### Phase 4.5.3 : Review + Buffer intégration (Jour 3)
+> **Note INTEG-006** : Quand `role=borrower`, le filtre `borrowerId` n'a pas de sens métier (l'utilisateur
+> connecté EST l'emprunteur). Le code doit ignorer ce paramètre dans cette perspective pour éviter un
+> filtre contradictoire. L'implémentation actuelle applique les deux filtres
+> (`where.borrower.userId = X AND where.borrowerId = Y`), ce qui peut produire une liste vide par erreur.
+
+### Phase 4.5.3 : Migration de rattachement des données existantes (Jour 2)
 
 | ID              | Titre                                                                                                              | Dépendance | Critère de Fin                                                                           | Temps |
 |-----------------|--------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------------------|-------|
-| **INTEG-009**   | Mettre à jour `openapi.yaml` si ajustements nécessaires (documentation du comportement de liaison)                 | INTEG-005  | Spec à jour                                                                              | 30min |
-| **INTEG-010**   | Review code + fix bugs d'intégration avec le frontend                                                              | INTEG-008  | Tous les tests passent, CI verte                                                         | 2h    |
+| **INTEG-009**   | Créer migration Prisma : rattacher les `Borrower` existants dont l'email correspond à un `User.email` inscrit     | INTEG-002  | Migration appliquée, `Borrower.userId` peuplé pour les correspondances existantes        | 1h    |
+| **INTEG-010**   | Test d'intégration : `GET /loans?role=borrower` retourne les prêts de l'emprunteur après liaison                  | INTEG-005  | Test Supertest passe, réponse non vide                                                   | 1h    |
+| **INTEG-011**   | Test d'intégration : `GET /loans/{id}` accessible par l'emprunteur (via `resolveUserRole`)                        | INTEG-010  | Test Supertest 200 OK pour l'emprunteur                                                  | 30min |
+| **INTEG-012**   | Test d'intégration : `GET /loans?role=borrower` par un utilisateur tiers (ni prêteur ni emprunteur) retourne vide | INTEG-010  | Test Supertest 200 avec `data: []`                                                       | 30min |
 
-🏁 **Livrable Sprint 4.5** : **Perspective emprunteur fonctionnelle** (`Borrower.userId` lié automatiquement à l'inscription, `GET /loans?role=borrower` retourne les prêts, migration de rattachement des données existantes).
+### Phase 4.5.4 : Correctifs OpenAPI + Review (Jour 3)
+
+| ID              | Titre                                                                                                              | Dépendance | Critère de Fin                                                                           | Temps |
+|-----------------|--------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------------------|-------|
+| **INTEG-013**   | OpenAPI : documenter l'accès dual-perspective (`GET /loans/{id}`, `PATCH`, `DELETE` — qui peut faire quoi)         | INTEG-009  | Spec à jour, descriptions explicites sur les droits prêteur/emprunteur                   | 30min |
+| **INTEG-014**   | OpenAPI : documenter que `borrowerId` n'est pertinent qu'en mode `role=lender`                                     | INTEG-013  | Param `borrowerId` : description mise à jour                                             | 15min |
+| **INTEG-015**   | Review code + fix bugs d'intégration avec le frontend                                                              | INTEG-012  | Tous les tests passent, CI verte                                                         | 2h    |
+
+🏁 **Livrable Sprint 4.5** : **Perspective emprunteur fonctionnelle** (`Borrower.userId` lié automatiquement
+à l'inscription, `GET /loans?role=borrower` retourne les prêts, tests unitaires dual-perspective, migration
+de rattachement des données existantes, OpenAPI documenté avec les droits par rôle).
 
 ---
 
@@ -658,7 +684,7 @@ Cyclé TDD par comportement.
 | **Sprint 2**     | 4 jours         | Borrowers                        | 5                                                 | ~8 tests       |
 | **Sprint 3**     | 4 jours         | Items + Avatar                   | 7 (Items: 6, Avatar: 1)                           | ~10 tests      |
 | **Sprint 4**     | 8 jours         | Loans (coeur métier)             | 8 + intégration inter-modules                     | ~20 tests      |
-| **Sprint 4.5**   | 3 jours         | Corrections intégration Loans    | 0 (listener événement + migration rattachement)   | ~8 tests       |
+| **Sprint 4.5**   | 3 jours         | Corrections intégration Loans    | 0 (listener événement + migration rattachement + tests dual-perspective + doc OpenAPI) | ~12 tests      |
 | **Sprint 5**     | 5 jours         | Reminders + Notifications        | 3 + système auto                                  | ~12 tests      |
 | **Sprint 6**     | 4 jours         | History + R2 + Déploiement       | 5 (History: 2, Borrower stats/loans: 2, E2E) + R2 | E2E complet    |
 | **TOTAL**        | **41-45 jours** | **7 modules + 1 correctif**     | **~40 endpoints** (+ 3 réservés V2)               | **~74+ tests** |

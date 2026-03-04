@@ -140,7 +140,7 @@ Sprint 6 : History + Déploiement + Polish (4 jours)
 | **M-CHECK — Checkpoint Mi-Parcours**    | Jour 20-22 | Evaluation du scope restant vs temps disponible                                                              | Decision formelle : on continue le plan complet OU on coupe des features non-essentielles (stats avancees, deep linking, dashboard détaillé) pour tenir la date. Documenter la decision dans un ADR         |
 | **M3 — Enregistrement Objets (Photos)** | Jour 20    | Upload photos + CRUD Items Frontend vers Backend réel                                                        | Smoke tests : `POST /items` avec type OBJECT retourné 201 ; `POST /items` avec type MONEY retourné 201 ; upload photo vers R2 retourné URL ; `DELETE /items/{id}` avec prêt actif retourné 409              |
 | **M4 — Prêts Fonctionnels**             | Jour 29    | Workflow 8 statuts complet Frontend vers Backend réel                                                        | Smoke tests : créer prêt (PENDING) -> confirmer (ACTIVE) -> retournér (RETURNED) ; créer prêt -> contester (DISPUTED) ; timeout 48h passe en ACTIVE_BY_DEFAULT ; transition invalidé retourné 400           |
-| **M4.5 — Perspective Emprunteur**       | Jour 33    | Emprunteur voit ses prêts + UX corrigée + Stats profil                                                      | Smoke tests : inscription emprunteur → `Borrower.userId` lié ; `GET /loans?role=borrower` retourne les prêts ; onglet "Suivi" renommé ; pas de double SegmentedButtons ; stats prêteur/emprunteur en profil |
+| **M4.5 — Perspective Emprunteur**       | Jour 33    | Emprunteur voit ses prêts + UX adaptée par rôle + Stats profil                                              | Smoke tests : inscription emprunteur → `Borrower.userId` lié ; `GET /loans?role=borrower` retourne les prêts ; onglet "Suivi" renommé ; `LoanCard` affiche le prêteur en mode emprunteur ; `LoanDetailScreen` boutons conditionnels (Confirmer/Contester pour emprunteur, Modifier/Supprimer pour prêteur) ; stats prêteur/emprunteur en profil ; OpenAPI droits documentés |
 | **M5 — Notifications Push**             | Jour 39    | Rappels automatiques et notifications temps réel fonctionnels                                                | Smoke tests : rappel J-3 planifié à la création du prêt ; notification push reçue sur device physique ; `GET /notifications` retourné la liste ; `PATCH /notifications/{id}/read` marque comme lu           |
 | **M6 — MVP Complet**                    | Jour 49    | App complète prete pour déploiement production                                                               | Smoke tests : flow complet register -> créer item -> créer prêt -> confirmer -> retournér -> consulter stats ; déploiement Fly.io OK ; build Expo OK (iOS + Android)                                        |
 
@@ -227,12 +227,20 @@ SYNC : Frontend basculé Loans vers Backend réel (fin J8).
 > **Contexte** : Les tests d'intégration avec le backend réel après le Sprint 4 ont révélé des lacunes
 > dans le lien emprunteur-utilisateur, des problèmes d'UX et des fonctionnalités manquantes dans le profil.
 > Ce sprint correctif consolide les Sprints 0-4 avant d'attaquer les Sprints 5-6.
+>
+> **Problèmes identifiés** :
+> 1. L'emprunteur ne voit aucun prêt reçu (cause : `Borrower.userId` jamais peuplé)
+> 2. L'écran de détail prêt ne s'adapte pas à la perspective (emprunteur voit les boutons du prêteur)
+> 3. La `LoanCard` affiche toujours l'emprunteur (pas le prêteur quand on est emprunteur)
+> 4. Deux SegmentedButtons empilés dans la liste des prêts
+> 5. L'onglet s'appelle "Prêts" au lieu d'un nom neutre
+> 6. Pas de statistiques emprunteur dans le profil
 
 | Jour   | Dev 1 (Backend)                                                                                       | Dev 2 (Frontend)                                                                        |
 |--------|-------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| **J1** | Listener `@OnEvent('user.registered')` : lier `Borrower.userId` par email + tests TDD                | Refactoring `LoanListScreen` : fusionner les 2 SegmentedButtons en un seul contrôle UX |
-| **J2** | Migration Prisma : rattacher les `Borrower` existants dont l'email matche un `User` + tests `findAll(role=borrower)` | Renommer onglet navigation "Prêts" → "Suivi" + Composant `BorrowerStats` en profil |
-| **J3** | Buffer intégration + fix bugs sync + review                                                           | Tests RNTL (perspective emprunteur, stats profil, onglet renommé) + fix bugs sync       |
+| **J1** | Listener `@OnEvent('user.registered')` : lier `Borrower.userId` par email + tests TDD                | Refactoring `LoanListScreen` (UX) + `LoanCard` perspective-aware + Renommer onglet → "Suivi" |
+| **J2** | Tests unitaires dual-perspective (`findAll(role=borrower)`, `findById` emprunteur) + Migration Prisma rattachement | `LoanDetailScreen` adaptatif (boutons conditionnels prêteur/emprunteur) + `BorrowerStats` en profil |
+| **J3** | Correctifs OpenAPI (droits par rôle documentés) + Buffer intégration + review                         | MSW handlers perspective-aware + Tests RNTL (7 tests) + fix bugs sync                   |
 
 SYNC : Perspective emprunteur fonctionnelle bout en bout (fin J3).
 
@@ -240,6 +248,11 @@ SYNC : Perspective emprunteur fonctionnelle bout en bout (fin J3).
 > `userId = NULL`. Quand cette personne s'inscrit, l'événement `user.registered` est émis par `AuthService`
 > mais **aucun listener** n'existe dans `BorrowersService` pour lier le record. Conséquence : `GET /loans?role=borrower`
 > avec `WHERE borrower.userId = currentUserId` retourne toujours une liste vide.
+>
+> **Modèle de droits** :
+> - Prêteur : créer, voir, modifier, supprimer, marquer rendu, abandonner
+> - Emprunteur : voir ses prêts reçus, confirmer, contester (avec raison) — ne peut PAS modifier/supprimer
+> - Tiers : aucun accès (403)
 
 ---
 
@@ -442,21 +455,34 @@ const MOCK_MODULES = {
 
 - `@OnEvent('user.registered')` → lie automatiquement `Borrower.userId` par correspondance email
 - `GET /loans?role=borrower` → retourne les prêts où l'utilisateur est emprunteur (fonctionnel après linking)
-- `GET /loans/{id}` → accessible par l'emprunteur (via `resolveUserRole`, déjà implémenté Sprint 4)
+- `GET /loans/{id}` → accessible par le prêteur OU l'emprunteur lié (via `resolveUserRole`)
+- `PATCH /loans/{id}` et `DELETE /loans/{id}` → **prêteur uniquement** (documenté dans OpenAPI)
+- `POST /loans/{id}/confirm` et `POST /loans/{id}/contest` → **emprunteur uniquement**
 - Migration Prisma : rattachement des `Borrower` existants dont l'email correspond à un `User` inscrit
+- Tests unitaires dual-perspective (`findAll(role=borrower)`, `findById` emprunteur, tiers → 403)
+- OpenAPI mis à jour : droits prêteur/emprunteur documentés explicitement sur chaque endpoint
 
 **Action Frontend** :
 
 - Onglet navigation renommé "Prêts" → "Suivi" (i18n `navigation.tracking`)
 - `LoanListScreen` : un seul contrôle combiné (perspective + statut) au lieu de 2 SegmentedButtons empilés
-- Composant `BorrowerStats` ajouté au `ProfileScreen` (stats emprunteur calculées depuis `fetchLoans({ role: 'borrower' })`)
+- `LoanCard` : affiche le **prêteur** en mode emprunteur, l'**emprunteur** en mode prêteur
+- `LoanDetailScreen` : adapté à la perspective — boutons conditionnels :
+  - Prêteur : Modifier, Supprimer, Marquer rendu, Abandonner
+  - Emprunteur : Confirmer, Contester (uniquement si `PENDING_CONFIRMATION`)
+- Navigation vers `ConfirmLoanScreen` depuis le détail (emprunteur)
+- Composant `BorrowerStats` ajouté au `ProfileScreen` (stats emprunteur)
+- MSW handlers respectent le param `role`
 
 **Smoke tests de validation** :
 
 - [ ] Supertest : inscription d'un utilisateur dont l'email correspond à un `Borrower` → `Borrower.userId` mis à jour
 - [ ] Supertest : `GET /loans?role=borrower` retourne les prêts de l'emprunteur (non vide)
+- [ ] Supertest : `GET /loans/{id}` par un tiers → 403 Forbidden
 - [ ] RNTL : onglet "Suivi" visible dans la navigation
 - [ ] RNTL : switch perspective lender/borrower fonctionne sans double SegmentedButtons
+- [ ] RNTL : `LoanCard` affiche le prêteur en mode emprunteur
+- [ ] RNTL : `LoanDetailScreen` emprunteur voit Confirmer/Contester (pas Modifier/Supprimer)
 - [ ] RNTL : profil affiche les statistiques emprunteur (prêts reçus, rendus, en retard)
 - [ ] Test manuel : prêteur crée un prêt → emprunteur le voit dans "Mes emprunts"
 

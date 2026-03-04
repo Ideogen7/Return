@@ -388,17 +388,29 @@ Corriger les problèmes révélés par les tests d'intégration avec le backend 
 - **UX** : double SegmentedButtons empilés dans `LoanListScreen` (perspective + statut)
 - **UX** : onglet "Prêts" ambigu — doit couvrir prêts ET emprunts
 - **UX** : profil sans statistiques emprunteur (score de confiance personnel)
+- **UX** : `LoanDetailScreen` ne s'adapte pas selon la perspective (prêteur vs emprunteur)
+- **UX** : `LoanCard` affiche toujours l'emprunteur, même quand l'utilisateur IS l'emprunteur
 
-> **Dépendance backend** : Les corrections UX frontend (Phase 4.5.2 et 4.5.3) peuvent démarrer en parallèle
+> **Dépendance backend** : Les corrections UX frontend (Phase 4.5.2 à 4.5.4) peuvent démarrer en parallèle
 > du backend (Phase 4.5.1). Seul le test de bout en bout "emprunteur voit ses prêts" nécessite que le
 > listener `@OnEvent('user.registered')` soit implémenté côté backend.
+
+> **Modèle de droits rappel** (ce que l'emprunteur peut et ne peut PAS faire) :
+> - **Voir** ses prêts reçus (`GET /loans?role=borrower`) ✅
+> - **Voir** les détails d'un prêt qui le concerne (`GET /loans/{id}`) ✅
+> - **Confirmer** un prêt reçu (`POST /loans/{id}/confirm`) ✅
+> - **Contester** un prêt reçu avec raison (`POST /loans/{id}/contest`) ✅
+> - **Modifier** un prêt (notes, date retour) ❌ → Seul le prêteur
+> - **Supprimer** un prêt ❌ → Seul le prêteur
+> - **Marquer rendu / abandonner** ❌ → Seul le prêteur
+> - **Créer** un prêt ❌ → Seul le prêteur
 
 ### Phase 4.5.1 : Refactoring LoanListScreen — UX contrôles (Jour 1)
 
 | ID              | Titre                                                                                                                                                 | Dépendance | Critère de Fin                                           | Temps |
 |-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|------------|----------------------------------------------------------|-------|
 | **INTEG-F01**   | Refactorer `LoanListScreen` : remplacer les 2 SegmentedButtons empilés par un seul contrôle combiné (ex: Chips filtres ou SegmentedButtons + dropdown) | LOAN-008   | Un seul niveau de contrôle visible, UX mobile fluide     | 2h    |
-| **INTEG-F02**   | Implémenter le comportement combiné : la perspective (prêteur/emprunteur) détermine les données, le filtre (en cours/archives) affine l'affichage      | INTEG-F01  | Changement de perspective recharge les données correctes | 1h    |
+| **INTEG-F02**   | Implémenter le comportement combiné : la perspective (prêteur/emprunteur) détermine les données, le filtre (en cours/archives) affine l'affichage      | INTEG-F01  | Changement de perspective recharge les données correctement | 1h    |
 | **INTEG-F03**   | Masquer le FAB "+" en mode emprunteur (déjà fait, vérifier après refactoring)                                                                         | INTEG-F01  | FAB invisible quand perspective = borrower               | 15min |
 
 > **Proposition UX** : Utiliser un **SegmentedButtons** pour la perspective (Mes prêts / Mes emprunts) et
@@ -406,24 +418,56 @@ Corriger les problèmes révélés par les tests d'intégration avec le backend 
 > un menu/dropdown. L'objectif est d'éviter deux barres de boutons identiques empilées. Le choix final
 > de l'approche UX est laissé à l'implémenteur.
 
-### Phase 4.5.2 : Renommage onglet navigation (Jour 1)
+### Phase 4.5.2 : LoanCard perspective-aware (Jour 1)
 
 | ID              | Titre                                                                                                        | Dépendance | Critère de Fin                                                | Temps |
 |-----------------|--------------------------------------------------------------------------------------------------------------|------------|---------------------------------------------------------------|-------|
-| **INTEG-F04**   | Renommer l'onglet "Prêts" → "Suivi" dans `AppNavigator.tsx` + i18n (`navigation.loans` → `navigation.tracking`) | LOAN-013   | Onglet affiché "Suivi" en FR / "Tracking" en EN               | 30min |
-| **INTEG-F05**   | Mettre à jour `fr.json` et `en.json` : ajouter clé `navigation.tracking` + conserver `navigation.loans` pour rétrocompatibilité | INTEG-F04  | i18n FR : "Suivi", EN : "Tracking"                            | 15min |
+| **INTEG-F04**   | `LoanCard` : ajouter prop `perspective: 'lender' \| 'borrower'` — afficher le **prêteur** quand `borrower`, l'**emprunteur** quand `lender` | INTEG-F02  | En mode "Mes emprunts", la carte affiche qui a prêté l'objet (pas soi-même) | 45min |
+
+> **Justification** : Actuellement `LoanCard` affiche toujours le nom de l'emprunteur. Quand Bob consulte
+> ses emprunts, il voit "Bob" (lui-même) — ça n'a pas de sens. Il devrait voir "Alice" (la personne qui
+> lui a prêté l'objet). Le champ `loan.lender` contient déjà cette info.
+
+### Phase 4.5.3 : Renommage onglet navigation (Jour 1)
+
+| ID              | Titre                                                                                                        | Dépendance | Critère de Fin                                                | Temps |
+|-----------------|--------------------------------------------------------------------------------------------------------------|------------|---------------------------------------------------------------|-------|
+| **INTEG-F05**   | Renommer l'onglet "Prêts" → "Suivi" dans `AppNavigator.tsx` + i18n (`navigation.loans` → `navigation.tracking`) | LOAN-013   | Onglet affiché "Suivi" en FR / "Tracking" en EN               | 30min |
+| **INTEG-F06**   | Mettre à jour `fr.json` et `en.json` : ajouter clé `navigation.tracking` + conserver `navigation.loans` pour rétrocompatibilité | INTEG-F05  | i18n FR : "Suivi", EN : "Tracking"                            | 15min |
 
 > **Note** : Le terme "Suivi" est neutre et englobe à la fois le suivi des prêts (prêteur) et le suivi des emprunts
 > (emprunteur). Le terme "Transaction" est interdit par le vocabulaire du projet (voir `CLAUDE.md`).
 > **Alternative** : "Prêts & Emprunts" — plus explicite mais long pour un onglet mobile. À valider en équipe.
 
-### Phase 4.5.3 : Statistiques emprunteur dans le profil (Jour 2)
+### Phase 4.5.4 : LoanDetailScreen — adaptation par perspective (Jour 2)
+
+> **C'est la tâche la plus importante du Sprint 4.5 côté frontend.** Aujourd'hui, l'écran de détail
+> affiche les mêmes boutons pour tout le monde (Modifier, Supprimer, Abandonner, Marquer rendu).
+> L'emprunteur ne devrait voir que Confirmer et Contester.
 
 | ID              | Titre                                                                                                                 | Dépendance      | Critère de Fin                                          | Temps |
 |-----------------|-----------------------------------------------------------------------------------------------------------------------|------------------|---------------------------------------------------------|-------|
-| **INTEG-F06**   | Créer composant `BorrowerStats` : charge les prêts via `fetchLoans({ role: 'borrower' })` et calcule les métriques    | LOAN-001         | Composant affiche : prêts reçus, rendus à temps, en retard, score de confiance | 2h    |
-| **INTEG-F07**   | Intégrer `BorrowerStats` dans `ProfileScreen` sous `LenderStats`                                                      | INTEG-F06        | Deux cards de stats visibles dans le profil (prêteur + emprunteur)             | 30min |
-| **INTEG-F08**   | Ajouter clés i18n pour `BorrowerStats` : `profile.borrowerStatistics`, `profile.loansReceived`, `profile.returnedOnTime`, `profile.returnedLate`, `profile.trustScore` | INTEG-F06 | Clés disponibles en FR et EN | 15min |
+| **INTEG-F07**   | Déterminer la perspective dans `LoanDetailScreen` : comparer `loan.lender.id` avec `authStore.user.id` — si identique → prêteur, sinon → emprunteur | LOAN-010 | Variable `isLender` / `isBorrower` calculée automatiquement | 30min |
+| **INTEG-F08**   | Afficher les boutons conditionnels selon la perspective :                                                              |                  |                                                         |       |
+|                 | — **Prêteur** : Modifier, Supprimer, Marquer rendu, Abandonner (comportement actuel)                                 |                  |                                                         |       |
+|                 | — **Emprunteur** : Confirmer, Contester (uniquement si statut = `PENDING_CONFIRMATION`)                              | INTEG-F07        | Les bons boutons apparaissent selon le rôle             | 2h    |
+| **INTEG-F09**   | Navigation vers `ConfirmLoanScreen` depuis le bouton "Confirmer" dans le détail (emprunteur)                          | INTEG-F08        | Tap "Confirmer" → ouvre le dialog de confirmation       | 30min |
+| **INTEG-F10**   | Adapter la section "Contact" dans le détail : afficher le **prêteur** (quand emprunteur regarde) ou l'**emprunteur** (quand prêteur regarde) | INTEG-F07 | Le bon contact est affiché selon la perspective | 30min |
+
+> **Boutons emprunteur détaillés** :
+> | Statut du prêt | Boutons visibles pour l'emprunteur |
+> |---|---|
+> | `PENDING_CONFIRMATION` | "Confirmer la réception" + "Contester" |
+> | `ACTIVE` / `ACTIVE_BY_DEFAULT` / `AWAITING_RETURN` | Aucun bouton (lecture seule) |
+> | `RETURNED` / `NOT_RETURNED` / `ABANDONED` / `CONTESTED` | Aucun bouton (prêt clos) |
+
+### Phase 4.5.5 : Statistiques emprunteur dans le profil (Jour 2)
+
+| ID              | Titre                                                                                                                 | Dépendance      | Critère de Fin                                          | Temps |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------|------------------|---------------------------------------------------------|-------|
+| **INTEG-F11**   | Créer composant `BorrowerStats` : charge les prêts via `fetchLoans({ role: 'borrower' })` et calcule les métriques    | LOAN-001         | Composant affiche : prêts reçus, rendus à temps, en retard, score de confiance | 2h    |
+| **INTEG-F12**   | Intégrer `BorrowerStats` dans `ProfileScreen` sous `LenderStats`                                                      | INTEG-F11        | Deux cards de stats visibles dans le profil (prêteur + emprunteur)             | 30min |
+| **INTEG-F13**   | Ajouter clés i18n pour `BorrowerStats` : `profile.borrowerStatistics`, `profile.loansReceived`, `profile.returnedOnTime`, `profile.returnedLate`, `profile.trustScore` | INTEG-F11 | Clés disponibles en FR et EN | 15min |
 
 > **Calcul du score de confiance** : `(returnedOnTime * 100 + returnedLate * 50) / totalLoans`
 > (formule identique à `BorrowerStatistics.trustScore` dans l'OpenAPI). Le calcul est fait côté client
@@ -431,17 +475,22 @@ Corriger les problèmes révélés par les tests d'intégration avec le backend 
 > Les statuts pris en compte : `RETURNED` (vérifié si avant/après `returnDate`) pour `returnedOnTime`/`returnedLate`,
 > `NOT_RETURNED` et `ABANDONED` pour non rendus.
 
-### Phase 4.5.4 : Tests + Validation (Jour 3)
+### Phase 4.5.6 : MSW Handlers + Tests (Jour 3)
 
 | ID              | Titre                                                                                                  | Dépendance         | Critère de Fin                                            | Temps |
 |-----------------|--------------------------------------------------------------------------------------------------------|--------------------|-----------------------------------------------------------|-------|
-| **INTEG-F09**   | Écrire test RNTL : `LoanListScreen` — contrôle combiné perspective/statut fonctionne                  | INTEG-F02          | Test RNTL passe                                           | 1h    |
-| **INTEG-F10**   | Écrire test RNTL : onglet "Suivi" affiché dans la navigation                                          | INTEG-F04          | Test RNTL passe                                           | 30min |
-| **INTEG-F11**   | Écrire test RNTL : `BorrowerStats` affiche les métriques calculées                                    | INTEG-F06          | Test RNTL passe                                           | 1h    |
-| **INTEG-F12**   | Test bout en bout : créer un prêt (prêteur) → vérifier qu'il apparaît dans "Mes emprunts" (emprunteur) | INTEG-F02, backend | Test fonctionnel valide (nécessite backend Sprint 4.5)    | 1h    |
-| **INTEG-F13**   | Vérifier que tous les tests existants (150+) passent après les modifications                           | INTEG-F09..F12     | `npx jest --verbose` : 0 échecs                          | 30min |
+| **INTEG-F14**   | MSW : `GET /loans` handler doit respecter le param `role` — retourner des mocks différents selon la perspective | INTEG-F02 | En mode borrower, le mock retourne des prêts où l'utilisateur est emprunteur | 45min |
+| **INTEG-F15**   | Écrire test RNTL : `LoanListScreen` — contrôle combiné perspective/statut fonctionne                  | INTEG-F02          | Test RNTL passe                                           | 1h    |
+| **INTEG-F16**   | Écrire test RNTL : `LoanDetailScreen` — boutons corrects selon perspective (emprunteur: confirmer/contester, prêteur: modifier/supprimer) | INTEG-F08 | 2 tests RNTL passent | 1h30 |
+| **INTEG-F17**   | Écrire test RNTL : onglet "Suivi" affiché dans la navigation                                          | INTEG-F05          | Test RNTL passe                                           | 30min |
+| **INTEG-F18**   | Écrire test RNTL : `BorrowerStats` affiche les métriques calculées                                    | INTEG-F11          | Test RNTL passe                                           | 1h    |
+| **INTEG-F19**   | Écrire test RNTL : `LoanCard` affiche le prêteur en mode borrower, l'emprunteur en mode lender        | INTEG-F04          | Test RNTL passe                                           | 30min |
+| **INTEG-F20**   | Test bout en bout : créer un prêt (prêteur) → vérifier qu'il apparaît dans "Mes emprunts" (emprunteur) | INTEG-F02, backend | Test fonctionnel valide (nécessite backend Sprint 4.5)    | 1h    |
+| **INTEG-F21**   | Vérifier que tous les tests existants (150+) passent après les modifications                           | INTEG-F15..F20     | `npx jest --verbose` : 0 échecs                          | 30min |
 
-📦 **Livrable Sprint 4.5** : **Perspective emprunteur UX corrigée** (onglet "Suivi", contrôle unique perspective/statut, statistiques emprunteur en profil), couverte par tests RNTL.
+📦 **Livrable Sprint 4.5** : **Perspective emprunteur complète** (onglet "Suivi", contrôle unique
+perspective/statut, `LoanCard` et `LoanDetailScreen` adaptatifs, boutons conditionnels par rôle,
+statistiques emprunteur en profil, MSW handlers perspective-aware), couverte par tests RNTL.
 
 ---
 
@@ -606,7 +655,7 @@ export const API_BASE_URL = (endpoint: string): string => {
 | **Sprint 2**     | 4 jours      | Borrowers                             | 4 (List, Create, Detail, Edit)                                                     | 2 tests       |
 | **Sprint 3**     | 4 jours      | Items (Photos)                        | 4 (List, Create, Detail, Edit)                                                     | 2 tests       |
 | **Sprint 4**     | 8 jours      | Avatar + Loans                        | 5 (List, Create, Detail, Confirm, Return) + avatar profil                          | 4+3+3 tests   |
-| **Sprint 4.5**   | 3 jours      | Corrections intégration + UX          | 0 (refactoring LoanListScreen + BorrowerStats + renommage onglet)                  | 5 tests       |
+| **Sprint 4.5**   | 3 jours      | Corrections intégration + UX          | 0 (refactoring LoanListScreen + LoanDetailScreen adaptatif + LoanCard perspective + BorrowerStats + renommage onglet + MSW handlers) | 8 tests       |
 | **Sprint 5**     | 5 jours      | Notifications                         | 1 (NotificationList) + header badge                                                | 2 tests       |
 | **Sprint 6**     | 4 jours      | Dashboard + History                   | 3 (Dashboard, History, Statistics)                                                 | 1 test        |
 | **TOTAL**        | **41-45 j.** | **7 modules + 1 correctif**          | **24 écrans**                                                                      | **22+ tests** |

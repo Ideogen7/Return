@@ -252,7 +252,10 @@ paths:
           example: [ACTIVE, AWAITING_RETURN]
         - name: borrowerId
           in: query
-          description: Filtrer par emprunteur
+          description: |
+            Filtrer par emprunteur (identifiant du contact emprunteur).
+            Ce paramètre n'est pertinent qu'en mode `role=lender`. En mode `role=borrower`,
+            il est ignoré car l'utilisateur connecté EST l'emprunteur.
           schema:
             type: string
             format: uuid
@@ -454,6 +457,10 @@ paths:
       description: |
         Retourne toutes les informations d'un prêt, y compris les objets, emprunteur,
         rappels planifiés et historique des changements de statut.
+
+        **Accès** : Accessible par le prêteur (créateur du prêt) OU par l'emprunteur lié
+        (dont le `Borrower.userId` correspond à l'utilisateur connecté).
+        Un utilisateur tiers (ni prêteur, ni emprunteur) reçoit une erreur 403.
       operationId: getLoanById
       responses:
         '200':
@@ -476,6 +483,9 @@ paths:
       description: |
         Permet de modifier les notes ou certaines métadonnées du prêt.
         **Note** : Pour changer le statut, utiliser `/loans/{loanId}/status`.
+
+        **Accès** : Seul le prêteur (créateur du prêt) peut modifier un prêt.
+        L'emprunteur reçoit une erreur 403.
       operationId: updateLoan
       requestBody:
         required: true
@@ -517,6 +527,9 @@ paths:
       description: |
         Archive le prêt (soft delete). Le prêt reste en base mais est marqué comme supprimé.
         Les rappels planifiés sont automatiquement annulés.
+
+        **Accès** : Seul le prêteur (créateur du prêt) peut supprimer un prêt.
+        L'emprunteur reçoit une erreur 403.
 
         **Attention** : Cette action est irréversible (pas de restauration en V1).
       operationId: deleteLoan
