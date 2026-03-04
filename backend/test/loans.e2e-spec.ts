@@ -226,9 +226,7 @@ describe('Loans Integration (e2e)', () => {
       prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN as never);
 
       // Act
-      const response = await request(app.getHttpServer())
-        .get(`/v1/loans/${LOAN_ID}`)
-        .expect(200);
+      const response = await request(app.getHttpServer()).get(`/v1/loans/${LOAN_ID}`).expect(200);
 
       // Assert — loan data returned
       expect(response.body.id).toBe(LOAN_ID);

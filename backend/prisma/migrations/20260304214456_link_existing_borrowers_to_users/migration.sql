@@ -5,5 +5,5 @@
 UPDATE "borrowers"
 SET "user_id" = u."id"
 FROM "users" u
-WHERE "borrowers"."email" = u."email"
+WHERE LOWER(BTRIM("borrowers"."email")) = LOWER(BTRIM(u."email"))
   AND "borrowers"."user_id" IS NULL;

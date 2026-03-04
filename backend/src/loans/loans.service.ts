@@ -153,12 +153,12 @@ export class LoansService {
 
     if (query.role === 'borrower') {
       where.borrower = { userId };
-      // borrowerId is irrelevant when role=borrower: the current user IS the borrower.
-      // Applying both filters would create a contradictory WHERE clause.
+      // Per the OpenAPI contract, borrowerId is ignored when role=borrower:
+      // the current user is already the borrower, so no additional borrower filter is applied.
     } else {
       where.lenderId = userId;
 
-      // borrowerId filter only makes sense in lender perspective
+      // borrowerId filter is only honored in the lender perspective (role=lender).
       if (borrowerId) {
         where.borrowerId = borrowerId;
       }

@@ -10,10 +10,6 @@ describe('BorrowerLinkingListener', () => {
   let prisma: DeepMockProxy<PrismaService>;
 
   const USER_ID = '11111111-1111-1111-1111-111111111111';
-  const LENDER_1_ID = '22222222-2222-2222-2222-222222222222';
-  const LENDER_2_ID = '33333333-3333-3333-3333-333333333333';
-  const BORROWER_1_ID = '44444444-4444-4444-4444-444444444444';
-  const BORROWER_2_ID = '55555555-5555-5555-5555-555555555555';
   const EMAIL = 'alice@example.com';
 
   beforeEach(async () => {
@@ -47,7 +43,7 @@ describe('BorrowerLinkingListener', () => {
       // Assert
       expect(prisma.borrower.updateMany).toHaveBeenCalledWith({
         where: {
-          email: EMAIL,
+          email: { equals: EMAIL, mode: 'insensitive' },
           userId: null,
         },
         data: {
@@ -68,7 +64,7 @@ describe('BorrowerLinkingListener', () => {
 
       expect(prisma.borrower.updateMany).toHaveBeenCalledWith({
         where: {
-          email: EMAIL,
+          email: { equals: EMAIL, mode: 'insensitive' },
           userId: null,
         },
         data: {
@@ -91,7 +87,7 @@ describe('BorrowerLinkingListener', () => {
       expect(prisma.borrower.updateMany).toHaveBeenCalledTimes(1);
       expect(prisma.borrower.updateMany).toHaveBeenCalledWith({
         where: {
-          email: EMAIL,
+          email: { equals: EMAIL, mode: 'insensitive' },
           userId: null,
         },
         data: {

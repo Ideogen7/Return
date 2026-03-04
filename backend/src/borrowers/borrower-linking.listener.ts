@@ -34,7 +34,7 @@ export class BorrowerLinkingListener {
 
     const result = await this.prisma.borrower.updateMany({
       where: {
-        email,
+        email: { equals: email, mode: 'insensitive' },
         userId: null,
       },
       data: {
@@ -44,7 +44,7 @@ export class BorrowerLinkingListener {
 
     if (result.count > 0) {
       this.logger.log(
-        `Linked ${result.count} Borrower record(s) to User ${userId} (email: ${email})`,
+        `Linked ${result.count} Borrower record(s) to User ${userId}`,
       );
     }
   }
