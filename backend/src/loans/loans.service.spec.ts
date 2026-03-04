@@ -454,6 +454,50 @@ describe('LoansService', () => {
       const result = await service.findAll(LENDER_USER_ID, DEFAULT_QUERY);
       expect(result.pagination.totalPages).toBe(0);
     });
+
+    // =========================================================================
+    // INTEG-005 : findAll(role=borrower) — perspective emprunteur
+    // =========================================================================
+    it('should filter by borrower.userId when role=borrower (INTEG-005)', async () => {
+      prisma.loan.findMany.mockResolvedValue([MOCK_LOAN]);
+      prisma.loan.count.mockResolvedValue(1);
+
+      const result = await service.findAll(BORROWER_USER_ID, {
+        ...DEFAULT_QUERY,
+        role: 'borrower',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(prisma.loan.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            borrower: { userId: BORROWER_USER_ID },
+            deletedAt: null,
+          }),
+        }),
+      );
+      // Should NOT filter by lenderId when role=borrower
+      const call = prisma.loan.findMany.mock.calls[0][0] as { where: Record<string, unknown> };
+      expect(call.where.lenderId).toBeUndefined();
+    });
+
+    // =========================================================================
+    // INTEG-006 : findAll(role=borrower) + borrowerId — ignoré
+    // =========================================================================
+    it('should ignore borrowerId filter when role=borrower (INTEG-006)', async () => {
+      prisma.loan.findMany.mockResolvedValue([]);
+      prisma.loan.count.mockResolvedValue(0);
+
+      await service.findAll(BORROWER_USER_ID, {
+        ...DEFAULT_QUERY,
+        role: 'borrower',
+        borrowerId: BORROWER_ID,
+      });
+
+      // borrowerId should NOT be in the where clause when role=borrower
+      const call = prisma.loan.findMany.mock.calls[0][0] as { where: Record<string, unknown> };
+      expect(call.where.borrowerId).toBeUndefined();
+    });
   });
 
   // ===========================================================================
@@ -506,6 +550,40 @@ describe('LoansService', () => {
 
       try {
         await service.findById(LOAN_ID, LENDER_USER_ID);
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+      }
+    });
+
+    // =========================================================================
+    // INTEG-007 : findById accessible par l'emprunteur
+    // =========================================================================
+    it('should return loan when accessed by borrower via resolveUserRole (INTEG-007)', async () => {
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
+
+      // BORROWER_USER_ID matches MOCK_BORROWER.userId
+      const result = await service.findById(LOAN_ID, BORROWER_USER_ID);
+
+      expect(result.id).toBe(LOAN_ID);
+      expect(result.item.id).toBe(ITEM_ID);
+      expect(result.borrower.id).toBe(BORROWER_ID);
+    });
+
+    // =========================================================================
+    // INTEG-008 : findById par un tiers → 403
+    // =========================================================================
+    it('should throw 403 when third party (neither lender nor borrower) accesses loan (INTEG-008)', async () => {
+      // OTHER_USER_ID is neither lenderId nor borrower.userId
+      prisma.loan.findUnique.mockResolvedValue({
+        ...MOCK_LOAN,
+        lenderId: LENDER_USER_ID,
+        borrower: { ...MOCK_BORROWER, userId: BORROWER_USER_ID },
+      });
+
+      try {
+        await service.findById(LOAN_ID, OTHER_USER_ID);
         fail('Expected ForbiddenException');
       } catch (error) {
         const err = error as { response: ProblemDetails };

@@ -153,8 +153,15 @@ export class LoansService {
 
     if (query.role === 'borrower') {
       where.borrower = { userId };
+      // borrowerId is irrelevant when role=borrower: the current user IS the borrower.
+      // Applying both filters would create a contradictory WHERE clause.
     } else {
       where.lenderId = userId;
+
+      // borrowerId filter only makes sense in lender perspective
+      if (borrowerId) {
+        where.borrowerId = borrowerId;
+      }
     }
 
     // Status filter
@@ -163,10 +170,6 @@ export class LoansService {
     } else if (!includeArchived) {
       // By default, exclude archived statuses
       where.status = { notIn: ARCHIVED_STATUSES };
-    }
-
-    if (borrowerId) {
-      where.borrowerId = borrowerId;
     }
 
     const [loans, totalItems] = await Promise.all([
