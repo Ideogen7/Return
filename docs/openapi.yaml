@@ -574,7 +574,6 @@ paths:
         Permet les transitions de statut suivantes selon le rôle :
 
         **Prêteur (propriétaire du prêt)** :
-        - `PENDING_CONFIRMATION` → `ACTIVE` (si timeout 48h atteint)
         - `ACTIVE` → `RETURNED` (confirmer retour)
         - `ACTIVE_BY_DEFAULT` → `RETURNED` (confirmer retour après confirmation automatique)
         - `AWAITING_RETURN` → `RETURNED` (confirmer retour tardif)
@@ -583,6 +582,11 @@ paths:
         **Emprunteur** :
         - `PENDING_CONFIRMATION` → `ACTIVE` (accepter)
         - `PENDING_CONFIRMATION` → `CONTESTED` (refuser)
+
+        **Système (automatique)** :
+        - `PENDING_CONFIRMATION` → `ACTIVE_BY_DEFAULT` (timeout 48h sans réponse de l'emprunteur)
+        - `ACTIVE` / `ACTIVE_BY_DEFAULT` → `AWAITING_RETURN` (date de retour dépassée)
+        - `AWAITING_RETURN` → `NOT_RETURNED` (tous les rappels épuisés)
 
         Les transitions invalides retournent une erreur 409 Conflict.
       operationId: updateLoanStatus
