@@ -422,6 +422,30 @@ paths:
                     instance: /v1/loans
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: L'objet ou l'emprunteur référencé appartient à un autre utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: This item belongs to another user.
+                instance: /v1/loans
+        '404':
+          description: L'objet ou l'emprunteur référencé par UUID n'existe pas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/item-not-found
+                title: Item Not Found
+                status: 404
+                detail: Item with the provided ID does not exist.
+                instance: /v1/loans
         '429':
           description: Limite de création dépassée (15 prêts/jour)
           content:
