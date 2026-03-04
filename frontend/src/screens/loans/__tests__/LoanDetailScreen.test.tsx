@@ -7,6 +7,7 @@ import { Text } from 'react-native';
 import { LoanDetailScreen } from '../LoanDetailScreen';
 import { LoanListScreen } from '../LoanListScreen';
 import { useLoanStore } from '../../../stores/useLoanStore';
+import { useAuthStore } from '../../../stores/useAuthStore';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { LoanStackParamList } from '../../../navigation/types';
 
@@ -40,6 +41,21 @@ function renderDetailScreen(loanId = '7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d') {
 }
 
 beforeAll(() => server.listen());
+beforeEach(() => {
+  // Set authenticated user matching mockLoan.lender.id
+  useAuthStore.setState({
+    user: {
+      id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+      email: 'test@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
+      role: 'LENDER' as const,
+      profilePicture: null,
+      createdAt: '2026-02-01T10:00:00Z',
+      lastLoginAt: '2026-02-18T08:00:00Z',
+    },
+  });
+});
 afterEach(() => {
   server.resetHandlers();
   useLoanStore.getState().reset();
@@ -73,7 +89,7 @@ describe('LoanDetailScreen', () => {
 
   it('should hide action buttons for RETURNED loan', async () => {
     server.use(
-      http.get('http://localhost:4010/loans/:id', ({ params }) => {
+      http.get('http://localhost:3000/v1/loans/:id', ({ params }) => {
         return HttpResponse.json(
           {
             id: params.id,
@@ -83,7 +99,7 @@ describe('LoanDetailScreen', () => {
               category: 'TOOLS',
               createdAt: '2026-02-10T10:00:00Z',
             },
-            lender: { id: 'user-1', firstName: 'John', lastName: 'Doe', profilePicture: null },
+            lender: { id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', firstName: 'John', lastName: 'Doe', profilePicture: null },
             borrower: {
               id: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
               firstName: 'Marie',

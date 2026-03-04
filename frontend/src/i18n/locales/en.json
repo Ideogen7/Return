@@ -60,7 +60,12 @@
     "totalLoans": "Total loans",
     "activeLoans": "Active loans",
     "returnedLoans": "Returned",
-    "overdueLoans": "Overdue"
+    "overdueLoans": "Overdue",
+    "borrowerStatistics": "My borrowings",
+    "loansReceived": "Received",
+    "returnedOnTime": "On time",
+    "returnedLate": "Late",
+    "trustScore": "Trust"
   },
   "settings": {
     "title": "Settings",
@@ -218,6 +223,7 @@
   },
   "navigation": {
     "loans": "Loans",
+    "tracking": "Tracking",
     "contacts": "Contacts",
     "items": "Items",
     "history": "History",

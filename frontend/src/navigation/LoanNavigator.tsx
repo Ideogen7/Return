@@ -23,7 +23,7 @@ export function LoanNavigator() {
       <Stack.Screen
         name="LoanList"
         component={LoanListScreen}
-        options={{ title: t('loans.title') }}
+        options={{ title: t('navigation.tracking') }}
       />
       <Stack.Screen
         name="CreateLoan"

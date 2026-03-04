@@ -15,6 +15,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LoanTimeline } from '../../components/loans/LoanTimeline';
 import { CATEGORY_I18N } from '../../components/items/ItemCard';
 import { useLoanStore } from '../../stores/useLoanStore';
+import { useAuthStore } from '../../stores/useAuthStore';
 import { parseProblemDetails, getErrorMessage } from '../../utils/error';
 import { ui } from '../../config/theme.config';
 import type { LoanStackParamList } from '../../navigation/types';
@@ -36,6 +37,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
   const { id } = route.params;
   const { t } = useTranslation();
   const { selectedLoan, isLoading, error, fetchLoan } = useLoanStore();
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [abandonDialogVisible, setAbandonDialogVisible] = useState(false);
   const [returnDialogVisible, setReturnDialogVisible] = useState(false);
@@ -125,10 +127,14 @@ export function LoanDetailScreen({ route, navigation }: Props) {
     );
   }
 
-  const canEdit = EDITABLE_STATUSES.includes(selectedLoan.status);
-  const canReturn = RETURNABLE_STATUSES.includes(selectedLoan.status);
-  const canAbandon = ABANDONABLE_STATUSES.includes(selectedLoan.status);
-  const canDelete = selectedLoan.status !== 'RETURNED';
+  const isLender = selectedLoan.lender.id === currentUserId;
+
+  const canEdit = isLender && EDITABLE_STATUSES.includes(selectedLoan.status);
+  const canReturn = isLender && RETURNABLE_STATUSES.includes(selectedLoan.status);
+  const canAbandon = isLender && ABANDONABLE_STATUSES.includes(selectedLoan.status);
+  const canDelete = isLender && selectedLoan.status !== 'RETURNED';
+  const canConfirm = !isLender && selectedLoan.status === 'PENDING_CONFIRMATION';
+  const canContest = !isLender && selectedLoan.status === 'PENDING_CONFIRMATION';
 
   return (
     <ScrollView contentContainerStyle={styles.container} testID="loan-detail">
@@ -206,6 +212,20 @@ export function LoanDetailScreen({ route, navigation }: Props) {
 
       {/* Actions */}
       <View style={styles.actions}>
+        {(canConfirm || canContest) && (
+          <Button
+            mode="contained"
+            icon="check"
+            onPress={() => navigation.navigate('ConfirmLoan', { id })}
+            style={styles.primaryButton}
+            labelStyle={styles.buttonLabel}
+            contentStyle={styles.buttonContent}
+            testID="confirm-loan-btn"
+          >
+            {t('loans.confirmLoan')}
+          </Button>
+        )}
+
         {canReturn && (
           <Button
             mode="contained"

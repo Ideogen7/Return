@@ -7,15 +7,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Return** est une application mobile de suivi de prêts d'objets personnels et d'argent. Elle permet aux utilisateurs
 d'enregistrer des prêts, suivre les échéances et envoyer des rappels diplomatiques aux emprunteurs.
 
-**Statut actuel** : Phase de spécifications — pas encore de code source. Le repo contient la documentation fondatrice et
-le contrat API OpenAPI.
+**Statut actuel** : Sprints 1-3 complétés (Auth, Borrowers, Items/Photos) côté backend et frontend. Sprint 4 (Loans) en
+cours côté frontend.
 
 ## Stack Technique
 
 - **Backend** : NestJS 11.x (TypeScript 5.8+), Monolithe Modulaire, Prisma 6.x+ ORM
 - **Frontend** : React Native 0.78+ (TypeScript), Zustand 5.x, React Navigation 7.x, React Native Paper
 - **Base de données** : PostgreSQL 17+ (principal) + Redis 8.x (cache, queues BullMQ, blacklist JWT)
-- **Stockage photos** : Cloudflare R2 (S3-compatible)
+- **Stockage photos** : Cloudflare R2 (S3-compatible) en production, `LocalPhotoStorageService` (filesystem) en dev
 - **Infrastructure** : Fly.io (Europe West), Docker, GitHub Actions CI/CD
 - **Auth** : JWT (access token 15min + refresh token 30j) via Passport.js, révocation immédiate via Redis blacklist
 - **Tests** : Jest, Testcontainers, Supertest (backend), React Native Testing Library (frontend), Detox (post-MVP E2E)
@@ -27,11 +27,12 @@ le contrat API OpenAPI.
 
 Modules NestJS découplés par événements (EventEmitter2 + @OnEvent) :
 
-- **Loans** : Cycle de vie des prêts (PENDING_CONFIRMATION → ACTIVE → RETURNED/NOT_RETURNED/ABANDONED). Types : Objet physique et
-  Argent.
-- **Items** : Objets prêtés (photo, nom, catégorie, valeur estimée optionnelle)
-- **Reminders** : Rappels automatiques (BullMQ jobs) — politique fixe J-3, J, J+7, J+14, J+21
-- **Users** : Comptes, profils, rôles contextuels (Lender, Borrower)
+- **Auth** : Authentification JWT (login, register, refresh, logout avec blacklist Redis)
+- **Users** : Comptes, profils, avatar, rôles contextuels (Lender, Borrower)
+- **Borrowers** : Contacts/emprunteurs (CRUD, trustScore dénormalisé)
+- **Items** : Objets prêtés (CRUD, photos max 5, catégories, valeur estimée)
+- **Loans** : Cycle de vie des prêts (8 statuts, types OBJECT/MONEY) — Sprint 4
+- **Reminders** : Rappels automatiques (BullMQ jobs) — politique fixe J-3, J, J+7, J+14, J+21 — Sprint 5
 - **Notifications** : Push (FCM) en V1. Email, SMS en V2+.
 
 ## Architecture & Patterns Obligatoires
@@ -85,7 +86,7 @@ Toutes les erreurs HTTP retournent un objet `ProblemDetails` :
 - **Branches** : `main` (prod) ← `feature/`, `fix/`, `hotfix/`, `refactor/`, `chore/` (pas de branche `develop`)
 - **Conventional Commits** : `<type>(<scope>): <subject>`
 - Types : `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`, `build`, `revert`
-- Scopes : `loans`, `reminders`, `auth`, `photos`, `notifications`, `users`, `db`, `api`, `i18n`
+- Scopes : `setup`, `loans`, `reminders`, `auth`, `items`, `photos`, `notifications`, `users`, `borrowers`, `db`, `api`, `i18n`, `ui`, `navigation`, `ci`, `docs`, `deps`, `integration`
 - Pre-commit hooks : Husky + lint-staged (ESLint + Prettier uniquement). Jest en CI.
 - PR : 1 approval, CI verte.
 
@@ -114,9 +115,59 @@ pas de connotation commerciale)
 
 ## Statuts de Prêt (Machine à États)
 
-`PENDING_CONFIRMATION` → `ACTIVE` (accepté) | `ACTIVE_BY_DEFAULT` (timeout 48h) | `DISPUTED` (refusé)
+`PENDING_CONFIRMATION` → `ACTIVE` (accepté) | `ACTIVE_BY_DEFAULT` (timeout 48h) | `CONTESTED` (refusé)
 `ACTIVE` / `ACTIVE_BY_DEFAULT` → `AWAITING_RETURN` (date dépassée) → `RETURNED` (rendu) | `NOT_RETURNED` (5 rappels
 ignorés) | `ABANDONED` (abandon manuel par le prêteur)
+
+## Architecture Frontend
+
+### Structure (`frontend/src/`)
+
+```
+api/            — apiClient Axios (baseURL, intercepteurs JWT, refresh token)
+components/     — Composants réutilisables par module (auth/, borrowers/, items/, profile/)
+config/         — api-modules.config.ts (toggle mock/real), theme.config.ts, i18n.config.ts
+i18n/           — Locales FR + EN
+navigation/     — RootNavigator → AuthNavigator | AppNavigator (Tab: Items, Borrowers, Profile)
+screens/        — Écrans par module (auth/, borrowers/, items/, profile/)
+stores/         — Zustand stores (useAuthStore, useBorrowerStore, useItemStore)
+types/          — api.types.ts (Item, Borrower, Photo, ProblemDetails, PaginatedResponse, etc.)
+utils/          — error.ts (extractProblemDetails, getErrorMessage, ERROR_TYPE_MAP), photo.ts
+```
+
+### Patterns Frontend
+
+- **State management** : Zustand (1 store par module, actions async avec try/catch)
+- **Formulaires** : react-hook-form + Controller (validation client-side)
+- **Erreurs** : RFC 7807 `ProblemDetails` → `extractProblemDetails()` → `getErrorMessage(error, t)` → i18n
+- **API mocking** : MSW (Mock Service Worker) via `frontend/__mocks__/handlers.ts` + `server.ts`
+- **Toggle mock/real** : `frontend/src/config/api-modules.config.ts` — `{ items: false, borrowers: false, auth: false }`
+- **Tests** : Jest + RNTL (React Native Testing Library) + MSW pour mocks API
+- **Photos** : `PhotoPicker` (camera/galerie) + `PhotoGallery` (affichage + suppression) + `buildPhotoFormData()`
+
+### Commandes
+
+```bash
+# Frontend
+cd frontend && npx expo start --web    # Dev (BROWSER=none pour éviter l'ouverture auto)
+cd frontend && npx jest --verbose       # Tests
+cd frontend && npm run typecheck        # Vérification TypeScript (tsc --noEmit)
+
+# Backend
+cd backend && npx nest start --watch    # Dev
+cd backend && npx jest --verbose        # Tests
+```
+
+## Avancement
+
+| Sprint | Module | Backend | Frontend |
+|--------|--------|---------|----------|
+| Sprint 1 | Auth + Users + Profile | Fait | Fait |
+| Sprint 2 | Borrowers | Fait | Fait |
+| Sprint 3 | Items + Photos | Fait | Fait |
+| Sprint 4 | Loans | En cours (collègue) | En cours |
+| Sprint 5 | Notifications | — | — |
+| Sprint 6 | Dashboard + History | — | — |
 
 ## Documents de Référence
 

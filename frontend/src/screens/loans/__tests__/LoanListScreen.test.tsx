@@ -117,6 +117,30 @@ describe('LoanListScreen', () => {
     });
   });
 
+  it('should open filter menu and switch to archives', async () => {
+    renderListScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loan-list')).toBeTruthy();
+    });
+
+    // Open filter menu
+    fireEvent.press(screen.getByTestId('filter-menu-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('filter-menu-active')).toBeTruthy();
+      expect(screen.getByTestId('filter-menu-archived')).toBeTruthy();
+    });
+
+    // Switch to archives
+    fireEvent.press(screen.getByTestId('filter-menu-archived'));
+
+    // Menu should close (items no longer visible)
+    await waitFor(() => {
+      expect(screen.queryByTestId('filter-menu-archived')).toBeNull();
+    });
+  });
+
   it('should navigate to detail on card press', async () => {
     renderListScreen();
 

@@ -38,7 +38,7 @@ export function AppNavigator() {
         name="LoanTab"
         component={LoanNavigator}
         options={{
-          title: t('navigation.loans'),
+          title: t('navigation.tracking'),
           tabBarIcon: ({ color, size }) => (
             <Icon source="handshake-outline" color={color} size={size} />
           ),
