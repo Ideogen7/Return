@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 // Modules réels (auth, users) → /v1 prefix (getBaseUrl retourne http://localhost:3000/v1)
 // Modules mockés (loans, etc.) → pas de /v1 (getBaseUrl retourne http://localhost:4010)
 const API_REAL = 'http://localhost:3000/v1';
-const API_MOCK = 'http://localhost:4010';
+const _API_MOCK = 'http://localhost:4010';
 
 // --- Données mock réutilisables ---
 
