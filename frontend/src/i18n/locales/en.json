@@ -60,7 +60,12 @@
     "totalLoans": "Total loans",
     "activeLoans": "Active loans",
     "returnedLoans": "Returned",
-    "overdueLoans": "Overdue"
+    "overdueLoans": "Overdue",
+    "borrowerStatistics": "My borrowings",
+    "loansReceived": "Received",
+    "returnedOnTime": "On time",
+    "returnedLate": "Late",
+    "trustScore": "Trust"
   },
   "settings": {
     "title": "Settings",
@@ -214,10 +219,12 @@
     "myLoans": "My loans",
     "myBorrowings": "My borrowings",
     "emptyBorrowings": "No borrowings",
-    "emptyBorrowingsSubtitle": "Loans addressed to you will appear here"
+    "emptyBorrowingsSubtitle": "Loans addressed to you will appear here",
+    "filterLoans": "Filter loans"
   },
   "navigation": {
     "loans": "Loans",
+    "tracking": "Tracking",
     "contacts": "Contacts",
     "items": "Items",
     "history": "History",

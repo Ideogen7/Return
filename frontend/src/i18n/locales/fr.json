@@ -60,7 +60,12 @@
     "totalLoans": "Total des prêts",
     "activeLoans": "Prêts en cours",
     "returnedLoans": "Rendus",
-    "overdueLoans": "En retard"
+    "overdueLoans": "En retard",
+    "borrowerStatistics": "Mes emprunts",
+    "loansReceived": "Reçus",
+    "returnedOnTime": "À temps",
+    "returnedLate": "En retard",
+    "trustScore": "Confiance"
   },
   "settings": {
     "title": "Paramètres",
@@ -214,10 +219,12 @@
     "myLoans": "Mes prêts",
     "myBorrowings": "Mes emprunts",
     "emptyBorrowings": "Aucun emprunt",
-    "emptyBorrowingsSubtitle": "Les prêts qui vous sont adressés apparaîtront ici"
+    "emptyBorrowingsSubtitle": "Les prêts qui vous sont adressés apparaîtront ici",
+    "filterLoans": "Filtrer les prêts"
   },
   "navigation": {
     "loans": "Prêts",
+    "tracking": "Suivi",
     "contacts": "Contacts",
     "items": "Objets",
     "history": "Historique",

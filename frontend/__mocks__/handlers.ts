@@ -1,9 +1,7 @@
 import { http, HttpResponse } from 'msw';
 
-// Modules réels (auth, users) → /v1 prefix (getBaseUrl retourne http://localhost:3000/v1)
-// Modules mockés (loans, etc.) → pas de /v1 (getBaseUrl retourne http://localhost:4010)
+// All MSW handlers use the same base URL for tests (real API prefix)
 const API_REAL = 'http://localhost:3000/v1';
-const API_MOCK = 'http://localhost:4010';
 
 // --- Données mock réutilisables ---
 
@@ -365,7 +363,35 @@ export const handlers = [
   // =========================================================================
 
   // GET /loans
-  http.get(`${API_MOCK}/loans`, () => {
+  http.get(`${API_REAL}/loans`, ({ request }) => {
+    const url = new URL(request.url);
+    const role = url.searchParams.get('role');
+
+    if (role === 'borrower') {
+      return HttpResponse.json(
+        {
+          data: [
+            {
+              ...mockLoan,
+              id: 'borrower-loan-1',
+              status: 'RETURNED' as const,
+              returnDate: '2026-03-15',
+              returnedDate: '2026-03-14T10:00:00Z',
+            },
+          ],
+          pagination: {
+            currentPage: 1,
+            itemsPerPage: 20,
+            totalItems: 1,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        },
+        { status: 200 },
+      );
+    }
+
     return HttpResponse.json(
       {
         data: [{ ...mockLoan }],
@@ -383,7 +409,7 @@ export const handlers = [
   }),
 
   // POST /loans
-  http.post(`${API_MOCK}/loans`, async ({ request }) => {
+  http.post(`${API_REAL}/loans`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(
       {
@@ -401,7 +427,7 @@ export const handlers = [
   }),
 
   // GET /loans/:id
-  http.get(`${API_MOCK}/loans/:id`, ({ params }) => {
+  http.get(`${API_REAL}/loans/:id`, ({ params }) => {
     if (params.id === 'not-found') {
       return HttpResponse.json(
         {
@@ -421,7 +447,7 @@ export const handlers = [
   }),
 
   // PATCH /loans/:id
-  http.patch(`${API_MOCK}/loans/:id`, async ({ params, request }) => {
+  http.patch(`${API_REAL}/loans/:id`, async ({ params, request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(
       { ...mockLoan, id: params.id, ...body, updatedAt: new Date().toISOString() },
@@ -430,12 +456,12 @@ export const handlers = [
   }),
 
   // DELETE /loans/:id
-  http.delete(`${API_MOCK}/loans/:id`, () => {
+  http.delete(`${API_REAL}/loans/:id`, () => {
     return new HttpResponse(null, { status: 204 });
   }),
 
   // PATCH /loans/:id/status
-  http.patch(`${API_MOCK}/loans/:id/status`, async ({ params, request }) => {
+  http.patch(`${API_REAL}/loans/:id/status`, async ({ params, request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     const status = typeof body.status === 'string' ? body.status : mockLoan.status;
     return HttpResponse.json(
@@ -450,7 +476,7 @@ export const handlers = [
   }),
 
   // POST /loans/:id/confirm
-  http.post(`${API_MOCK}/loans/:id/confirm`, ({ params }) => {
+  http.post(`${API_REAL}/loans/:id/confirm`, ({ params }) => {
     return HttpResponse.json(
       {
         ...mockLoan,
@@ -464,7 +490,7 @@ export const handlers = [
   }),
 
   // POST /loans/:id/contest
-  http.post(`${API_MOCK}/loans/:id/contest`, async ({ params, request }) => {
+  http.post(`${API_REAL}/loans/:id/contest`, async ({ params, request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(
       {

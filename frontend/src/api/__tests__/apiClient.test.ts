@@ -15,7 +15,7 @@ describe('apiClient', () => {
     await setAccessToken('test-token');
 
     server.use(
-      http.get('http://localhost:4010/loans', ({ request }) => {
+      http.get('http://localhost:3000/v1/loans', ({ request }) => {
         const authHeader = request.headers.get('Authorization');
         return HttpResponse.json({ authHeader });
       }),
@@ -32,7 +32,7 @@ describe('apiClient', () => {
     let callCount = 0;
 
     server.use(
-      http.get('http://localhost:4010/loans', ({ request }) => {
+      http.get('http://localhost:3000/v1/loans', ({ request }) => {
         callCount++;
         const authHeader = request.headers.get('Authorization');
         if (authHeader === 'Bearer expired-token') {
@@ -64,7 +64,7 @@ describe('apiClient', () => {
     await setRefreshToken('invalid-refresh-token');
 
     server.use(
-      http.get('http://localhost:4010/loans', () => {
+      http.get('http://localhost:3000/v1/loans', () => {
         return HttpResponse.json(
           { type: 'https://api.return.app/errors/unauthorized', status: 401 },
           { status: 401 },
@@ -88,7 +88,7 @@ describe('apiClient', () => {
     await setAccessToken('expired-token');
 
     server.use(
-      http.get('http://localhost:4010/loans', () => {
+      http.get('http://localhost:3000/v1/loans', () => {
         return HttpResponse.json(
           { type: 'https://api.return.app/errors/unauthorized', status: 401 },
           { status: 401 },
