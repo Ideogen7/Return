@@ -219,7 +219,8 @@
     "myLoans": "My loans",
     "myBorrowings": "My borrowings",
     "emptyBorrowings": "No borrowings",
-    "emptyBorrowingsSubtitle": "Loans addressed to you will appear here"
+    "emptyBorrowingsSubtitle": "Loans addressed to you will appear here",
+    "filterLoans": "Filter loans"
   },
   "navigation": {
     "loans": "Loans",

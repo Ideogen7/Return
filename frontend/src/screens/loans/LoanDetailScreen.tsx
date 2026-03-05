@@ -134,7 +134,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
   const canAbandon = isLender && ABANDONABLE_STATUSES.includes(selectedLoan.status);
   const canDelete = isLender && selectedLoan.status !== 'RETURNED';
   const canConfirm = !isLender && selectedLoan.status === 'PENDING_CONFIRMATION';
-  const canContest = !isLender && selectedLoan.status === 'PENDING_CONFIRMATION';
+  const canContest = canConfirm;
 
   return (
     <ScrollView contentContainerStyle={styles.container} testID="loan-detail">

@@ -57,16 +57,23 @@ function computeBorrowerMetrics(loans: Loan[]): BorrowerMetrics {
     (l) =>
       l.status === 'RETURNED' &&
       l.returnDate &&
-      new Date(l.returnedDate ?? '') <= new Date(l.returnDate),
+      l.returnedDate &&
+      new Date(l.returnedDate) <= new Date(l.returnDate),
   ).length;
   const late = completedLoans.filter(
     (l) =>
       l.status === 'RETURNED' &&
       l.returnDate &&
-      new Date(l.returnedDate ?? '') > new Date(l.returnDate),
+      l.returnedDate &&
+      new Date(l.returnedDate) > new Date(l.returnDate),
   ).length;
   const score = totalCompleted > 0 ? Math.round((onTime * 100 + late * 50) / totalCompleted) : 0;
-  return { loansReceived: loans.length, returnedOnTime: onTime, returnedLate: late, trustScore: score };
+  return {
+    loansReceived: loans.length,
+    returnedOnTime: onTime,
+    returnedLate: late,
+    trustScore: score,
+  };
 }
 
 async function fetchLoansForRole(role: 'lender' | 'borrower'): Promise<Loan[]> {
@@ -79,10 +86,16 @@ async function fetchLoansForRole(role: 'lender' | 'borrower'): Promise<Loan[]> {
 export function LenderStats() {
   const { t } = useTranslation();
   const [lender, setLender] = useState<LenderMetrics>({
-    totalLoans: 0, activeLoans: 0, returnedLoans: 0, overdueLoans: 0,
+    totalLoans: 0,
+    activeLoans: 0,
+    returnedLoans: 0,
+    overdueLoans: 0,
   });
   const [borrower, setBorrower] = useState<BorrowerMetrics>({
-    loansReceived: 0, returnedOnTime: 0, returnedLate: 0, trustScore: 0,
+    loansReceived: 0,
+    returnedOnTime: 0,
+    returnedLate: 0,
+    trustScore: 0,
   });
 
   useEffect(() => {
@@ -95,17 +108,57 @@ export function LenderStats() {
   }, []);
 
   const lenderStatsData: StatItem[] = [
-    { icon: 'handshake-outline', label: t('profile.totalLoans'), value: lender.totalLoans, color: '#4A6355' },
-    { icon: 'clock-outline', label: t('profile.activeLoans'), value: lender.activeLoans, color: '#6B8E7B' },
-    { icon: 'check-circle-outline', label: t('profile.returnedLoans'), value: lender.returnedLoans, color: '#7BAE8E' },
-    { icon: 'alert-circle-outline', label: t('profile.overdueLoans'), value: lender.overdueLoans, color: '#D97A6B' },
+    {
+      icon: 'handshake-outline',
+      label: t('profile.totalLoans'),
+      value: lender.totalLoans,
+      color: '#4A6355',
+    },
+    {
+      icon: 'clock-outline',
+      label: t('profile.activeLoans'),
+      value: lender.activeLoans,
+      color: '#6B8E7B',
+    },
+    {
+      icon: 'check-circle-outline',
+      label: t('profile.returnedLoans'),
+      value: lender.returnedLoans,
+      color: '#7BAE8E',
+    },
+    {
+      icon: 'alert-circle-outline',
+      label: t('profile.overdueLoans'),
+      value: lender.overdueLoans,
+      color: '#D97A6B',
+    },
   ];
 
   const borrowerStatsData: StatItem[] = [
-    { icon: 'package-variant', label: t('profile.loansReceived'), value: borrower.loansReceived, color: '#4A6355' },
-    { icon: 'check-circle-outline', label: t('profile.returnedOnTime'), value: borrower.returnedOnTime, color: '#7BAE8E' },
-    { icon: 'clock-alert-outline', label: t('profile.returnedLate'), value: borrower.returnedLate, color: '#D97A6B' },
-    { icon: 'shield-check-outline', label: t('profile.trustScore'), value: `${borrower.trustScore}%`, color: '#6B8E7B' },
+    {
+      icon: 'package-variant',
+      label: t('profile.loansReceived'),
+      value: borrower.loansReceived,
+      color: '#4A6355',
+    },
+    {
+      icon: 'check-circle-outline',
+      label: t('profile.returnedOnTime'),
+      value: borrower.returnedOnTime,
+      color: '#7BAE8E',
+    },
+    {
+      icon: 'clock-alert-outline',
+      label: t('profile.returnedLate'),
+      value: borrower.returnedLate,
+      color: '#D97A6B',
+    },
+    {
+      icon: 'shield-check-outline',
+      label: t('profile.trustScore'),
+      value: `${borrower.trustScore}%`,
+      color: '#6B8E7B',
+    },
   ];
 
   const renderStatRow = (stats: StatItem[]) => (

@@ -59,6 +59,7 @@ beforeEach(() => {
 afterEach(() => {
   server.resetHandlers();
   useLoanStore.getState().reset();
+  useAuthStore.setState({ user: null, accessToken: null, refreshToken: null });
 });
 afterAll(() => server.close());
 
@@ -99,7 +100,12 @@ describe('LoanDetailScreen', () => {
               category: 'TOOLS',
               createdAt: '2026-02-10T10:00:00Z',
             },
-            lender: { id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', firstName: 'John', lastName: 'Doe', profilePicture: null },
+            lender: {
+              id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+              firstName: 'John',
+              lastName: 'Doe',
+              profilePicture: null,
+            },
             borrower: {
               id: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
               firstName: 'Marie',
@@ -160,6 +166,61 @@ describe('LoanDetailScreen', () => {
       expect(screen.getByTestId('confirm-abandon-dialog')).toBeTruthy();
       expect(screen.getByTestId('confirm-abandon-btn')).toBeTruthy();
     });
+  });
+
+  it('should show confirm button and hide lender actions for borrower', async () => {
+    // Override loan to PENDING_CONFIRMATION status
+    server.use(
+      http.get('http://localhost:3000/v1/loans/:id', ({ params }) => {
+        return HttpResponse.json(
+          {
+            id: params.id,
+            item: {
+              id: '9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d',
+              name: 'Perceuse Bosch',
+              category: 'TOOLS',
+              createdAt: '2026-02-10T10:00:00Z',
+            },
+            lender: {
+              id: 'other-user-id',
+              firstName: 'Alice',
+              lastName: 'Martin',
+              profilePicture: null,
+            },
+            borrower: {
+              id: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
+              firstName: 'John',
+              lastName: 'Doe',
+              email: 'test@example.com',
+            },
+            status: 'PENDING_CONFIRMATION',
+            returnDate: '2026-04-15',
+            confirmationDate: null,
+            returnedDate: null,
+            notes: null,
+            contestReason: null,
+            createdAt: '2026-02-01T10:00:00Z',
+            updatedAt: '2026-02-01T10:00:00Z',
+          },
+          { status: 200 },
+        );
+      }),
+    );
+
+    renderDetailScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loan-detail')).toBeTruthy();
+    });
+
+    // Borrower should see confirm button
+    expect(screen.getByTestId('confirm-loan-btn')).toBeTruthy();
+
+    // Lender-only actions should be hidden
+    expect(screen.queryByTestId('return-loan-btn')).toBeNull();
+    expect(screen.queryByTestId('edit-loan-btn')).toBeNull();
+    expect(screen.queryByTestId('abandon-loan-btn')).toBeNull();
+    expect(screen.queryByTestId('delete-loan-btn')).toBeNull();
   });
 
   it('should delete and go back on confirm', async () => {

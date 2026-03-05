@@ -219,7 +219,8 @@
     "myLoans": "Mes prêts",
     "myBorrowings": "Mes emprunts",
     "emptyBorrowings": "Aucun emprunt",
-    "emptyBorrowingsSubtitle": "Les prêts qui vous sont adressés apparaîtront ici"
+    "emptyBorrowingsSubtitle": "Les prêts qui vous sont adressés apparaîtront ici",
+    "filterLoans": "Filtrer les prêts"
   },
   "navigation": {
     "loans": "Prêts",

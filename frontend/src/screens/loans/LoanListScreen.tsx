@@ -106,6 +106,7 @@ export function LoanListScreen({ navigation }: Props) {
                 icon="filter-variant"
                 size={24}
                 onPress={() => setMenuVisible(true)}
+                accessibilityLabel={t('loans.filterLoans')}
                 testID="filter-menu-btn"
               />
             }
