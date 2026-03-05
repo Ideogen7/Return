@@ -28,6 +28,13 @@ export class BorrowersService {
   // ---------------------------------------------------------------------------
 
   async create(lenderUserId: string, dto: CreateBorrowerDto): Promise<BorrowerResponse> {
+    // If a registered user already exists with this email, link immediately.
+    // This handles the case where the contact is added AFTER the user has registered.
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      select: { id: true },
+    });
+
     try {
       const borrower = await this.prisma.borrower.create({
         data: {
@@ -36,6 +43,7 @@ export class BorrowersService {
           email: dto.email,
           phoneNumber: dto.phoneNumber ?? null,
           lenderUserId,
+          ...(existingUser && { userId: existingUser.id }),
         },
       });
 

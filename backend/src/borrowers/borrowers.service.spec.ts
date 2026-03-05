@@ -73,7 +73,8 @@ describe('BorrowersService', () => {
   // ===========================================================================
 
   describe('create', () => {
-    it('should create a borrower and return it with default statistics', async () => {
+    it('should create a borrower without userId when no registered user matches the email', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
       prisma.borrower.create.mockResolvedValue(MOCK_BORROWER);
 
       const result = await service.create(LENDER_USER_ID, {
@@ -83,23 +84,7 @@ describe('BorrowersService', () => {
         phoneNumber: '+33612345678',
       });
 
-      expect(result).toEqual({
-        id: BORROWER_ID,
-        firstName: 'Marie',
-        lastName: 'Dupont',
-        email: 'marie.dupont@example.com',
-        phoneNumber: '+33612345678',
-        userId: null,
-        statistics: {
-          totalLoans: 0,
-          returnedOnTime: 0,
-          returnedLate: 0,
-          notReturned: 0,
-          averageReturnDelay: null,
-          trustScore: 0,
-        },
-      });
-
+      expect(result.userId).toBeNull();
       expect(prisma.borrower.create).toHaveBeenCalledWith({
         data: {
           firstName: 'Marie',
@@ -107,6 +92,34 @@ describe('BorrowersService', () => {
           email: 'marie.dupont@example.com',
           phoneNumber: '+33612345678',
           lenderUserId: LENDER_USER_ID,
+        },
+      });
+    });
+
+    it('should create a borrower with userId when a registered user already has the same email', async () => {
+      const REGISTERED_USER_ID = '990e8400-e29b-41d4-a716-446655440000';
+      prisma.user.findUnique.mockResolvedValue({ id: REGISTERED_USER_ID } as never);
+      prisma.borrower.create.mockResolvedValue({
+        ...MOCK_BORROWER,
+        userId: REGISTERED_USER_ID,
+      });
+
+      const result = await service.create(LENDER_USER_ID, {
+        firstName: 'Marie',
+        lastName: 'Dupont',
+        email: 'marie.dupont@example.com',
+        phoneNumber: '+33612345678',
+      });
+
+      expect(result.userId).toBe(REGISTERED_USER_ID);
+      expect(prisma.borrower.create).toHaveBeenCalledWith({
+        data: {
+          firstName: 'Marie',
+          lastName: 'Dupont',
+          email: 'marie.dupont@example.com',
+          phoneNumber: '+33612345678',
+          lenderUserId: LENDER_USER_ID,
+          userId: REGISTERED_USER_ID,
         },
       });
     });
