@@ -24,8 +24,8 @@ est le choix optimal. Voici pourquoi :
 
 **✅ Modularité Préservée :**
 
-- Organisation en modules métier (Loans, Items, Reminders, Users, Notifications) permettant une future extraction en
-  microservices si nécessaire.
+- Organisation en modules métier (Loans, Items, Reminders, Users, Notifications, ContactInvitations) permettant une
+  future extraction en microservices si nécessaire.
 - Isolation des dépendances : chaque module a ses propres interfaces et contrats.
 
 **❌ Microservices rejetés :**
@@ -50,7 +50,7 @@ C4Context
 
     System_Boundary(return_system, "Return Application") {
         Container(mobile_app, "Application Mobile", "React Native", "Interface principale pour gérer les prêts. Cache local pour mode hors ligne (lecture seule).")
-        Container(backend, "Backend API", "NestJS (Monolithe Modulaire)", "API REST unique. Modules internes : Loans, Items, Reminders, Users, Notifications")
+        Container(backend, "Backend API", "NestJS (Monolithe Modulaire)", "API REST unique. Modules internes : Loans, Items, Reminders, Users, Notifications, ContactInvitations")
         ContainerDb(postgres, "Base de Données", "PostgreSQL", "Stockage relationnel des entités")
         ContainerDb(redis, "Cache & Queue", "Redis", "Cache de sessions, file de jobs BullMQ, blacklist JWT pour révocation")
         ContainerDb(r2, "Object Storage", "Cloudflare R2", "Stockage des photos d'objets")
@@ -331,6 +331,32 @@ Préparer une stratégie de migration vers AWS/GCP si le trafic dépasse 100k ut
 
 ---
 
+### ADR-006 : Système d'invitation mutuelle pour les contacts
+
+**Contexte :**
+Un prêt nécessite un lien de confiance entre prêteur et emprunteur. Le workflow initial permettait d'ajouter n'importe
+qui comme contact sans vérification. La relation Contact doit être consentie par les deux parties pour garantir que
+l'emprunteur accepte le fait d'être référencé comme tel dans l'application.
+
+**Décision :**
+Créer un module `ContactInvitations` distinct avec table `contact_invitations`. Les invitations ne sont possibles
+qu'entre utilisateurs inscrits. Les invitations expirent automatiquement après 30 jours.
+
+**Alternatives rejetées :**
+
+- *Ajout libre sans consentement* : Viole le droit à l'oubli (RGPD) — un utilisateur peut se retrouver listé comme
+  emprunteur sans le savoir.
+- *Invitation par lien magique* : Complexité email + gestion de tokens d'invitation hors JWT = over-engineering pour
+  le MVP.
+
+**Conséquences :**
+
+✅ Consentement explicite de l'emprunteur garanti, conformité RGPD améliorée, qualité des données de confiance.
+❌ Légère friction à l'onboarding : la personne doit être inscrite avant d'être invitée (atténué par Sprint 5+
+avec invitation email externe).
+
+---
+
 ## 4. Matrice de Sécurité & RBAC (Role-Based Access Control)
 
 ### Rôles Définis
@@ -352,6 +378,7 @@ Préparer une stratégie de migration vers AWS/GCP si le trafic dépasse 100k ut
 - **Photos** : Images d'objets stockées
 - **Historique** : Archive des prêts terminés
 - **Compte Utilisateur** : Données personnelles
+- **Invitations de Contact** : Demandes d'ajout en contact
 
 ### Matrice CRUD (Create / Read / Update / Delete)
 
@@ -367,6 +394,16 @@ Préparer une stratégie de migration vers AWS/GCP si le trafic dépasse 100k ut
 | **Compte Utilisateur - Soi**    | R U D                  | -               | R U D                 | -       |
 | **Compte Utilisateur - Autres** | -                      | -               | -                     | -       |
 | **Logs / Métriques**            | -                      | -               | -                     | C       |
+
+### Matrice RBAC — Invitations de Contact
+
+| Action                           | Prêteur (émetteur) | Emprunteur (destinataire) | Système |
+|----------------------------------|--------------------|---------------------------|---------|
+| Envoyer une invitation           | ✅ CREATE           | ❌                         | ❌       |
+| Lister ses invitations reçues    | ❌                  | ✅ READ                    | ❌       |
+| Accepter / Rejeter une invitation | ❌                 | ✅ UPDATE                  | ❌       |
+| Annuler une invitation envoyée   | ✅ DELETE           | ❌                         | ❌       |
+| Expirer les invitations (CRON)   | ❌                  | ❌                         | ✅       |
 
 ### Règles de Sécurité Détaillées
 

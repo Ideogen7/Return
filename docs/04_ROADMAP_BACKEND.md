@@ -496,6 +496,42 @@ de rattachement des données existantes, OpenAPI documenté avec les droits par 
 
 ---
 
+## Sprint 4.6 : Contact Invitation System (5 jours)
+
+### Objectif
+
+Mettre en place le système d'invitation mutuelle pour la relation de contact. Avant ce sprint, n'importe qui pouvait
+être ajouté comme contact sans consentement. Après ce sprint, un prêteur doit inviter un utilisateur inscrit, et
+l'invitation doit être acceptée avant de pouvoir créer un prêt pour cette personne.
+
+### Taches
+
+| ID            | Titre                                                                                                         | Dépendance    | Critère de Fin                                                                                                   | Temps |
+|---------------|---------------------------------------------------------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------|-------|
+| **CINV-001**  | Ajouter enum `InvitationStatus` (PENDING, ACCEPTED, REJECTED, EXPIRED) dans schema Prisma                     | -             | Enum créé, `prisma migrate dev` passe                                                                            | 30min |
+| **CINV-002**  | Créer table `contact_invitations` (id, senderUserId, recipientEmail, recipientUserId?, status, createdAt, expiresAt, acceptedAt, rejectedAt) | CINV-001 | Table créée avec contrainte unique `(senderUserId, recipientEmail)`, migration appliquée       | 1h    |
+| **CINV-003**  | Test TDD : `searchUsers(query, senderId)` — retourne utilisateurs correspondant à email/prénom/nom, exclut soi-même et contacts déjà acceptés | CINV-002 | Test RED écrit                                                                                | 30min |
+| **CINV-004**  | Implémenter `searchUsers()` dans `ContactInvitationsService`                                                  | CINV-003      | Test CINV-003 GREEN                                                                                              | 1h    |
+| **CINV-005**  | Test TDD : `sendInvitation(senderId, recipientEmail)` — cas nominaux + 404 user not found + 409 already sent + 400 self-invitation | CINV-004 | Tests RED écrits                                                                              | 1h    |
+| **CINV-006**  | Implémenter `sendInvitation()` avec expiration 30 jours                                                       | CINV-005      | Tests CINV-005 GREEN                                                                                             | 1h30  |
+| **CINV-007**  | Test TDD : `acceptInvitation(id, userId)` → crée Borrower chez émetteur + émet `ContactInvitationAccepted`   | CINV-006      | Test RED écrit                                                                                                   | 30min |
+| **CINV-008**  | Implémenter `acceptInvitation()` — transaction : update statut + création Borrower                            | CINV-007      | Test CINV-007 GREEN, Borrower créé                                                                               | 1h30  |
+| **CINV-009**  | Test TDD : `rejectInvitation(id, userId)` + `listReceivedInvitations(userId, status?)`                        | CINV-008      | Tests RED écrits                                                                                                 | 30min |
+| **CINV-010**  | Implémenter `rejectInvitation()` + `listReceivedInvitations()`                                                | CINV-009      | Tests CINV-009 GREEN                                                                                             | 1h    |
+| **CINV-011**  | Créer `contact-invitation.events.ts` (ContactInvitationAccepted, ContactInvitationRejected)                   | CINV-008      | Événements typés exportés                                                                                        | 30min |
+| **CINV-012**  | Créer `ContactInvitationsController` : 6 endpoints (search, send, list, accept, reject, delete) avec Guards JWT | CINV-010   | Controllers créés, routes accessibles                                                                            | 1h30  |
+| **CINV-013**  | Tests Supertest : 6 endpoints nominaux + cas d'erreur (404, 409, 400, 403)                                    | CINV-012      | Tests Supertest GREEN                                                                                            | 2h    |
+| **CINV-014**  | Créer `ContactInvitationListener` : `@OnEvent('user.registered')` — lier invitations PENDING par email        | CINV-011      | Listener actif, test unitaire passe                                                                              | 1h    |
+| **CINV-015**  | Créer `ContactInvitationsModule` (imports: PrismaModule, EventEmitter2 / providers / exports)                 | CINV-012      | Module importable dans AppModule                                                                                 | 30min |
+| **CINV-016**  | Tests intégration inter-modules : Loan creation → vérifie contact ACCEPTED requis                             | CINV-015      | Test d'intégration passe                                                                                        | 1h    |
+| **CINV-017**  | Buffer review + fix bugs + documentation OpenAPI endpoints ContactInvitations                                  | CINV-016      | CI verte, OpenAPI validé par Spectral                                                                            | 2h    |
+
+🏁 **Livrable Sprint 4.6** : **Système d'invitation de contacts complet** (module `ContactInvitations` avec
+6 endpoints, table `contact_invitations`, consentement explicite garanti, événements inter-modules, tests TDD +
+Supertest complets). Un prêt ne peut être créé que pour un contact avec invitation ACCEPTED.
+
+---
+
 ## Sprint 5 : Module Reminders + Notifications (5 jours)
 
 ### Objectif
@@ -685,9 +721,10 @@ Cyclé TDD par comportement.
 | **Sprint 3**     | 4 jours         | Items + Avatar                   | 7 (Items: 6, Avatar: 1)                           | ~10 tests      |
 | **Sprint 4**     | 8 jours         | Loans (coeur métier)             | 8 + intégration inter-modules                     | ~20 tests      |
 | **Sprint 4.5**   | 3 jours         | Corrections intégration Loans    | 0 (listener événement + migration rattachement + tests dual-perspective + doc OpenAPI) | ~12 tests      |
+| **Sprint 4.6**   | 5 jours         | Contact Invitation System        | 6 (search, send, list, accept, reject, delete)    | ~17 tests      |
 | **Sprint 5**     | 5 jours         | Reminders + Notifications        | 3 + système auto                                  | ~12 tests      |
 | **Sprint 6**     | 4 jours         | History + R2 + Déploiement       | 5 (History: 2, Borrower stats/loans: 2, E2E) + R2 | E2E complet    |
-| **TOTAL**        | **41-45 jours** | **7 modules + 1 correctif**     | **~40 endpoints** (+ 3 réservés V2)               | **~74+ tests** |
+| **TOTAL**        | **46-50 jours** | **8 modules + 1 correctif**     | **~46 endpoints** (+ 3 réservés V2)               | **~91+ tests** |
 
 > **Endpoints réservés V2** : 3 endpoints Reminders (`GET /loans/{id}/reminders`, `GET /reminders/{id}`,
 > `POST /reminders/{id}/cancel`) sont définis dans `openapi.yaml` mais ne sont pas implémentés en V1 car
@@ -708,6 +745,7 @@ Cyclé TDD par comportement.
 | **Fin Sprint 3**   | Enregistrement objets + photos       | `/items/*`                                                 |
 | **Fin Sprint 4**   | Création et suivi de prêts (prêteur) | `/loans/*`                                                 |
 | **Fin Sprint 4.5** | Perspective emprunteur fonctionnelle | `Borrower.userId` lié + `GET /loans?role=borrower` correct |
+| **Fin Sprint 4.6** | Système d'invitation de contacts     | `/contact-invitations/*` — 6 endpoints + consentement explicite |
 | **Fin Sprint 5**   | Notifications push                   | `/notifications/*` + rappels auto                          |
 | **Fin Sprint 6**   | Statistiques complètes               | `/history/*` + seed data                                   |
 
@@ -728,5 +766,5 @@ A valider avant de passer au sprint suivant :
 ---
 
 **Co-validé par** : Esdras GBEDOZIN & Ismael AIHOU
-**Date de dernière mise à jour** : 3 mars 2026
-**Version** : 1.2 -- Post-intégration Sprint 4 (ajout Sprint 4.5)
+**Date de dernière mise à jour** : 5 mars 2026
+**Version** : 1.3 -- Ajout Sprint 4.6 (Contact Invitation System)

@@ -32,6 +32,7 @@ Modules NestJS découplés par événements (EventEmitter2 + @OnEvent) :
 - **Borrowers** : Contacts/emprunteurs (CRUD, trustScore dénormalisé)
 - **Items** : Objets prêtés (CRUD, photos max 5, catégories, valeur estimée)
 - **Loans** : Cycle de vie des prêts (8 statuts, types OBJECT/MONEY) — Sprint 4
+- **ContactInvitations** : Invitations entre utilisateurs inscrits (recherche, envoi, acceptation, rejet, expiration) — Sprint 4.6
 - **Reminders** : Rappels automatiques (BullMQ jobs) — politique fixe J-3, J, J+7, J+14, J+21 — Sprint 5
 - **Notifications** : Push (FCM) en V1. Email, SMS en V2+.
 
@@ -86,7 +87,7 @@ Toutes les erreurs HTTP retournent un objet `ProblemDetails` :
 - **Branches** : `main` (prod) ← `feature/`, `fix/`, `hotfix/`, `refactor/`, `chore/` (pas de branche `develop`)
 - **Conventional Commits** : `<type>(<scope>): <subject>`
 - Types : `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`, `build`, `revert`
-- Scopes : `setup`, `loans`, `reminders`, `auth`, `items`, `photos`, `notifications`, `users`, `borrowers`, `db`, `api`, `i18n`, `ui`, `navigation`, `ci`, `docs`, `deps`, `integration`
+- Scopes : `setup`, `loans`, `reminders`, `auth`, `items`, `photos`, `notifications`, `users`, `borrowers`, `invitations`, `db`, `api`, `i18n`, `ui`, `navigation`, `ci`, `docs`, `deps`, `integration`
 - Pre-commit hooks : Husky + lint-staged (ESLint + Prettier uniquement). Jest en CI.
 - PR : 1 approval, CI verte.
 
@@ -165,7 +166,8 @@ cd backend && npx jest --verbose        # Tests
 | Sprint 1 | Auth + Users + Profile | Fait | Fait |
 | Sprint 2 | Borrowers | Fait | Fait |
 | Sprint 3 | Items + Photos | Fait | Fait |
-| Sprint 4 | Loans | En cours (collègue) | En cours |
+| Sprint 4 | Loans | Fait | Fait |
+| Sprint 4.6 | Contact Invitations | — | — |
 | Sprint 5 | Notifications | — | — |
 | Sprint 6 | Dashboard + History | — | — |
 

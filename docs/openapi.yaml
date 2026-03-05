@@ -48,6 +48,8 @@ tags:
     description: Profil utilisateur et paramètres
   - name: History
     description: Historique et statistiques des prêts
+  - name: ContactInvitations
+    description: Gestion des invitations entre utilisateurs (recherche, envoi, acceptation, rejet, expiration)
   - name: Health
     description: Endpoints de santé pour monitoring et load balancer
 
@@ -1358,6 +1360,295 @@ paths:
           $ref: '#/components/responses/NotFound'
 
   # =============================================================================
+  # CONTACT INVITATIONS ENDPOINTS
+  # =============================================================================
+
+  /contact-invitations/search:
+    post:
+      tags:
+        - ContactInvitations
+      summary: Rechercher des utilisateurs inscrits
+      description: |
+        Recherche des utilisateurs inscrits sur Return par email, prénom ou nom.
+        Exclut l'utilisateur courant et les contacts déjà acceptés.
+        Indique le statut de la relation (nouveau / invitation en attente / déjà contact).
+      operationId: searchUsersForInvitation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  minLength: 2
+                  description: Terme de recherche (email, prénom ou nom)
+                  example: marie
+                page:
+                  type: integer
+                  default: 1
+                limit:
+                  type: integer
+                  default: 20
+                  maximum: 50
+      responses:
+        '200':
+          description: Résultats de recherche
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserSearchResults'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /contact-invitations:
+    post:
+      tags:
+        - ContactInvitations
+      summary: Envoyer une invitation de contact
+      description: |
+        Envoie une invitation à un utilisateur inscrit pour l'ajouter à son carnet de contacts.
+        L'invitation expire automatiquement après 30 jours.
+        Erreurs possibles : 400 self-invitation, 404 utilisateur introuvable, 409 invitation déjà envoyée.
+      operationId: sendContactInvitation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - recipientEmail
+              properties:
+                recipientEmail:
+                  type: string
+                  format: email
+                  description: Email de l'utilisateur à inviter (doit être inscrit)
+                  example: marie.dupont@example.com
+      responses:
+        '201':
+          description: Invitation envoyée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactInvitation'
+        '400':
+          description: Auto-invitation (impossible de s'inviter soi-même)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/self-invitation
+                title: Self Invitation
+                status: 400
+                detail: You cannot send an invitation to yourself.
+                instance: /v1/contact-invitations
+        '404':
+          description: Utilisateur introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/user-not-found
+                title: User Not Found
+                status: 404
+                detail: No registered user found with this email address.
+                instance: /v1/contact-invitations
+        '409':
+          description: Invitation déjà envoyée et en attente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-already-sent
+                title: Invitation Already Sent
+                status: 409
+                detail: A pending invitation already exists for this email.
+                instance: /v1/contact-invitations
+    get:
+      tags:
+        - ContactInvitations
+      summary: Lister les invitations reçues
+      description: |
+        Retourne la liste des invitations reçues par l'utilisateur connecté.
+        Filtrable par statut. Utilisé par l'emprunteur pour voir et traiter ses invitations.
+      operationId: listReceivedInvitations
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filtrer par statut d'invitation
+          schema:
+            $ref: '#/components/schemas/InvitationStatus'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Liste des invitations reçues
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedContactInvitations'
+
+  /contact-invitations/{invitationId}/accept:
+    post:
+      tags:
+        - ContactInvitations
+      summary: Accepter une invitation de contact
+      description: |
+        L'emprunteur (destinataire) accepte l'invitation. Cette action crée automatiquement
+        un Borrower dans le carnet de contacts de l'émetteur et émet l'événement
+        `ContactInvitationAccepted`. Seul le destinataire peut accepter.
+      operationId: acceptContactInvitation
+      parameters:
+        - name: invitationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Invitation acceptée — contact créé chez l'émetteur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactInvitation'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Invitation introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-not-found
+                title: Invitation Not Found
+                status: 404
+                detail: The invitation does not exist or does not belong to you.
+                instance: /v1/contact-invitations/inv-123/accept
+        '409':
+          description: Invitation déjà traitée (non PENDING)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-not-pending
+                title: Invitation Not Pending
+                status: 409
+                detail: This invitation has already been accepted, rejected, or expired.
+                instance: /v1/contact-invitations/inv-123/accept
+
+  /contact-invitations/{invitationId}/reject:
+    post:
+      tags:
+        - ContactInvitations
+      summary: Refuser une invitation de contact
+      description: |
+        L'emprunteur (destinataire) refuse l'invitation. Aucun contact n'est créé.
+        Seul le destinataire peut refuser. Idempotent si déjà rejeté.
+      operationId: rejectContactInvitation
+      parameters:
+        - name: invitationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Invitation refusée
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Invitation introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-not-found
+                title: Invitation Not Found
+                status: 404
+                detail: The invitation does not exist or does not belong to you.
+                instance: /v1/contact-invitations/inv-123/reject
+        '409':
+          description: Invitation déjà traitée (non PENDING)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-not-pending
+                title: Invitation Not Pending
+                status: 409
+                detail: This invitation has already been accepted, rejected, or expired.
+                instance: /v1/contact-invitations/inv-123/reject
+
+  /contact-invitations/{invitationId}:
+    delete:
+      tags:
+        - ContactInvitations
+      summary: Annuler une invitation envoyée
+      description: |
+        Le prêteur (émetteur) annule une invitation PENDING qu'il a envoyée.
+        Impossible d'annuler une invitation déjà acceptée.
+      operationId: cancelContactInvitation
+      parameters:
+        - name: invitationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Invitation annulée
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Invitation introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-not-found
+                title: Invitation Not Found
+                status: 404
+                detail: The invitation does not exist or does not belong to you.
+                instance: /v1/contact-invitations/inv-123
+        '409':
+          description: Impossible d'annuler une invitation déjà acceptée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-already-accepted
+                title: Invitation Already Accepted
+                status: 409
+                detail: Cannot cancel an invitation that has already been accepted.
+                instance: /v1/contact-invitations/inv-123
+
+  # =============================================================================
   # REMINDERS ENDPOINTS
   # =============================================================================
 
@@ -2255,9 +2546,9 @@ components:
       type: object
       description: |
         Personne physique à qui un objet ou de l'argent est prêté.
-        Doit posséder un compte Return (inscription obligatoire).
-        Si le compte n'existe pas encore lors de la création du prêt, une invitation
-        est envoyée par email. Le prêt reste en PENDING_CONFIRMATION jusqu'à inscription.
+        Doit être un utilisateur inscrit sur Return.
+        La relation Contact est établie via une invitation mutuellement acceptée (`POST /contact-invitations`).
+        Un prêt ne peut être créé que pour un contact dont l'invitation est en statut ACCEPTED.
       required:
         - id
         - firstName
@@ -2764,12 +3055,129 @@ components:
           minimum: 0
           example: 129.99
 
+    # =========================================================================
+    # CONTACT INVITATIONS SCHEMAS
+    # =========================================================================
+
+    InvitationStatus:
+      type: string
+      enum:
+        - PENDING
+        - ACCEPTED
+        - REJECTED
+        - EXPIRED
+      description: |
+        Cycle de vie d'une invitation de contact.
+        `PENDING` → `ACCEPTED` | `REJECTED` | `EXPIRED` (après 30 jours sans réponse)
+
+    ContactInvitation:
+      type: object
+      required:
+        - id
+        - status
+        - senderUser
+        - recipientEmail
+        - createdAt
+        - expiresAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d
+        status:
+          $ref: '#/components/schemas/InvitationStatus'
+        senderUser:
+          type: object
+          required:
+            - id
+            - firstName
+            - lastName
+          properties:
+            id:
+              type: string
+              format: uuid
+            firstName:
+              type: string
+              example: Jean
+            lastName:
+              type: string
+              example: Martin
+        recipientEmail:
+          type: string
+          format: email
+          example: marie.dupont@example.com
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-03-05T10:00:00Z'
+        expiresAt:
+          type: string
+          format: date-time
+          example: '2026-04-04T10:00:00Z'
+        acceptedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+
+    UserSearchResult:
+      type: object
+      required:
+        - id
+        - firstName
+        - lastName
+        - email
+        - alreadyContact
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d
+        firstName:
+          type: string
+          example: Marie
+        lastName:
+          type: string
+          example: Dupont
+        email:
+          type: string
+          format: email
+          example: marie.dupont@example.com
+        alreadyContact:
+          type: boolean
+          description: Vrai si une invitation ACCEPTED existe déjà entre ces deux utilisateurs
+          example: false
+        pendingInvitation:
+          type: boolean
+          description: Vrai si une invitation PENDING existe déjà pour cet utilisateur
+          example: false
+
+    PaginatedContactInvitations:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactInvitation'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PaginatedUserSearchResults:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSearchResult'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
     CreateBorrowerDto:
       type: object
       description: |
-        Ajouter un emprunteur à son carnet de contacts.
-        L'email est obligatoire car il sert d'identifiant pour le lien vers le compte Return.
-        Si l'emprunteur n'a pas encore de compte, une invitation lui sera envoyée.
+        Ajouter un emprunteur à son carnet de contacts (usage interne/legacy).
+        L'email doit correspondre à un utilisateur inscrit.
+        Pour établir une relation de contact avec consentement mutuel, utiliser `POST /contact-invitations`.
       required:
         - firstName
         - lastName

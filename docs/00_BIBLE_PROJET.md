@@ -157,10 +157,15 @@ protégeant les biens de l'utilisateur.
 
 **Emprunteur (Borrower)**
 
-- Définition : Utilisateur à qui l'Objet est prêté
-- Compte obligatoire : L'emprunteur doit disposer d'un compte Return pour recevoir les notifications et interagir avec
-  le prêt
+- Définition : Utilisateur à qui l'Objet est prêté ; doit être un utilisateur inscrit. La relation Contact est établie
+  via une invitation mutuellement acceptée avant tout prêt.
 - Identification : Nom, Profil utilisateur
+
+**Invitation de Contact**
+
+- Définition : Demande envoyée par un prêteur à un utilisateur inscrit pour l'ajouter à son carnet de contacts. Doit
+  être acceptée par le destinataire avant de pouvoir créer un prêt.
+- Statuts : `PENDING` → `ACCEPTED` | `REJECTED` | `EXPIRED`
 
 **Rappel (Reminder)**
 
@@ -211,7 +216,8 @@ protégeant les biens de l'utilisateur.
 - Sélection du type de prêt : Objet physique ou Argent
 - **Objet physique** : Capture photo, saisie du nom et de la catégorie
 - **Argent** : Saisie du montant (obligatoire)
-- Ajout d'Emprunteur (sélection parmi les contacts Return ou invitation à créer un compte)
+- Gestion des Contacts : recherche d'utilisateurs inscrits (email / prénom / nom), envoi d'une invitation,
+  acceptation/refus par le destinataire. Un prêt ne peut être créé que pour un contact dont l'invitation est acceptée.
 - Définition de date de retour ou "indéfinie"
 - Confirmation et création du Prêt
 
@@ -395,6 +401,12 @@ Les questions ouvertes ont été clarifiées avec les réponses suivantes :
 
 - Prévoir dès V1 un champ `subscription_tier` dans le modèle Utilisateur
 - Implémenter des quotas désactivés mais présents en base de code
+
+### Q6 — Consentement pour la relation de contact ✅
+
+**Décision** : Les contacts doivent être des utilisateurs inscrits. La relation Contact est établie via invitation
+acceptée. Si la personne n'est pas inscrite, une notification externe (email/SMS) peut lui être envoyée pour l'inviter
+à s'inscrire (Sprint 5+). Cette décision garantit le consentement explicite de l'emprunteur.
 
 ---
 

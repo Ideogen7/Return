@@ -12,13 +12,14 @@
 
 **Équipe** : 2 Développeurs (Full-Stack)
 **Stratégie** : **Développement parallèle Backend/Frontend avec synchronisations progressives**
-**Durée totale** : **45 jours calendaires** (~8 semaines avec buffers)
-**Livraison MVP estimée** : 45 jours après le début effectif du projet
+**Durée totale** : **54 jours calendaires** (~10 semaines avec buffers)
+**Livraison MVP estimée** : 54 jours après le début effectif du projet
 
-> **Note sur l'estimation** : L'estimation initiale de 30 jours était irréaliste. Les 45 jours incluent
-> 7 sprints de travail effectif (34 jours) + 6 buffers inter-sprints (6 jours) + 5 jours de marge générale
+> **Note sur l'estimation** : L'estimation initiale de 30 jours était irréaliste. Les 54 jours incluent
+> 8 sprints de travail effectif (39 jours) + 7 buffers inter-sprints (7 jours) + 5 jours de marge générale
 > pour absorber le debugging d'intégration, les imprévus techniques (FCM, CI) et les points de synchronisation
-> mock vers réel. Cette estimation est basée sur le retour d'expérience de projets similaires.
+> mock vers réel. Sprint 4.6 ajouté post-Sprint 4.5 pour le système d'invitation de contacts (consentement explicite).
+> Cette estimation est basée sur le retour d'expérience de projets similaires.
 
 **Principes directeurs** :
 
@@ -104,6 +105,14 @@ Sprint 4.5 : Intégration & Corrections Post-Sprint 4 (3 jours)
 
 --- Buffer (1 jour) ---
 
+Sprint 4.6 : Contact Invitation System (5 jours)
++- Backend  : [======] 20% Jour 1 (Schema Prisma) -> [============] 60% Jour 3 -> [====================] 100% Jour 5
+|  +- Livrables : Module ContactInvitations (searchUsers, sendInvitation, accept, reject, list, delete) — 6 endpoints
++- Frontend : [====================] 100% (SearchBorrowerScreen + BorrowerInvitationsScreen + Store Zustand)
+   SYNC POINT : Système d'invitation complet (Backend J34–38 · Frontend J34–38)
+
+--- Buffer (1 jour) ---
+
 Sprint 5 : Reminders automatiques + Notifications (5 jours)
 +- Backend  : [==========] 50% Jour 1-3 -> [====================] 100% Jour 5
 |  +- Livrables : 5 rappels auto (J-3, J, J+7, J+14, J+21) + FCM Push (3 endpoints notifications)
@@ -119,7 +128,7 @@ Sprint 6 : History + Déploiement + Polish (4 jours)
    SYNC POINT FINAL : Frontend 100% Backend réel (Jour 4)
 ```
 
-**Total** : 4 + 1 + 5 + 1 + 4 + 1 + 4 + 1 + 8 + 1 + 3 + 1 + 5 + 1 + 4 = **44 jours** + **5 jours de marge générale** = **49 jours calendaires**
+**Total** : 4 + 1 + 5 + 1 + 4 + 1 + 4 + 1 + 8 + 1 + 3 + 1 + 5 + 1 + 5 + 1 + 4 = **49 jours** + **5 jours de marge générale** = **54 jours calendaires**
 
 > **Utilisation de la marge** : Les 5 jours de marge générale sont reserves à :
 > - Debugging d'intégration entre Backend et Frontend (2 jours)
@@ -141,8 +150,9 @@ Sprint 6 : History + Déploiement + Polish (4 jours)
 | **M3 — Enregistrement Objets (Photos)** | Jour 20    | Upload photos + CRUD Items Frontend vers Backend réel                                                        | Smoke tests : `POST /items` avec type OBJECT retourné 201 ; `POST /items` avec type MONEY retourné 201 ; upload photo vers R2 retourné URL ; `DELETE /items/{id}` avec prêt actif retourné 409              |
 | **M4 — Prêts Fonctionnels**             | Jour 29    | Workflow 8 statuts complet Frontend vers Backend réel                                                        | Smoke tests : créer prêt (PENDING) -> confirmer (ACTIVE) -> retournér (RETURNED) ; créer prêt -> contester (DISPUTED) ; timeout 48h passe en ACTIVE_BY_DEFAULT ; transition invalidé retourné 400           |
 | **M4.5 — Perspective Emprunteur**       | Jour 33    | Emprunteur voit ses prêts + UX adaptée par rôle + Stats profil                                              | Smoke tests : inscription emprunteur → `Borrower.userId` lié ; `GET /loans?role=borrower` retourne les prêts ; onglet "Suivi" renommé ; `LoanCard` affiche le prêteur en mode emprunteur ; `LoanDetailScreen` boutons conditionnels (Confirmer/Contester pour emprunteur, Modifier/Supprimer pour prêteur) ; stats prêteur/emprunteur en profil ; OpenAPI droits documentés |
-| **M5 — Notifications Push**             | Jour 39    | Rappels automatiques et notifications temps réel fonctionnels                                                | Smoke tests : rappel J-3 planifié à la création du prêt ; notification push reçue sur device physique ; `GET /notifications` retourné la liste ; `PATCH /notifications/{id}/read` marque comme lu           |
-| **M6 — MVP Complet**                    | Jour 49    | App complète prete pour déploiement production                                                               | Smoke tests : flow complet register -> créer item -> créer prêt -> confirmer -> retournér -> consulter stats ; déploiement Fly.io OK ; build Expo OK (iOS + Android)                                        |
+| **M4.6 — Contact Invitation System**    | Jour 38    | Système d'invitation mutuelle complet Frontend vers Backend réel                                             | Smoke tests : rechercher un utilisateur existant → résultats ✅ ; inviter un utilisateur → invitation PENDING ✅ ; accepter l'invitation → contact créé chez l'émetteur ✅ ; créer un prêt pour le contact → 201 ✅ ; inviter un utilisateur inexistant → 404 ✅ ; créer un prêt sans contact accepté → 403 ✅ |
+| **M5 — Notifications Push**             | Jour 44    | Rappels automatiques et notifications temps réel fonctionnels                                                | Smoke tests : rappel J-3 planifié à la création du prêt ; notification push reçue sur device physique ; `GET /notifications` retourné la liste ; `PATCH /notifications/{id}/read` marque comme lu           |
+| **M6 — MVP Complet**                    | Jour 54    | App complète prete pour déploiement production                                                               | Smoke tests : flow complet register -> créer item -> créer prêt -> confirmer -> retournér -> consulter stats ; déploiement Fly.io OK ; build Expo OK (iOS + Android)                                        |
 
 ---
 
@@ -253,6 +263,20 @@ SYNC : Perspective emprunteur fonctionnelle bout en bout (fin J3).
 > - Prêteur : créer, voir, modifier, supprimer, marquer rendu, abandonner
 > - Emprunteur : voir ses prêts reçus, confirmer, contester (avec raison) — ne peut PAS modifier/supprimer
 > - Tiers : aucun accès (403)
+
+---
+
+### Sprint 4.6 : Contact Invitation System (5 jours)
+
+| Jour   | Dev 1 (Backend)                                                                                          | Dev 2 (Frontend)                                                                              |
+|--------|----------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| **J1** | Schema Prisma : enum `InvitationStatus` + table `contact_invitations` + contrainte unique + migration    | Type `ContactInvitation` dans `api.types.ts` + `useContactInvitationStore` Zustand + handlers MSW |
+| **J2** | `ContactInvitationsService` : `searchUsers()` + `sendInvitation()` — cas d'erreur 404/409/400 + TDD     | `SearchBorrowerScreen` : barre de recherche, FlatList résultats, `UserSearchResultItem` + bouton "Inviter" |
+| **J3** | `ContactInvitationsService` : `acceptInvitation()` → crée Borrower + émet event · `rejectInvitation()` · `listReceived()` — TDD | `BorrowerInvitationsScreen` : liste PENDING reçues, boutons Accepter/Refuser + badge onglet |
+| **J4** | `ContactInvitationsController` : 6 endpoints + `ContactInvitationListener` + events + Tests Supertest    | Navigation `SearchBorrower` + `BorrowerInvitations` dans `BorrowerStackParamList` + `LoanWizard` step 3 adapté |
+| **J5** | `ContactInvitationsModule` (imports/providers/exports) + tests intégration inter-modules + buffer review  | Tests RNTL complets (8 tests min) + smoke test end-to-end + buffer review                    |
+
+SYNC : Système d'invitation complet bout en bout (fin J5).
 
 ---
 
@@ -488,7 +512,51 @@ const MOCK_MODULES = {
 
 ---
 
-### SYNC 5 : Reminders + Notifications (Fin Sprint 5 — Jour 39)
+### SYNC 4.6 : Contact Invitation System (Fin Sprint 4.6 — Jour 38)
+
+**Backend expose** :
+
+- `POST /v1/contact-invitations/search` — Recherche d'utilisateurs inscrits (email / prénom / nom)
+- `POST /v1/contact-invitations` — Envoyer une invitation à un utilisateur inscrit
+- `GET /v1/contact-invitations` — Lister les invitations reçues (filtre optionnel par statut)
+- `POST /v1/contact-invitations/:id/accept` — Accepter une invitation → crée le contact chez l'émetteur
+- `POST /v1/contact-invitations/:id/reject` — Refuser une invitation
+- `DELETE /v1/contact-invitations/:id` — Annuler une invitation envoyée
+
+**Frontend consomme** :
+
+```typescript
+const MOCK_MODULES = {
+    auth: false,
+    borrowers: false,
+    items: false,
+    loans: false,
+    contactInvitations: false, // Backend réel actif
+    reminders: true,
+    notifications: true,
+    history: true,
+};
+```
+
+- `useContactInvitationStore` (fetchInvitations, sendInvitation, acceptInvitation, rejectInvitation)
+- `SearchBorrowerScreen` : recherche + statut (déjà contact / pending / nouveau)
+- `BorrowerInvitationsScreen` : liste des invitations PENDING reçues
+
+**Smoke tests de validation** :
+
+- [ ] Supertest : `POST /contact-invitations/search` retourné la liste filtrée
+- [ ] Supertest : `POST /contact-invitations` retourné 201 avec statut PENDING
+- [ ] Supertest : `POST /contact-invitations/:id/accept` crée le Borrower chez l'émetteur
+- [ ] Supertest : inviter un utilisateur inexistant → 404
+- [ ] Supertest : s'inviter soi-même → 400
+- [ ] Supertest : double invitation → 409
+- [ ] RNTL : SearchBorrowerScreen affiche badge "Inviter" / "En attente" / "Contact"
+- [ ] RNTL : BorrowerInvitationsScreen boutons Accepter/Refuser fonctionnels
+- [ ] Test manuel : prêteur invite → emprunteur accepte → contact créé → prêt possible
+
+---
+
+### SYNC 5 : Reminders + Notifications (Fin Sprint 5 — Jour 44)
 
 **Backend disponible** :
 
@@ -530,7 +598,7 @@ const MOCK_MODULES = {
 
 ---
 
-### SYNC FINAL : History + Déploiement (Fin Sprint 6 — Jour 45)
+### SYNC FINAL : History + Déploiement (Fin Sprint 6 — Jour 54)
 
 **Backend disponible** :
 
@@ -578,6 +646,7 @@ const MOCK_MODULES = {
 | **Migration Prisma échoue en prod**      | Faible      | Eleve  | Testcontainers pour valider les migrations en CI. Tester chaque migration sur une copie de la DB avant application en prod                                                                                                                | Dev 1       |
 | **Timeout CRON Job (48h) non déclenché** | Faible      | Moyen  | Tests unitaires avec fake clock (Jest `jest.useFakeTimers()`), logs BullMQ détaillés                                                                                                                                                      | Dev 1       |
 | **Build Expo échoue (iOS/Android)**      | Moyenne     | Moyen  | Tester les builds EAS regulierement (pas seulement au Sprint 6). Première tentative de build au Sprint 3 au plus tard                                                                                                                     | Dev 2       |
+| **Friction onboarding (invitation)**     | Moyenne     | Moyen  | La personne doit être inscrite avant d'être invitée. Message clair dans l'UI + invitation email externe en Sprint 5+                                                                                                                      | Dev 1 & 2   |
 
 ---
 
@@ -639,6 +708,7 @@ const MOCK_MODULES = {
 
 | Feature                                   | Priorite | Complexite | Sprint Estime      | Notes                                                                                  |
 |-------------------------------------------|----------|------------|--------------------|----------------------------------------------------------------------------------------|
+| **Invitation par email (non-inscrits)**   | Haute    | Moyenne    | Sprint 5+ (3j)     | Invitation email externe pour utilisateurs non-inscrits (onboarding externe). Atténue la friction du système d'invitation V1 |
 | **OCR (Google Cloud Vision)**             | Haute    | Moyenne    | Sprint 7 (3j)      | Reconnaissance automatique d'objets via photo. Reporte de V1 pour reduire le scope MVP |
 | **Email Notifications** (en plus de push) | Haute    | Moyenne    | Sprint 8 (3j)      | Resend ou SendGrid                                                                     |
 | **Rappels Manuels**                       | Moyenne  | Faible     | Sprint 8 (2j)      | Permettre au prêteur d'envoyer un rappel manuel en plus des 5 automatiques             |
@@ -657,28 +727,29 @@ const MOCK_MODULES = {
 
 ---
 
-## Calendrier Récapitulatif (49 jours ~ 9 semaines)
+## Calendrier Récapitulatif (54 jours ~ 11 semaines)
 
-| Semaine       | Sprints                                    | Modules Livres                                                                  | SYNC Points                               |
-|---------------|--------------------------------------------|---------------------------------------------------------------------------------|-------------------------------------------|
-| **Semaine 1** | Sprint 0 (4j) + buffer (1j)               | Setup complet (NestJS, Expo, CI/CD, i18n, Mock Server, Redis blacklist, Docker) | —                                         |
-| **Semaine 2** | Sprint 1 (5j)                              | Auth + Users                                                                    | SYNC Auth (J10)                           |
-| **Semaine 3** | Buffer (1j) + Sprint 2 (4j)               | Borrowers                                                                       | SYNC Borrowers (J15)                      |
-| **Semaine 4** | Buffer (1j) + Sprint 3 (4j)               | Items + Photos R2                                                               | SYNC Items (J20)                          |
-| **Semaine 5** | Buffer (1j) + Sprint 4 début (4j)         | Loans (coeur métier) — partie 1                                                 | M-CHECK : checkpoint mi-parcours (J20-22) |
-| **Semaine 6** | Sprint 4 fin (4j) + buffer (1j)           | Loans complet                                                                   | SYNC Loans (J29)                          |
-| **Semaine 7** | Sprint 4.5 (3j) + buffer (1j)             | Corrections intégration + Perspective emprunteur + UX                           | SYNC 4.5 Emprunteur (J33)                |
-| **Semaine 8** | Sprint 5 (5j)                              | Reminders automatiques + Notifications Push                                     | SYNC Reminders (J39)                      |
-| **Semaine 9** | Buffer (1j) + Sprint 6 (4j)               | History + Dashboard + Polish + Déploiement                                      | SYNC FINAL (J49)                          |
+| Semaine        | Sprints                                    | Modules Livres                                                                  | SYNC Points                               |
+|----------------|--------------------------------------------|---------------------------------------------------------------------------------|-------------------------------------------|
+| **Semaine 1**  | Sprint 0 (4j) + buffer (1j)               | Setup complet (NestJS, Expo, CI/CD, i18n, Mock Server, Redis blacklist, Docker) | —                                         |
+| **Semaine 2**  | Sprint 1 (5j)                              | Auth + Users                                                                    | SYNC Auth (J10)                           |
+| **Semaine 3**  | Buffer (1j) + Sprint 2 (4j)               | Borrowers                                                                       | SYNC Borrowers (J15)                      |
+| **Semaine 4**  | Buffer (1j) + Sprint 3 (4j)               | Items + Photos R2                                                               | SYNC Items (J20)                          |
+| **Semaine 5**  | Buffer (1j) + Sprint 4 début (4j)         | Loans (coeur métier) — partie 1                                                 | M-CHECK : checkpoint mi-parcours (J20-22) |
+| **Semaine 6**  | Sprint 4 fin (4j) + buffer (1j)           | Loans complet                                                                   | SYNC Loans (J29)                          |
+| **Semaine 7**  | Sprint 4.5 (3j) + buffer (1j)             | Corrections intégration + Perspective emprunteur + UX                           | SYNC 4.5 Emprunteur (J33)                 |
+| **Semaine 8**  | Sprint 4.6 (5j) + buffer (1j)             | Contact Invitation System                                                       | SYNC 4.6 Invitations (J38)                |
+| **Semaine 9**  | Sprint 5 (5j)                              | Reminders automatiques + Notifications Push                                     | SYNC Reminders (J44)                      |
+| **Semaine 10** | Buffer (1j) + Sprint 6 (4j)               | History + Dashboard + Polish + Déploiement                                      | SYNC FINAL (J54)                          |
 
 ---
 
-**Date de Livraison MVP** : Jour 49 après le début effectif du projet
+**Date de Livraison MVP** : Jour 54 après le début effectif du projet
 **First Public Release** : ~2 semaines après le MVP (TestFlight iOS + Google Play Beta — prevoir les allers-retours avec
 les stores)
 
 ---
 
 **Co-validé par** : Esdras GBEDOZIN & Ismael AIHOU
-**Date de dernière mise à jour** : 3 mars 2026
-**Version** : 1.2 — Post-intégration Sprint 4 (ajout Sprint 4.5)
+**Date de dernière mise à jour** : 5 mars 2026
+**Version** : 1.3 — Ajout Sprint 4.6 (Contact Invitation System)

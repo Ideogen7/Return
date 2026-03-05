@@ -494,6 +494,65 @@ statistiques emprunteur en profil, MSW handlers perspective-aware), couverte par
 
 ---
 
+## Sprint 4.6 : Contact Invitation System (5 jours)
+
+### Objectif
+
+Implémenter le système d'invitation de contacts côté frontend : un prêteur peut chercher des utilisateurs inscrits,
+leur envoyer une invitation, et l'emprunteur peut l'accepter ou la refuser. Le `LoanWizard` est adapté pour n'autoriser
+que les contacts avec invitation ACCEPTED comme emprunteur.
+
+### Phase 4.6.1 : Store + Types + MSW (Jour 1)
+
+| ID             | Titre                                                                                           | Dépendance  | Critère de Fin                                               | Temps |
+|----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
+| **CINV-F001**  | Ajouter type `ContactInvitation` et `UserSearchResult` dans `api.types.ts`                      | -           | Types exportés, `InvitationStatus` enum inclus               | 30min |
+| **CINV-F002**  | Créer `useContactInvitationStore` Zustand : `fetchInvitations`, `sendInvitation`, `acceptInvitation`, `rejectInvitation`, `cancelInvitation` | CINV-F001 | Store créé avec actions async try/catch | 1h30  |
+| **CINV-F003**  | Créer MSW handlers pour les 6 endpoints `/contact-invitations/*`                                | CINV-F001   | Handlers ajoutés dans `handlers.ts`, mock opérationnel       | 1h    |
+| **CINV-F004**  | Tests unitaires `useContactInvitationStore` (fetch, send, accept, reject)                       | CINV-F002   | 4 tests RNTL passent                                         | 1h30  |
+
+### Phase 4.6.2 : SearchBorrowerScreen (Jour 2)
+
+| ID             | Titre                                                                                           | Dépendance  | Critère de Fin                                               | Temps |
+|----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
+| **CINV-F005**  | Créer `SearchBorrowerScreen` : barre de recherche (email / prénom / nom) + FlatList résultats   | CINV-F002   | Écran affiché, recherche déclenche l'action                  | 1h30  |
+| **CINV-F006**  | Créer composant `UserSearchResultItem` : affiche nom + email + badge (déjà contact / pending / nouveau) | CINV-F005 | Badges corrects selon le statut de la relation            | 1h    |
+| **CINV-F007**  | Bouton "Inviter" dans `UserSearchResultItem` → appelle `sendInvitation()` → badge passe à "En attente" | CINV-F006 | Invitation envoyée, badge mis à jour sans re-fetch            | 1h    |
+
+### Phase 4.6.3 : BorrowerInvitationsScreen (Jour 3)
+
+| ID             | Titre                                                                                           | Dépendance  | Critère de Fin                                               | Temps |
+|----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
+| **CINV-F008**  | Créer `BorrowerInvitationsScreen` : liste des invitations PENDING reçues (nom prêteur, date)    | CINV-F002   | Écran affiche les invitations                                | 1h    |
+| **CINV-F009**  | Bouton "Accepter" → `acceptInvitation()` → invitation disparaît de la liste                     | CINV-F008   | Contact créé, liste mise à jour                              | 1h    |
+| **CINV-F010**  | Bouton "Refuser" → `rejectInvitation()` → invitation disparaît de la liste                      | CINV-F008   | Invitation rejetée, liste mise à jour                        | 30min |
+| **CINV-F011**  | Badge numérique sur l'onglet Contacts indiquant le nombre d'invitations PENDING reçues           | CINV-F008   | Badge visible dans la tab bar                                | 1h    |
+
+### Phase 4.6.4 : Navigation + Intégration LoanWizard (Jour 4)
+
+| ID             | Titre                                                                                           | Dépendance  | Critère de Fin                                               | Temps |
+|----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
+| **CINV-F012**  | Ajouter `SearchBorrower` et `BorrowerInvitations` dans `BorrowerStackParamList`                 | CINV-F005   | Navigation typée mise à jour                                 | 30min |
+| **CINV-F013**  | `BorrowerListScreen` : bouton "+" navigue vers `SearchBorrowerScreen`                           | CINV-F012   | Navigation fonctionne                                        | 30min |
+| **CINV-F014**  | `LoanWizard` step 3 (sélection emprunteur) : remplacer création inline par `SearchBorrowerScreen` filtré (contacts ACCEPTED uniquement) | CINV-F012 | Seuls les contacts acceptés sont sélectionnables           | 1h30  |
+| **CINV-F015**  | Gérer le cas "aucun contact accepté" dans `LoanWizard` : message + lien vers `SearchBorrowerScreen` | CINV-F014 | Message clair si liste vide                                  | 30min |
+
+### Phase 4.6.5 : Tests RNTL + Buffer (Jour 5)
+
+| ID             | Titre                                                                                           | Dépendance      | Critère de Fin                                               | Temps |
+|----------------|-------------------------------------------------------------------------------------------------|-----------------|--------------------------------------------------------------|-------|
+| **CINV-F016**  | Test RNTL : `SearchBorrowerScreen` — recherche, affichage résultats, badge statut               | CINV-F006       | Test passe                                                   | 1h    |
+| **CINV-F017**  | Test RNTL : `SearchBorrowerScreen` — bouton "Inviter" met à jour le badge en "En attente"       | CINV-F007       | Test passe                                                   | 45min |
+| **CINV-F018**  | Test RNTL : `BorrowerInvitationsScreen` — affichage liste, acceptation, refus                   | CINV-F009       | Test passe                                                   | 1h    |
+| **CINV-F019**  | Test RNTL : `LoanWizard` — step 3 n'affiche que les contacts ACCEPTED                           | CINV-F014       | Test passe                                                   | 1h    |
+| **CINV-F020**  | Smoke test end-to-end (mock) : inviter → accepter → créer prêt pour le contact                  | tous            | Flow complet fonctionne                                      | 1h    |
+| **CINV-F021**  | Buffer review + fix bugs + vérification que les 150+ tests existants passent toujours            | CINV-F016..F020 | `npx jest --verbose` : 0 échecs                              | 1h30  |
+
+📦 **Livrable Sprint 4.6** : **Contact Invitation System** (store Zustand + MSW handlers + `SearchBorrowerScreen` +
+`BorrowerInvitationsScreen` + navigation intégrée + `LoanWizard` adapté), couvert par 8+ tests RNTL.
+
+---
+
 ## Sprint 5 : Module Notifications (5 jours)
 
 ### Objectif
@@ -656,6 +715,7 @@ export const API_BASE_URL = (endpoint: string): string => {
 | **Sprint 3**     | 4 jours      | Items (Photos)                        | 4 (List, Create, Detail, Edit)                                                     | 2 tests       |
 | **Sprint 4**     | 8 jours      | Avatar + Loans                        | 5 (List, Create, Detail, Confirm, Return) + avatar profil                          | 4+3+3 tests   |
 | **Sprint 4.5**   | 3 jours      | Corrections intégration + UX          | 0 (refactoring LoanListScreen + LoanDetailScreen adaptatif + LoanCard perspective + BorrowerStats + renommage onglet + MSW handlers) | 8 tests       |
+| **Sprint 4.6**   | 5 jours      | Contact Invitation System             | 2 (SearchBorrowerScreen + BorrowerInvitationsScreen) + navigation adaptée          | 8+ tests      |
 | **Sprint 5**     | 5 jours      | Notifications                         | 1 (NotificationList) + header badge                                                | 2 tests       |
 | **Sprint 6**     | 4 jours      | Dashboard + History                   | 3 (Dashboard, History, Statistics)                                                 | 1 test        |
 | **TOTAL**        | **41-45 j.** | **7 modules + 1 correctif**          | **24 écrans**                                                                      | **22+ tests** |
@@ -671,6 +731,7 @@ export const API_BASE_URL = (endpoint: string): string => {
 | **Fin Sprint 3 Backend**   | Items réel (Photos + R2)             | `/items/*`                                                 |
 | **Fin Sprint 4 Backend**   | Loans réel (workflow complet)        | `/loans/*`                                                 |
 | **Fin Sprint 4.5 Backend** | Perspective emprunteur fonctionnelle | `Borrower.userId` lié + `GET /loans?role=borrower` correct |
+| **Fin Sprint 4.6 Backend** | Système d'invitation de contacts     | `/contact-invitations/*` — 6 endpoints + consentement explicite |
 | **Fin Sprint 5 Backend**   | Notifications réelles (FCM)          | `/reminders/*` + `/notifications/*`                        |
 | **Fin Sprint 6 Backend**   | History + Déploiement réel           | `/history/*` + `/borrowers/{id}/loans`                     |
 
@@ -691,5 +752,5 @@ A valider avant de passer au sprint suivant :
 ---
 
 **Co-validé par** : Esdras GBEDOZIN & Ismael AIHOU
-**Date de dernière mise à jour** : 3 mars 2026
-**Version** : 1.2 — Post-intégration Sprint 4 (ajout Sprint 4.5)
+**Date de dernière mise à jour** : 5 mars 2026
+**Version** : 1.3 — Ajout Sprint 4.6 (Contact Invitation System)
