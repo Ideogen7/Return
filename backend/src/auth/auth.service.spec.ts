@@ -6,6 +6,7 @@ import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RedisService } from '../redis/redis.service.js';
 import { AuthService } from './auth.service.js';
+import { USER_EVENTS } from '../common/events/user.events.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { UserRole } from '@prisma/client';
@@ -256,7 +257,7 @@ describe('AuthService', () => {
       await service.register(REGISTER_DTO);
 
       // Assert — Événement métier émis pour découplage inter-modules (OCP)
-      expect(eventEmitter.emit).toHaveBeenCalledWith('user.registered', {
+      expect(eventEmitter.emit).toHaveBeenCalledWith(USER_EVENTS.REGISTERED, {
         userId: MOCK_USER.id,
         email: MOCK_USER.email,
       });
@@ -371,7 +372,7 @@ describe('AuthService', () => {
       await service.login(LOGIN_DTO);
 
       // Assert — Événement métier émis pour découplage inter-modules (OCP)
-      expect(eventEmitter.emit).toHaveBeenCalledWith('user.logged-in', {
+      expect(eventEmitter.emit).toHaveBeenCalledWith(USER_EVENTS.LOGGED_IN, {
         userId: MOCK_USER.id,
       });
     });

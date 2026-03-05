@@ -153,8 +153,15 @@ export class LoansService {
 
     if (query.role === 'borrower') {
       where.borrower = { userId };
+      // Per the OpenAPI contract, borrowerId is ignored when role=borrower:
+      // the current user is already the borrower, so no additional borrower filter is applied.
     } else {
       where.lenderId = userId;
+
+      // borrowerId filter is only honored in the lender perspective (role=lender).
+      if (borrowerId) {
+        where.borrowerId = borrowerId;
+      }
     }
 
     // Status filter
@@ -163,10 +170,6 @@ export class LoansService {
     } else if (!includeArchived) {
       // By default, exclude archived statuses
       where.status = { notIn: ARCHIVED_STATUSES };
-    }
-
-    if (borrowerId) {
-      where.borrowerId = borrowerId;
     }
 
     const [loans, totalItems] = await Promise.all([

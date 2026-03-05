@@ -7,6 +7,7 @@ import * as bcrypt from 'bcrypt';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RedisService } from '../redis/redis.service.js';
+import { USER_EVENTS } from '../common/events/user.events.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import {
@@ -97,7 +98,7 @@ export class AuthService {
 
     // Événement métier (découplage inter-modules — SRP/OCP)
     // Les listeners (notifications, analytics...) seront ajoutés dans les sprints suivants
-    this.eventEmitter.emit('user.registered', {
+    this.eventEmitter.emit(USER_EVENTS.REGISTERED, {
       userId: user.id,
       email: user.email,
     });
@@ -158,7 +159,7 @@ export class AuthService {
     this.logger.log(`User logged in: ${updatedUser.id}`);
 
     // Événement métier (découplage inter-modules)
-    this.eventEmitter.emit('user.logged-in', { userId: updatedUser.id });
+    this.eventEmitter.emit(USER_EVENTS.LOGGED_IN, { userId: updatedUser.id });
 
     // 4-5. Tokens + réponse
     const tokens = await this.generateTokenPair(
