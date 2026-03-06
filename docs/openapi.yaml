@@ -337,7 +337,8 @@ paths:
         - Loans
       summary: Créer un nouveau prêt
       description: |
-        Créer un prêt avec un objet (existant ou nouveau) et un emprunteur.
+        Créer un prêt avec un objet (existant ou nouveau) et un emprunteur existant (UUID).
+        L'emprunteur doit être un contact avec invitation ACCEPTED (sinon 403).
         Le statut initial est toujours PENDING_CONFIRMATION.
         Une notification de confirmation est automatiquement envoyée à l'emprunteur.
       operationId: createLoan
@@ -348,29 +349,22 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateLoanDto'
             examples:
-              newItemAndBorrower:
-                summary: Nouvel objet + nouvel emprunteur
+              newItemExistingBorrower:
+                summary: Nouvel objet + contact existant (ACCEPTED)
                 value:
                   item:
                     name: Perceuse Bosch PSB 1800
                     description: Perceuse-visseuse sans fil 18V
                     category: TOOLS
                     estimatedValue: 129.99
-                  borrower:
-                    firstName: Marie
-                    lastName: Dupont
-                    email: marie.dupont@example.com
-                    phoneNumber: '+33612345678'
+                  borrowerId: 5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
                   returnDate: '2026-03-15'
                   notes: 'Avec 2 batteries et chargeur'
-              existingBorrower:
-                summary: Nouvel objet + emprunteur existant
+              existingItemExistingBorrower:
+                summary: Objet existant + contact existant
                 value:
-                  item:
-                    name: 'Livre : Clean Code'
-                    category: BOOKS
-                    estimatedValue: 35.00
-                  borrower: 5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
+                  item: 8a9b0c1d-2e3f-4a5b-6c7d-8e9f0a1b2c3d
+                  borrowerId: 5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
                   returnDate: '2026-03-01'
               moneyLoan:
                 summary: Prêt d'argent
@@ -379,10 +373,7 @@ paths:
                     name: Prêt personnel
                     category: MONEY
                     estimatedValue: 500.00
-                  borrower:
-                    firstName: Paul
-                    lastName: Martin
-                    email: paul.martin@example.com
+                  borrowerId: 7c8d9e0f-1a2b-3c4d-5e6f-7a8b9c0d1e2f
                   returnDate: '2026-04-15'
                   notes: 'Remboursement prévu fin avril'
       responses:
@@ -425,17 +416,28 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          description: L'objet ou l'emprunteur référencé appartient à un autre utilisateur
+          description: Accès interdit — ownership ou contact non accepté
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
-              example:
-                type: https://api.return.app/errors/forbidden
-                title: Forbidden
-                status: 403
-                detail: This item belongs to another user.
-                instance: /v1/loans
+              examples:
+                ownershipViolation:
+                  summary: L'objet ou l'emprunteur appartient à un autre utilisateur
+                  value:
+                    type: https://api.return.app/errors/forbidden
+                    title: Forbidden
+                    status: 403
+                    detail: This item belongs to another user.
+                    instance: /v1/loans
+                contactNotAccepted:
+                  summary: Contact sans invitation acceptée
+                  value:
+                    type: https://api.return.app/errors/contact-not-accepted
+                    title: Contact Not Accepted
+                    status: 403
+                    detail: You can only create a loan for a contact with an ACCEPTED invitation.
+                    instance: /v1/loans
         '404':
           description: L'objet ou l'emprunteur référencé par UUID n'existe pas
           content:
@@ -1474,12 +1476,24 @@ paths:
     get:
       tags:
         - ContactInvitations
-      summary: Lister les invitations reçues
+      summary: Lister les invitations (reçues ou envoyées)
       description: |
-        Retourne la liste des invitations reçues par l'utilisateur connecté.
-        Filtrable par statut. Utilisé par l'emprunteur pour voir et traiter ses invitations.
-      operationId: listReceivedInvitations
+        Retourne la liste des invitations de l'utilisateur connecté.
+        Utiliser `direction=received` (défaut) pour les invitations reçues (perspective emprunteur),
+        ou `direction=sent` pour les invitations envoyées (perspective prêteur).
+        Filtrable par statut.
+      operationId: listInvitations
       parameters:
+        - name: direction
+          in: query
+          required: false
+          description: Direction des invitations à lister
+          schema:
+            type: string
+            enum:
+              - sent
+              - received
+            default: received
         - name: status
           in: query
           required: false
@@ -1499,7 +1513,7 @@ paths:
             maximum: 50
       responses:
         '200':
-          description: Liste des invitations reçues
+          description: Liste des invitations (reçues ou envoyées)
           content:
             application/json:
               schema:
@@ -3004,7 +3018,7 @@ components:
       type: object
       required:
         - item
-        - borrower
+        - borrowerId
       properties:
         item:
           oneOf:
@@ -3012,12 +3026,13 @@ components:
             - type: string
               format: uuid
               description: ID d'un objet existant
-        borrower:
-          oneOf:
-            - $ref: '#/components/schemas/CreateBorrowerDto'
-            - type: string
-              format: uuid
-              description: ID d'un emprunteur existant
+        borrowerId:
+          type: string
+          format: uuid
+          description: |
+            ID d'un emprunteur existant (contact avec invitation ACCEPTED).
+            La création inline de Borrower n'est plus supportée — utiliser le
+            système d'invitation (`POST /contact-invitations`) pour établir un contact.
         returnDate:
           type: string
           format: date
@@ -3077,6 +3092,7 @@ components:
         - status
         - senderUser
         - recipientEmail
+        - recipientUser
         - createdAt
         - expiresAt
       properties:
@@ -3106,6 +3122,23 @@ components:
           type: string
           format: email
           example: marie.dupont@example.com
+        recipientUser:
+          type: object
+          description: Informations du destinataire (toujours renseigné car le destinataire doit être inscrit)
+          required:
+            - id
+            - firstName
+            - lastName
+          properties:
+            id:
+              type: string
+              format: uuid
+            firstName:
+              type: string
+              example: Marie
+            lastName:
+              type: string
+              example: Dupont
         createdAt:
           type: string
           format: date-time
@@ -3115,6 +3148,11 @@ components:
           format: date-time
           example: '2026-04-04T10:00:00Z'
         acceptedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        rejectedAt:
           type: string
           format: date-time
           nullable: true
@@ -3151,6 +3189,12 @@ components:
           type: boolean
           description: Vrai si une invitation PENDING existe déjà pour cet utilisateur
           example: false
+        pendingInvitationId:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID de l'invitation PENDING existante (null si aucune invitation en cours). Permet d'annuler l'invitation via DELETE.
+          example: null
 
     PaginatedContactInvitations:
       type: object
@@ -3174,10 +3218,12 @@ components:
 
     CreateBorrowerDto:
       type: object
+      deprecated: true
       description: |
-        Ajouter un emprunteur à son carnet de contacts (usage interne/legacy).
-        L'email doit correspondre à un utilisateur inscrit.
-        Pour établir une relation de contact avec consentement mutuel, utiliser `POST /contact-invitations`.
+        **Déprécié** — Utiliser le système d'invitation (`POST /contact-invitations`) pour établir
+        une relation de contact avec consentement mutuel.
+        Ce DTO est conservé pour compatibilité interne. La création de Borrower se fait désormais
+        automatiquement lors de l'acceptation d'une invitation (`POST /contact-invitations/{id}/accept`).
       required:
         - firstName
         - lastName

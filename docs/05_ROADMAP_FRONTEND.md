@@ -506,10 +506,10 @@ que les contacts avec invitation ACCEPTED comme emprunteur.
 
 | ID             | Titre                                                                                           | Dépendance  | Critère de Fin                                               | Temps |
 |----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
-| **CINV-F001**  | Ajouter type `ContactInvitation` et `UserSearchResult` dans `api.types.ts`                      | -           | Types exportés, `InvitationStatus` enum inclus               | 30min |
-| **CINV-F002**  | Créer `useContactInvitationStore` Zustand : `fetchInvitations`, `sendInvitation`, `acceptInvitation`, `rejectInvitation`, `cancelInvitation` | CINV-F001 | Store créé avec actions async try/catch | 1h30  |
-| **CINV-F003**  | Créer MSW handlers pour les 6 endpoints `/contact-invitations/*`                                | CINV-F001   | Handlers ajoutés dans `handlers.ts`, mock opérationnel       | 1h    |
-| **CINV-F004**  | Tests unitaires `useContactInvitationStore` (fetch, send, accept, reject)                       | CINV-F002   | 4 tests RNTL passent                                         | 1h30  |
+| **CINV-F001**  | Ajouter type `ContactInvitation` (avec `recipientUser`, `rejectedAt`) et `UserSearchResult` (avec `pendingInvitationId`) dans `api.types.ts` | - | Types exportés, `InvitationStatus` enum inclus | 30min |
+| **CINV-F002**  | Créer `useContactInvitationStore` Zustand : `fetchReceivedInvitations`, `fetchSentInvitations`, `sendInvitation`, `acceptInvitation`, `rejectInvitation`, `cancelInvitation` | CINV-F001 | Store créé avec actions async try/catch, direction param supporté | 1h30  |
+| **CINV-F003**  | Créer MSW handlers pour les 7 endpoints `/contact-invitations/*` (incl. `?direction=sent`)               | CINV-F001   | Handlers ajoutés dans `handlers.ts`, mock opérationnel       | 1h    |
+| **CINV-F004**  | Tests unitaires `useContactInvitationStore` (fetch received, fetch sent, send, accept, reject, cancel)  | CINV-F002   | 6 tests RNTL passent                                         | 1h30  |
 
 ### Phase 4.6.2 : SearchBorrowerScreen (Jour 2)
 
@@ -517,24 +517,25 @@ que les contacts avec invitation ACCEPTED comme emprunteur.
 |----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
 | **CINV-F005**  | Créer `SearchBorrowerScreen` : barre de recherche (email / prénom / nom) + FlatList résultats   | CINV-F002   | Écran affiché, recherche déclenche l'action                  | 1h30  |
 | **CINV-F006**  | Créer composant `UserSearchResultItem` : affiche nom + email + badge (déjà contact / pending / nouveau) | CINV-F005 | Badges corrects selon le statut de la relation            | 1h    |
-| **CINV-F007**  | Bouton "Inviter" dans `UserSearchResultItem` → appelle `sendInvitation()` → badge passe à "En attente" | CINV-F006 | Invitation envoyée, badge mis à jour sans re-fetch            | 1h    |
+| **CINV-F007**  | Bouton "Inviter" dans `UserSearchResultItem` → appelle `sendInvitation()` → badge passe à "En attente" ; bouton "Annuler" si `pendingInvitationId` présent → appelle `cancelInvitation(pendingInvitationId)` | CINV-F006 | Invitation envoyée/annulée, badge mis à jour sans re-fetch | 1h    |
 
-### Phase 4.6.3 : BorrowerInvitationsScreen (Jour 3)
+### Phase 4.6.3 : BorrowerInvitationsScreen + SentInvitationsScreen (Jour 3)
 
 | ID             | Titre                                                                                           | Dépendance  | Critère de Fin                                               | Temps |
 |----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
 | **CINV-F008**  | Créer `BorrowerInvitationsScreen` : liste des invitations PENDING reçues (nom prêteur, date)    | CINV-F002   | Écran affiche les invitations                                | 1h    |
 | **CINV-F009**  | Bouton "Accepter" → `acceptInvitation()` → invitation disparaît de la liste                     | CINV-F008   | Contact créé, liste mise à jour                              | 1h    |
 | **CINV-F010**  | Bouton "Refuser" → `rejectInvitation()` → invitation disparaît de la liste                      | CINV-F008   | Invitation rejetée, liste mise à jour                        | 30min |
+| **CINV-F010b** | Créer `SentInvitationsScreen` : liste des invitations envoyées par le prêteur (`?direction=sent`) avec statut (PENDING/ACCEPTED/REJECTED/EXPIRED) + bouton "Annuler" pour les PENDING | CINV-F002 | Écran affiche les invitations envoyées, annulation fonctionne | 1h30  |
 | **CINV-F011**  | Badge numérique sur l'onglet Contacts indiquant le nombre d'invitations PENDING reçues           | CINV-F008   | Badge visible dans la tab bar                                | 1h    |
 
 ### Phase 4.6.4 : Navigation + Intégration LoanWizard (Jour 4)
 
 | ID             | Titre                                                                                           | Dépendance  | Critère de Fin                                               | Temps |
 |----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
-| **CINV-F012**  | Ajouter `SearchBorrower` et `BorrowerInvitations` dans `BorrowerStackParamList`                 | CINV-F005   | Navigation typée mise à jour                                 | 30min |
-| **CINV-F013**  | `BorrowerListScreen` : bouton "+" navigue vers `SearchBorrowerScreen`                           | CINV-F012   | Navigation fonctionne                                        | 30min |
-| **CINV-F014**  | `LoanWizard` step 3 (sélection emprunteur) : remplacer création inline par `SearchBorrowerScreen` filtré (contacts ACCEPTED uniquement) | CINV-F012 | Seuls les contacts acceptés sont sélectionnables           | 1h30  |
+| **CINV-F012**  | Ajouter `SearchBorrower`, `BorrowerInvitations`, et `SentInvitations` dans `BorrowerStackParamList` | CINV-F005 | Navigation typée mise à jour                                 | 30min |
+| **CINV-F013**  | `BorrowerListScreen` : bouton "+" navigue vers `SearchBorrowerScreen` + lien "Invitations envoyées" vers `SentInvitationsScreen` | CINV-F012 | Navigation fonctionne | 30min |
+| **CINV-F014**  | `LoanWizard` step 3 (sélection emprunteur) : sélection par UUID uniquement parmi contacts ACCEPTED. Plus de création inline de borrower | CINV-F012 | Seuls les contacts acceptés sont sélectionnables, `borrowerId` UUID envoyé | 1h30  |
 | **CINV-F015**  | Gérer le cas "aucun contact accepté" dans `LoanWizard` : message + lien vers `SearchBorrowerScreen` | CINV-F014 | Message clair si liste vide                                  | 30min |
 
 ### Phase 4.6.5 : Tests RNTL + Buffer (Jour 5)
@@ -542,14 +543,16 @@ que les contacts avec invitation ACCEPTED comme emprunteur.
 | ID             | Titre                                                                                           | Dépendance      | Critère de Fin                                               | Temps |
 |----------------|-------------------------------------------------------------------------------------------------|-----------------|--------------------------------------------------------------|-------|
 | **CINV-F016**  | Test RNTL : `SearchBorrowerScreen` — recherche, affichage résultats, badge statut               | CINV-F006       | Test passe                                                   | 1h    |
-| **CINV-F017**  | Test RNTL : `SearchBorrowerScreen` — bouton "Inviter" met à jour le badge en "En attente"       | CINV-F007       | Test passe                                                   | 45min |
+| **CINV-F017**  | Test RNTL : `SearchBorrowerScreen` — bouton "Inviter" met à jour le badge en "En attente" ; bouton "Annuler" avec `pendingInvitationId` | CINV-F007 | Test passe | 45min |
 | **CINV-F018**  | Test RNTL : `BorrowerInvitationsScreen` — affichage liste, acceptation, refus                   | CINV-F009       | Test passe                                                   | 1h    |
-| **CINV-F019**  | Test RNTL : `LoanWizard` — step 3 n'affiche que les contacts ACCEPTED                           | CINV-F014       | Test passe                                                   | 1h    |
+| **CINV-F018b** | Test RNTL : `SentInvitationsScreen` — affichage liste envoyée, annulation d'une invitation PENDING | CINV-F010b | Test passe | 1h    |
+| **CINV-F019**  | Test RNTL : `LoanWizard` — step 3 n'affiche que les contacts ACCEPTED, envoie `borrowerId` UUID | CINV-F014 | Test passe | 1h    |
 | **CINV-F020**  | Smoke test end-to-end (mock) : inviter → accepter → créer prêt pour le contact                  | tous            | Flow complet fonctionne                                      | 1h    |
 | **CINV-F021**  | Buffer review + fix bugs + vérification que les 150+ tests existants passent toujours            | CINV-F016..F020 | `npx jest --verbose` : 0 échecs                              | 1h30  |
 
 📦 **Livrable Sprint 4.6** : **Contact Invitation System** (store Zustand + MSW handlers + `SearchBorrowerScreen` +
-`BorrowerInvitationsScreen` + navigation intégrée + `LoanWizard` adapté), couvert par 8+ tests RNTL.
+`BorrowerInvitationsScreen` + `SentInvitationsScreen` + navigation intégrée + `LoanWizard` adapté `borrowerId` UUID only),
+couvert par 10+ tests RNTL.
 
 ---
 
