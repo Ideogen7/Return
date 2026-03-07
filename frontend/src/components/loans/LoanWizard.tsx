@@ -12,13 +12,13 @@ import {
 } from 'react-native-paper';
 import { DatePickerInput } from 'react-native-paper-dates';
 import { useTranslation } from 'react-i18next';
+import { useNavigation } from '@react-navigation/native';
 import i18n from '../../config/i18n.config';
 import { ui } from '../../config/theme.config';
 import { useItemStore } from '../../stores/useItemStore';
 import { useBorrowerStore } from '../../stores/useBorrowerStore';
 import { ItemForm } from '../items/ItemForm';
-import { BorrowerForm } from '../borrowers/BorrowerForm';
-import type { CreateLoanDto, CreateItemDto, CreateBorrowerDto } from '../../types/api.types';
+import type { CreateLoanDto, CreateItemDto } from '../../types/api.types';
 
 type LoanType = 'OBJECT' | 'MONEY';
 
@@ -30,6 +30,7 @@ interface LoanWizardProps {
 
 export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
   const { t } = useTranslation();
+  const navigation = useNavigation();
   const { items } = useItemStore();
   const { borrowers } = useBorrowerStore();
 
@@ -45,10 +46,6 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
   const [showItemDialog, setShowItemDialog] = useState(false);
   const [itemDialogLoading, setItemDialogLoading] = useState(false);
   const [itemDialogError, setItemDialogError] = useState<string | undefined>();
-  const [showBorrowerDialog, setShowBorrowerDialog] = useState(false);
-  const [borrowerDialogLoading, setBorrowerDialogLoading] = useState(false);
-  const [borrowerDialogError, setBorrowerDialogError] = useState<string | undefined>();
-
   const STEP_TITLES = [
     t('loans.wizardStep1'),
     t('loans.wizardStep2'),
@@ -87,7 +84,7 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
 
     onSubmit({
       item: itemValue,
-      borrower: selectedBorrowerId!,
+      borrowerId: selectedBorrowerId!,
       returnDate: returnDate || null,
       notes: notes || null,
     });
@@ -104,20 +101,6 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
       setItemDialogError(t('errors.unknownError'));
     } finally {
       setItemDialogLoading(false);
-    }
-  };
-
-  const handleInlineBorrowerCreate = async (data: CreateBorrowerDto) => {
-    setBorrowerDialogLoading(true);
-    setBorrowerDialogError(undefined);
-    try {
-      const newBorrower = await useBorrowerStore.getState().createBorrower(data);
-      setSelectedBorrowerId(newBorrower.id);
-      setShowBorrowerDialog(false);
-    } catch {
-      setBorrowerDialogError(t('errors.unknownError'));
-    } finally {
-      setBorrowerDialogLoading(false);
     }
   };
 
@@ -243,21 +226,25 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
           </Pressable>
         )}
         ListEmptyComponent={
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            {t('borrowers.emptyList')}
-          </Text>
+          <View style={styles.emptyBorrowerState} testID="no-borrowers-empty">
+            <Text variant="bodyMedium" style={styles.emptyText}>
+              {t('invitations.noBorrowers')}
+            </Text>
+            <Button
+              mode="outlined"
+              icon="account-search"
+              onPress={() => {
+                navigation.navigate('BorrowerTab' as never, { screen: 'SearchBorrower' } as never);
+              }}
+              style={styles.inlineCreateBtn}
+              testID="search-contact-btn"
+            >
+              {t('invitations.invite')}
+            </Button>
+          </View>
         }
         style={styles.list}
       />
-      <Button
-        mode="outlined"
-        icon="plus"
-        onPress={() => setShowBorrowerDialog(true)}
-        style={styles.inlineCreateBtn}
-        testID="inline-create-borrower-btn"
-      >
-        {t('borrowers.addContact')}
-      </Button>
     </View>
   );
 
@@ -417,25 +404,6 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
             </ScrollView>
           </Dialog.ScrollArea>
         </Dialog>
-
-        <Dialog
-          visible={showBorrowerDialog}
-          onDismiss={() => setShowBorrowerDialog(false)}
-          style={styles.dialog}
-        >
-          <Dialog.Title>{t('borrowers.addContact')}</Dialog.Title>
-          <Dialog.ScrollArea>
-            <ScrollView>
-              <BorrowerForm
-                mode="create"
-                onSubmit={handleInlineBorrowerCreate}
-                isLoading={borrowerDialogLoading}
-                error={borrowerDialogError}
-                submitLabel={t('common.save')}
-              />
-            </ScrollView>
-          </Dialog.ScrollArea>
-        </Dialog>
       </Portal>
     </View>
   );
@@ -467,6 +435,7 @@ const styles = StyleSheet.create({
   listItemSelected: { borderColor: '#6B8E7B', borderWidth: 2 },
   listItemText: { color: '#2D3748', flex: 1 },
   emptyText: { color: '#6B7A8D', textAlign: 'center', padding: 32 },
+  emptyBorrowerState: { alignItems: 'center', paddingVertical: 16 },
   input: { marginBottom: 12 },
   summary: { padding: 16, marginBottom: 16 },
   summaryRow: { marginBottom: 10 },

@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, FAB, Icon, Text } from 'react-native-paper';
+import { ActivityIndicator, Badge, Button, FAB, Icon, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BorrowerCard } from '../../components/borrowers/BorrowerCard';
 import { useBorrowerStore } from '../../stores/useBorrowerStore';
+import { useContactInvitationStore } from '../../stores/useContactInvitationStore';
 import type { BorrowerStackParamList } from '../../navigation/types';
 import type { Borrower } from '../../types/api.types';
 
@@ -13,10 +14,12 @@ type Props = NativeStackScreenProps<BorrowerStackParamList, 'BorrowerList'>;
 export function BorrowerListScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { borrowers, isLoading, error, fetchBorrowers } = useBorrowerStore();
+  const { pendingCount, fetchReceivedInvitations } = useContactInvitationStore();
 
   useEffect(() => {
     fetchBorrowers().catch(() => {});
-  }, [fetchBorrowers]);
+    fetchReceivedInvitations().catch(() => {});
+  }, [fetchBorrowers, fetchReceivedInvitations]);
 
   const handlePress = (id: string) => {
     navigation.navigate('BorrowerDetail', { id });
@@ -43,6 +46,31 @@ export function BorrowerListScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container} testID="borrower-list">
+      <View style={styles.invitationLinks}>
+        <Button
+          mode="text"
+          icon="email-outline"
+          onPress={() => navigation.navigate('BorrowerInvitations')}
+          testID="received-invitations-link"
+          contentStyle={styles.linkContent}
+        >
+          {t('invitations.receivedTitle')}
+          {pendingCount > 0 && (
+            <Badge size={18} style={styles.badge}>
+              {pendingCount}
+            </Badge>
+          )}
+        </Button>
+        <Button
+          mode="text"
+          icon="send-outline"
+          onPress={() => navigation.navigate('SentInvitations')}
+          testID="sent-invitations-link"
+          contentStyle={styles.linkContent}
+        >
+          {t('invitations.sentTitle')}
+        </Button>
+      </View>
       <FlatList<Borrower>
         data={borrowers}
         keyExtractor={(item) => item.id}
@@ -63,7 +91,7 @@ export function BorrowerListScreen({ navigation }: Props) {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => navigation.navigate('CreateBorrower')}
+        onPress={() => navigation.navigate('SearchBorrower')}
         testID="add-borrower-fab"
         color="#FFFFFF"
       />
@@ -79,6 +107,14 @@ const styles = StyleSheet.create({
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   emptyTitle: { color: '#2D3748', fontWeight: '600', marginTop: 16 },
   emptySubtitle: { color: '#6B7A8D', marginTop: 8, textAlign: 'center' },
+  invitationLinks: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  linkContent: { flexDirection: 'row-reverse' },
+  badge: { backgroundColor: '#D97A6B', marginLeft: 6 },
   fab: {
     position: 'absolute',
     right: 16,
