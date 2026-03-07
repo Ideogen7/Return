@@ -24,6 +24,7 @@ module.exports = {
         'items',
         'profile',
         'borrowers',
+        'invitations',
       ],
     ],
     'subject-case': [2, 'never', ['start-case', 'pascal-case', 'upper-case']],
