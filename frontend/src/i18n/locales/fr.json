@@ -123,7 +123,14 @@
     "loanAlreadyReturned": "Ce prêt a déjà été rendu",
     "forbiddenStatusTransition": "Vous n'êtes pas autorisé à effectuer cette transition de statut",
     "invalidStatusTransition": "Transition de statut invalide",
-    "invalidReturnDate": "La date de retour doit être dans le futur"
+    "invalidReturnDate": "La date de retour doit être dans le futur",
+    "selfInvitation": "Vous ne pouvez pas vous inviter vous-même",
+    "userNotFound": "Utilisateur introuvable",
+    "invitationAlreadySent": "Une invitation a déjà été envoyée à cet utilisateur",
+    "invitationNotFound": "Invitation introuvable",
+    "invitationNotPending": "Cette invitation n'est plus en attente",
+    "invitationAlreadyAccepted": "Cette invitation a déjà été acceptée",
+    "contactNotAccepted": "Ce contact n'a pas encore accepté votre invitation"
   },
   "items": {
     "title": "Objets",
@@ -221,6 +228,22 @@
     "emptyBorrowings": "Aucun emprunt",
     "emptyBorrowingsSubtitle": "Les prêts qui vous sont adressés apparaîtront ici",
     "filterLoans": "Filtrer les prêts"
+  },
+  "invitations": {
+    "searchPlaceholder": "Rechercher un utilisateur par nom ou email...",
+    "searchMinLength": "Saisissez au moins 2 caractères pour rechercher",
+    "noResults": "Aucun utilisateur trouvé",
+    "invite": "Inviter",
+    "pending": "En attente",
+    "contact": "Contact",
+    "cancel": "Annuler",
+    "accept": "Accepter",
+    "reject": "Refuser",
+    "emptyReceived": "Aucune invitation reçue",
+    "emptySent": "Aucune invitation envoyée",
+    "receivedTitle": "Invitations reçues",
+    "sentTitle": "Invitations envoyées",
+    "noBorrowers": "Aucun contact. Invitez des utilisateurs pour leur prêter des objets."
   },
   "navigation": {
     "loans": "Prêts",
