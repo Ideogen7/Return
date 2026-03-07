@@ -86,6 +86,52 @@ const mockSettings = {
   timezone: 'Europe/Paris',
 };
 
+const mockSenderUser = {
+  id: 'sender-user-id-1234',
+  firstName: 'Alice',
+  lastName: 'Martin',
+};
+
+const mockRecipientUser = {
+  id: 'recipient-user-id-5678',
+  firstName: 'Bob',
+  lastName: 'Durand',
+};
+
+const mockInvitation = {
+  id: 'inv-received-1234',
+  status: 'PENDING' as const,
+  senderUser: { ...mockSenderUser },
+  recipientEmail: 'test@example.com',
+  recipientUser: { id: mockUser.id, firstName: mockUser.firstName, lastName: mockUser.lastName },
+  createdAt: '2026-03-01T10:00:00Z',
+  expiresAt: '2026-03-15T10:00:00Z',
+  acceptedAt: null,
+  rejectedAt: null,
+};
+
+const mockSentInvitation = {
+  id: 'inv-sent-5678',
+  status: 'PENDING' as const,
+  senderUser: { id: mockUser.id, firstName: mockUser.firstName, lastName: mockUser.lastName },
+  recipientEmail: 'bob.durand@example.com',
+  recipientUser: { ...mockRecipientUser },
+  createdAt: '2026-03-02T10:00:00Z',
+  expiresAt: '2026-03-16T10:00:00Z',
+  acceptedAt: null,
+  rejectedAt: null,
+};
+
+const mockSearchResult = {
+  id: 'search-user-id-9999',
+  firstName: 'Charlie',
+  lastName: 'Lemoine',
+  email: 'charlie.lemoine@example.com',
+  alreadyContact: false,
+  pendingInvitation: false,
+  pendingInvitationId: null,
+};
+
 export const handlers = [
   // =========================================================================
   // AUTHENTICATION
@@ -502,5 +548,100 @@ export const handlers = [
       },
       { status: 200 },
     );
+  }),
+
+  // =========================================================================
+  // CONTACT INVITATIONS
+  // =========================================================================
+
+  // POST /contact-invitations/search
+  http.post(`${API_REAL}/contact-invitations/search`, () => {
+    return HttpResponse.json(
+      {
+        data: [{ ...mockSearchResult }],
+        pagination: {
+          currentPage: 1,
+          itemsPerPage: 20,
+          totalItems: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+      { status: 200 },
+    );
+  }),
+
+  // POST /contact-invitations
+  http.post(`${API_REAL}/contact-invitations`, () => {
+    return HttpResponse.json(
+      {
+        ...mockSentInvitation,
+        id: 'inv-new-1234',
+        createdAt: new Date().toISOString(),
+      },
+      { status: 201 },
+    );
+  }),
+
+  // GET /contact-invitations
+  http.get(`${API_REAL}/contact-invitations`, ({ request }) => {
+    const url = new URL(request.url);
+    const direction = url.searchParams.get('direction');
+
+    if (direction === 'sent') {
+      return HttpResponse.json(
+        {
+          data: [{ ...mockSentInvitation }],
+          pagination: {
+            currentPage: 1,
+            itemsPerPage: 20,
+            totalItems: 1,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        },
+        { status: 200 },
+      );
+    }
+
+    return HttpResponse.json(
+      {
+        data: [{ ...mockInvitation }],
+        pagination: {
+          currentPage: 1,
+          itemsPerPage: 20,
+          totalItems: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+      { status: 200 },
+    );
+  }),
+
+  // POST /contact-invitations/:invitationId/accept
+  http.post(`${API_REAL}/contact-invitations/:invitationId/accept`, ({ params }) => {
+    return HttpResponse.json(
+      {
+        ...mockInvitation,
+        id: params.invitationId,
+        status: 'ACCEPTED',
+        acceptedAt: new Date().toISOString(),
+      },
+      { status: 200 },
+    );
+  }),
+
+  // POST /contact-invitations/:invitationId/reject
+  http.post(`${API_REAL}/contact-invitations/:invitationId/reject`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // DELETE /contact-invitations/:invitationId
+  http.delete(`${API_REAL}/contact-invitations/:invitationId`, () => {
+    return new HttpResponse(null, { status: 204 });
   }),
 ];
