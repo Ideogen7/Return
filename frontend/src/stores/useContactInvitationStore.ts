@@ -38,7 +38,7 @@ const initialState = {
   error: null,
 };
 
-export const useContactInvitationStore = create<ContactInvitationState>((set, get) => ({
+export const useContactInvitationStore = create<ContactInvitationState>((set) => ({
   ...initialState,
 
   searchUsers: async (query, page = 1, limit = 20) => {
@@ -91,10 +91,9 @@ export const useContactInvitationStore = create<ContactInvitationState>((set, ge
   sendInvitation: async (recipientEmail) => {
     set({ isLoading: true, error: null });
     try {
-      const { data: invitation } = await apiClient.post<ContactInvitation>(
-        '/contact-invitations',
-        { recipientEmail },
-      );
+      const { data: invitation } = await apiClient.post<ContactInvitation>('/contact-invitations', {
+        recipientEmail,
+      });
       // Optimistic update of search results
       set((state) => ({
         searchResults: state.searchResults.map((r) =>
@@ -124,7 +123,10 @@ export const useContactInvitationStore = create<ContactInvitationState>((set, ge
         };
       });
       // Refresh borrowers list after accepting
-      useBorrowerStore.getState().fetchBorrowers().catch(() => {});
+      useBorrowerStore
+        .getState()
+        .fetchBorrowers()
+        .catch(() => {});
     } catch (err) {
       set({ isLoading: false, error: extractProblemDetails(err) });
       throw err;
