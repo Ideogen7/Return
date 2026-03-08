@@ -97,6 +97,7 @@ describe('ContactInvitationsService', () => {
       prisma.user.findMany.mockResolvedValue([RECIPIENT_USER]);
       prisma.user.count.mockResolvedValue(1);
       prisma.contactInvitation.findMany.mockResolvedValue([]);
+      prisma.borrower.findMany.mockResolvedValue([]);
 
       const result = await service.searchUsers(SENDER_USER_ID, {
         query: 'marie.dupont@example.com',
@@ -115,6 +116,7 @@ describe('ContactInvitationsService', () => {
       prisma.user.findMany.mockResolvedValue([]);
       prisma.user.count.mockResolvedValue(0);
       prisma.contactInvitation.findMany.mockResolvedValue([]);
+      prisma.borrower.findMany.mockResolvedValue([]);
 
       const result = await service.searchUsers(SENDER_USER_ID, {
         query: 'jean',
@@ -122,7 +124,6 @@ describe('ContactInvitationsService', () => {
         limit: 20,
       });
 
-      // Verify that the where clause excludes the sender
       expect(prisma.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -133,15 +134,12 @@ describe('ContactInvitationsService', () => {
       expect(result.data).toHaveLength(0);
     });
 
-    it('should indicate when a user is already a contact (ACCEPTED invitation)', async () => {
+    it('should indicate when a user is already a contact (Borrower exists)', async () => {
       prisma.user.findMany.mockResolvedValue([RECIPIENT_USER]);
       prisma.user.count.mockResolvedValue(1);
-      prisma.contactInvitation.findMany.mockResolvedValue([
-        {
-          ...MOCK_INVITATION,
-          status: InvitationStatus.ACCEPTED,
-        },
-      ]);
+      prisma.contactInvitation.findMany.mockResolvedValue([]);
+      // Borrower exists → alreadyContact = true
+      prisma.borrower.findMany.mockResolvedValue([{ userId: RECIPIENT_USER_ID } as any]);
 
       const result = await service.searchUsers(SENDER_USER_ID, {
         query: 'marie',
@@ -153,10 +151,28 @@ describe('ContactInvitationsService', () => {
       expect(result.data[0].pendingInvitation).toBe(false);
     });
 
+    it('should show alreadyContact=false when Borrower was deleted (invitation still ACCEPTED)', async () => {
+      prisma.user.findMany.mockResolvedValue([RECIPIENT_USER]);
+      prisma.user.count.mockResolvedValue(1);
+      // Invitation exists as ACCEPTED (historical) — but no Borrower in the list
+      prisma.contactInvitation.findMany.mockResolvedValue([]);
+      prisma.borrower.findMany.mockResolvedValue([]);
+
+      const result = await service.searchUsers(SENDER_USER_ID, {
+        query: 'marie',
+        page: 1,
+        limit: 20,
+      });
+
+      // Borrower was deleted → alreadyContact must be false, not based on invitation history
+      expect(result.data[0].alreadyContact).toBe(false);
+    });
+
     it('should indicate when a pending invitation exists and include its ID', async () => {
       prisma.user.findMany.mockResolvedValue([RECIPIENT_USER]);
       prisma.user.count.mockResolvedValue(1);
       prisma.contactInvitation.findMany.mockResolvedValue([MOCK_INVITATION]);
+      prisma.borrower.findMany.mockResolvedValue([]);
 
       const result = await service.searchUsers(SENDER_USER_ID, {
         query: 'marie',
@@ -173,6 +189,7 @@ describe('ContactInvitationsService', () => {
       prisma.user.findMany.mockResolvedValue([RECIPIENT_USER]);
       prisma.user.count.mockResolvedValue(25);
       prisma.contactInvitation.findMany.mockResolvedValue([]);
+      prisma.borrower.findMany.mockResolvedValue([]);
 
       const result = await service.searchUsers(SENDER_USER_ID, {
         query: 'dupont',

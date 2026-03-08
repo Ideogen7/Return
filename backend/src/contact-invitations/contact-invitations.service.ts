@@ -80,39 +80,48 @@ export class ContactInvitationsService {
       this.prisma.user.count({ where }),
     ]);
 
-    // Fetch invitation status for found users in a single query
+    // Fetch pending invitations and existing borrowers for found users in parallel
     const userIds = users.map((u) => u.id);
-    const invitations =
+    const [pendingInvitations, existingBorrowers] = await Promise.all([
       userIds.length > 0
-        ? await this.prisma.contactInvitation.findMany({
+        ? this.prisma.contactInvitation.findMany({
             where: {
               OR: [
                 { senderUserId: senderId, recipientUserId: { in: userIds } },
                 { senderUserId: { in: userIds }, recipientUserId: senderId },
               ],
-              status: { in: [InvitationStatus.PENDING, InvitationStatus.ACCEPTED] },
+              status: InvitationStatus.PENDING,
             },
           })
-        : [];
+        : Promise.resolve([]),
+      userIds.length > 0
+        ? this.prisma.borrower.findMany({
+            where: {
+              lenderUserId: senderId,
+              userId: { in: userIds },
+            },
+            select: { userId: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    // alreadyContact is based on Borrower existence, not invitation history.
+    // This ensures deleted contacts are not incorrectly shown as existing.
+    const borrowerUserIdSet = new Set(existingBorrowers.map((b) => b.userId));
 
     const data: UserSearchResultResponse[] = users.map((user) => {
-      const relatedInvitations = invitations.filter(
+      const pendingInv = pendingInvitations.find(
         (inv) =>
           (inv.senderUserId === senderId && inv.recipientUserId === user.id) ||
           (inv.senderUserId === user.id && inv.recipientUserId === senderId),
       );
-
-      const acceptedInv = relatedInvitations.find(
-        (inv) => inv.status === InvitationStatus.ACCEPTED,
-      );
-      const pendingInv = relatedInvitations.find((inv) => inv.status === InvitationStatus.PENDING);
 
       return {
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        alreadyContact: !!acceptedInv,
+        alreadyContact: borrowerUserIdSet.has(user.id),
         pendingInvitation: !!pendingInv,
         pendingInvitationId: pendingInv?.id ?? null,
       };
