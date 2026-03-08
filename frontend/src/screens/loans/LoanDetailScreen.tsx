@@ -392,6 +392,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
               multiline
               numberOfLines={3}
               testID="edit-notes-input"
+              contentStyle={{ textAlignVertical: 'top' }}
             />
           </Dialog.Content>
           <Dialog.Actions>

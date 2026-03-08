@@ -195,6 +195,7 @@ export function ItemForm({
             testID="description-input"
             style={[styles.input, ui.input]}
             outlineStyle={styles.outline}
+            contentStyle={{ textAlignVertical: 'top' }}
           />
         )}
       />
