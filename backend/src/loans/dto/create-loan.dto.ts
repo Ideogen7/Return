@@ -7,7 +7,7 @@ import { IsUuidOrDto } from '../../common/validators/is-uuid-or-dto.validator.js
  *
  * Per OpenAPI spec (RÈGLE DE DIAMANT):
  * - `item` can be either a UUID string or an inline CreateItemDto object
- * - `borrower` MUST be a UUID string referencing an existing Borrower (CINV-019)
+ * - `borrowerId` MUST be a UUID string referencing an existing Borrower (CINV-019)
  *
  * Since Sprint 4.6, inline borrower creation is deprecated. Borrowers are
  * created automatically when a contact invitation is accepted.
@@ -17,7 +17,7 @@ export class CreateLoanDto {
   item!: string | CreateItemDto;
 
   @IsUUID()
-  borrower!: string;
+  borrowerId!: string;
 
   @IsOptional()
   @IsDateString()

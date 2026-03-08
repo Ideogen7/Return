@@ -95,7 +95,7 @@ export class LoansService {
     // Prevents orphaned records if any step fails
     const loan = await this.prisma.$transaction(async (tx) => {
       const itemId = await this.resolveItem(tx, dto.item, lenderId);
-      const borrowerId = await this.resolveBorrower(tx, dto.borrower, lenderId);
+      const borrowerId = await this.resolveBorrower(tx, dto.borrowerId, lenderId);
 
       // CINV-019: Verify ACCEPTED contact invitation exists for this borrower
       const borrower = await tx.borrower.findUnique({

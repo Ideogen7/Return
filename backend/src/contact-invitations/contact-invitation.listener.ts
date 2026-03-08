@@ -38,7 +38,10 @@ export class ContactInvitationListener {
     const result = await this.prisma.contactInvitation.updateMany({
       where: {
         recipientEmail: { equals: email, mode: 'insensitive' },
-        recipientUserId: { equals: undefined as unknown as string },
+        // Sprint 5+: match invitations where recipientUserId IS NULL
+        // (external invitations to non-registered users).
+        // Cast needed because field is NOT NULL in Sprint 4.6 schema.
+        recipientUserId: { equals: null as unknown as string },
         status: InvitationStatus.PENDING,
       },
       data: {

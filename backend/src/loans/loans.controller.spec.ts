@@ -111,7 +111,7 @@ describe('LoansController', () => {
       };
 
       const result = await controller.create(
-        { item: 'item-id', borrower: 'borrower-id', returnDate: '2025-06-01' },
+        { item: 'item-id', borrowerId: 'borrower-id', returnDate: '2025-06-01' },
         mockReq as never,
         mockRes as never,
       );
@@ -119,7 +119,7 @@ describe('LoansController', () => {
       expect(result).toEqual(MOCK_LOAN_RESPONSE);
       expect(service.create).toHaveBeenCalledWith(LENDER_USER_ID, {
         item: 'item-id',
-        borrower: 'borrower-id',
+        borrowerId: 'borrower-id',
         returnDate: '2025-06-01',
       });
       expect(mockRes.setHeader).toHaveBeenCalledWith(

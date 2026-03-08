@@ -139,7 +139,10 @@ describe('Loans Integration (e2e)', () => {
         LoansService,
         { provide: PrismaService, useValue: prisma },
         { provide: RedisService, useValue: redis },
-        { provide: ContactInvitationsService, useValue: { hasAcceptedContact: jest.fn().mockResolvedValue(true) } },
+        {
+          provide: ContactInvitationsService,
+          useValue: { hasAcceptedContact: jest.fn().mockResolvedValue(true) },
+        },
         { provide: LoansCronService, useValue: {} },
       ],
     })

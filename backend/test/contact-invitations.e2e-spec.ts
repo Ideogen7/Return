@@ -616,7 +616,7 @@ describe('ContactInvitations ↔ Loans inter-module (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/loans')
       .send({
-        borrower: RECIPIENT_USER_ID,
+        borrowerId: RECIPIENT_USER_ID,
         item: { name: 'Test Item', category: 'TOOLS' },
       })
       .expect(HttpStatus.FORBIDDEN);
@@ -641,7 +641,7 @@ describe('ContactInvitations ↔ Loans inter-module (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/loans')
       .send({
-        borrower: RECIPIENT_USER_ID,
+        borrowerId: RECIPIENT_USER_ID,
         item: { name: 'Test Item', category: 'TOOLS' },
       })
       .expect(HttpStatus.CREATED);

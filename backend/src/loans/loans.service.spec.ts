@@ -150,7 +150,7 @@ describe('LoansService', () => {
   describe('create', () => {
     const CREATE_DTO = {
       item: ITEM_ID,
-      borrower: BORROWER_ID,
+      borrowerId: BORROWER_ID,
       returnDate: '2099-06-01',
       notes: 'Test loan',
     };
@@ -217,7 +217,7 @@ describe('LoansService', () => {
 
       await service.create(LENDER_USER_ID, {
         item: inlineItem as never,
-        borrower: BORROWER_ID,
+        borrowerId: BORROWER_ID,
       });
 
       expect(prisma.item.create).toHaveBeenCalledWith({

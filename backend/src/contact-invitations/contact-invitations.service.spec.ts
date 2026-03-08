@@ -289,6 +289,25 @@ describe('ContactInvitationsService', () => {
       expect(diffDays).toBeGreaterThan(29.9);
       expect(diffDays).toBeLessThan(30.1);
     });
+
+    it('should allow re-invitation after rejection (partial unique index)', async () => {
+      prisma.user.findUnique.mockResolvedValue(RECIPIENT_USER);
+      // findFirst returns null → no PENDING invitation exists
+      // (the previous one was REJECTED, so the partial unique index allows a new one)
+      prisma.contactInvitation.findFirst.mockResolvedValue(null);
+      prisma.contactInvitation.create.mockResolvedValue({
+        ...MOCK_INVITATION,
+        senderUser: SENDER_USER,
+        recipientUser: RECIPIENT_USER,
+      } as any);
+
+      const result = await service.sendInvitation(SENDER_USER_ID, {
+        recipientEmail: 'marie.dupont@example.com',
+      });
+
+      expect(result.id).toBe(MOCK_INVITATION.id);
+      expect(prisma.contactInvitation.create).toHaveBeenCalled();
+    });
   });
 
   // ===========================================================================
