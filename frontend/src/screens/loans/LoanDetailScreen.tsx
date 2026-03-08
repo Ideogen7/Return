@@ -11,6 +11,8 @@ import {
   Icon,
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import { DatePickerInput } from 'react-native-paper-dates';
+import i18n from '../../config/i18n.config';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LoanTimeline } from '../../components/loans/LoanTimeline';
 import { CATEGORY_I18N } from '../../components/items/ItemCard';
@@ -44,6 +46,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [editNotes, setEditNotes] = useState('');
   const [editReturnDate, setEditReturnDate] = useState('');
+  const [editReturnDateObj, setEditReturnDateObj] = useState<Date | undefined>();
   const [apiError, setApiError] = useState<string | undefined>();
 
   useEffect(() => {
@@ -100,7 +103,9 @@ export function LoanDetailScreen({ route, navigation }: Props) {
 
   const openEditDialog = () => {
     setEditNotes(selectedLoan?.notes ?? '');
-    setEditReturnDate(selectedLoan?.returnDate ?? '');
+    const existingDate = selectedLoan?.returnDate ?? '';
+    setEditReturnDate(existingDate);
+    setEditReturnDateObj(existingDate ? new Date(existingDate) : undefined);
     setEditDialogVisible(true);
   };
 
@@ -354,13 +359,18 @@ export function LoanDetailScreen({ route, navigation }: Props) {
         >
           <Dialog.Title>{t('loans.editLoan')}</Dialog.Title>
           <Dialog.Content>
-            <TextInput
+            <DatePickerInput
+              locale={i18n.language}
               label={t('loans.returnDate')}
-              value={editReturnDate}
-              onChangeText={setEditReturnDate}
-              placeholder="YYYY-MM-DD"
-              style={styles.editInput}
+              value={editReturnDateObj}
+              onChange={(d) => {
+                setEditReturnDateObj(d);
+                setEditReturnDate(d ? d.toISOString().slice(0, 10) : '');
+              }}
+              inputMode="start"
+              mode="outlined"
               testID="edit-return-date-input"
+              style={styles.editInput}
             />
             <TextInput
               label={t('loans.notes')}
