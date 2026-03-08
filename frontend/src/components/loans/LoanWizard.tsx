@@ -138,7 +138,7 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
       {loanType === 'OBJECT' ? (
         <>
           <FlatList
-            data={items}
+            data={items.filter((i) => i.category !== 'MONEY')}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <Pressable
