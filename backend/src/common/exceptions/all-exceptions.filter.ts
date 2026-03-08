@@ -73,6 +73,34 @@ export class AllExceptionsFilter implements ExceptionFilter {
         return;
       }
 
+      // Handle ParseFilePipe errors (file upload validation)
+      if (status === 400) {
+        let msg = exception.message;
+        if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+          const messageField = (exceptionResponse as Record<string, unknown>).message;
+          if (typeof messageField === 'string') {
+            msg = messageField;
+          }
+        }
+        if (
+          msg.includes('File is required') ||
+          msg.includes('Validation failed (expected type is')
+        ) {
+          const body: ProblemDetails = {
+            type: 'https://api.return.app/errors/validation-failed',
+            title: 'Validation Failed',
+            status,
+            detail: 'The request contains invalid data.',
+            instance: request.url,
+            timestamp: new Date().toISOString(),
+            requestId: getRequestId(),
+            errors: [{ field: 'file', code: 'FILE_REQUIRED', message: msg }],
+          };
+          response.status(status).setHeader('Content-Type', 'application/problem+json').json(body);
+          return;
+        }
+      }
+
       // Handle ParseUUIDPipe and other 400 string-message errors
       if (status === 400) {
         let msg = exception.message;
