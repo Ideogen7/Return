@@ -105,10 +105,12 @@ export function ItemDetailScreen({ route, navigation }: Props) {
         </View>
       )}
 
-      <PhotoPicker
-        onPhotoPicked={handlePhotoPicked}
-        currentPhotoCount={selectedItem.photos?.length ?? 0}
-      />
+      <View style={styles.photoPickerContainer}>
+        <PhotoPicker
+          onPhotoPicked={handlePhotoPicked}
+          currentPhotoCount={selectedItem.photos?.length ?? 0}
+        />
+      </View>
 
       {/* Info card */}
       <View style={[styles.infoCard, ui.card]}>
@@ -249,4 +251,5 @@ const styles = StyleSheet.create({
   dangerButton: { borderRadius: 12, borderColor: '#FAEAE7' },
   buttonLabel: { fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
   buttonContent: { paddingVertical: 6 },
+  photoPickerContainer: { alignSelf: 'center', marginVertical: 8 },
 });
