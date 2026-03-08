@@ -17,6 +17,7 @@ import { LoansService } from '../src/loans/loans.service';
 import { LoansCronService } from '../src/loans/loans-cron.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { RedisService } from '../src/redis/redis.service';
+import { ContactInvitationsService } from '../src/contact-invitations/contact-invitations.service';
 import { JwtAuthGuard } from '../src/auth/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../src/auth/strategies/jwt.strategy';
 
@@ -138,6 +139,7 @@ describe('Loans Integration (e2e)', () => {
         LoansService,
         { provide: PrismaService, useValue: prisma },
         { provide: RedisService, useValue: redis },
+        { provide: ContactInvitationsService, useValue: { hasAcceptedContact: jest.fn().mockResolvedValue(true) } },
         { provide: LoansCronService, useValue: {} },
       ],
     })

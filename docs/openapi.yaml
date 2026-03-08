@@ -3204,7 +3204,7 @@ components:
           items:
             $ref: '#/components/schemas/ContactInvitation'
         pagination:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: '#/components/schemas/PaginationMetadata'
 
     PaginatedUserSearchResults:
       type: object
@@ -3214,7 +3214,7 @@ components:
           items:
             $ref: '#/components/schemas/UserSearchResult'
         pagination:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: '#/components/schemas/PaginationMetadata'
 
     CreateBorrowerDto:
       type: object

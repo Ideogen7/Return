@@ -16,7 +16,7 @@ import { CreateLoanDto } from './dto/create-loan.dto.js';
 import type { UpdateLoanDto } from './dto/update-loan.dto.js';
 import type { ContestLoanDto } from './dto/contest-loan.dto.js';
 import type { CreateItemDto } from '../items/dto/create-item.dto.js';
-import type { CreateBorrowerDto } from '../borrowers/dto/create-borrower.dto.js';
+import { ContactInvitationsService } from '../contact-invitations/contact-invitations.service.js';
 import type {
   LoanResponse,
   LoanItemResponse,
@@ -65,6 +65,7 @@ export class LoansService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly contactInvitationsService: ContactInvitationsService,
   ) {}
 
   // =========================================================================
@@ -90,11 +91,31 @@ export class LoansService {
       }
     }
 
-    // Atomic transaction: resolve/create item + borrower + loan in one go
+    // Atomic transaction: resolve/create item + resolve borrower + loan in one go
     // Prevents orphaned records if any step fails
     const loan = await this.prisma.$transaction(async (tx) => {
       const itemId = await this.resolveItem(tx, dto.item, lenderId);
       const borrowerId = await this.resolveBorrower(tx, dto.borrower, lenderId);
+
+      // CINV-019: Verify ACCEPTED contact invitation exists for this borrower
+      const borrower = await tx.borrower.findUnique({
+        where: { id: borrowerId },
+        select: { userId: true },
+      });
+      if (borrower?.userId) {
+        const hasAccepted = await this.contactInvitationsService.hasAcceptedContact(
+          lenderId,
+          borrower.userId,
+        );
+        if (!hasAccepted) {
+          throw new ForbiddenException(
+            'contact-not-accepted',
+            'Contact Not Accepted',
+            'You can only create a loan for a contact with an ACCEPTED invitation.',
+            '/v1/loans',
+          );
+        }
+      }
 
       return tx.loan.create({
         data: {
@@ -501,55 +522,23 @@ export class LoansService {
 
   private async resolveBorrower(
     tx: TxClient,
-    borrowerInput: string | CreateBorrowerDto,
+    borrowerId: string,
     lenderId: string,
   ): Promise<string> {
-    // UUID string → reference existing borrower
-    if (typeof borrowerInput === 'string') {
-      const borrower = await tx.borrower.findUnique({
-        where: { id: borrowerInput },
-      });
-      if (!borrower) {
-        throw new NotFoundException('Borrower', borrowerInput, '/v1/loans');
-      }
-      if (borrower.lenderUserId !== lenderId) {
-        throw new ForbiddenException(
-          'forbidden',
-          'Forbidden',
-          'You do not have permission to use this borrower.',
-          '/v1/loans',
-        );
-      }
-      return borrower.id;
-    }
-
-    // Object → create inline
-    const dto = borrowerInput;
-
-    // Check uniqueness (lenderUserId + email)
-    const existing = await tx.borrower.findUnique({
-      where: {
-        lenderUserId_email: {
-          lenderUserId: lenderId,
-          email: dto.email,
-        },
-      },
+    const borrower = await tx.borrower.findUnique({
+      where: { id: borrowerId },
     });
-
-    if (existing) {
-      // Reuse existing borrower with same email for this lender
-      return existing.id;
+    if (!borrower) {
+      throw new NotFoundException('Borrower', borrowerId, '/v1/loans');
     }
-
-    const borrower = await tx.borrower.create({
-      data: {
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        email: dto.email,
-        phoneNumber: dto.phoneNumber ?? null,
-        lenderUserId: lenderId,
-      },
-    });
+    if (borrower.lenderUserId !== lenderId) {
+      throw new ForbiddenException(
+        'forbidden',
+        'Forbidden',
+        'You do not have permission to use this borrower.',
+        '/v1/loans',
+      );
+    }
     return borrower.id;
   }
 
