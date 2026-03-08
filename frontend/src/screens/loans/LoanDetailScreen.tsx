@@ -139,7 +139,6 @@ export function LoanDetailScreen({ route, navigation }: Props) {
   const canAbandon = isLender && ABANDONABLE_STATUSES.includes(selectedLoan.status);
   const canDelete = isLender && selectedLoan.status !== 'RETURNED';
   const canConfirm = !isLender && selectedLoan.status === 'PENDING_CONFIRMATION';
-  const canContest = canConfirm;
 
   return (
     <ScrollView contentContainerStyle={styles.container} testID="loan-detail">
@@ -217,18 +216,32 @@ export function LoanDetailScreen({ route, navigation }: Props) {
 
       {/* Actions */}
       <View style={styles.actions}>
-        {(canConfirm || canContest) && (
-          <Button
-            mode="contained"
-            icon="check"
-            onPress={() => navigation.navigate('ConfirmLoan', { id })}
-            style={styles.primaryButton}
-            labelStyle={styles.buttonLabel}
-            contentStyle={styles.buttonContent}
-            testID="confirm-loan-btn"
-          >
-            {t('loans.confirmLoan')}
-          </Button>
+        {canConfirm && (
+          <View style={styles.confirmRow}>
+            <Button
+              mode="contained"
+              icon="check"
+              onPress={() => navigation.navigate('ConfirmLoan', { id })}
+              style={[styles.primaryButton, styles.confirmBtn]}
+              labelStyle={styles.buttonLabel}
+              contentStyle={styles.buttonContent}
+              testID="confirm-loan-btn"
+            >
+              {t('loans.confirmLoan')}
+            </Button>
+            <Button
+              mode="outlined"
+              icon="close"
+              onPress={() => navigation.navigate('ConfirmLoan', { id })}
+              style={[styles.dangerButton, styles.contestBtn]}
+              textColor="#D97A6B"
+              labelStyle={styles.buttonLabel}
+              contentStyle={styles.buttonContent}
+              testID="contest-loan-btn"
+            >
+              {t('loans.contestLoan')}
+            </Button>
+          </View>
         )}
 
         {canReturn && (
@@ -416,4 +429,7 @@ const styles = StyleSheet.create({
   buttonContent: { paddingVertical: 6 },
   contestValue: { color: '#D97A6B' },
   editInput: { marginBottom: 12 },
+  confirmRow: { flexDirection: 'row', gap: 10 },
+  confirmBtn: { flex: 1, borderRadius: 12 },
+  contestBtn: { flex: 1, borderRadius: 12, borderColor: '#FAEAE7' },
 });
