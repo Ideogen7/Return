@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, HelperText } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
@@ -43,6 +44,8 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
   });
 
   const password = watch('password');
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
   const handleFormSubmit = (data: RegisterFormData) => {
     onSubmit({
@@ -159,8 +162,14 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
           <TextInput
             label={t('auth.password')}
             mode="outlined"
-            secureTextEntry
+            secureTextEntry={!passwordVisible}
             left={<TextInput.Icon icon="lock-outline" color="#A8B5BF" />}
+            right={
+              <TextInput.Icon
+                icon={passwordVisible ? 'eye-off' : 'eye'}
+                onPress={() => setPasswordVisible((v) => !v)}
+              />
+            }
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -188,8 +197,14 @@ export function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) 
           <TextInput
             label={t('auth.confirmPassword')}
             mode="outlined"
-            secureTextEntry
+            secureTextEntry={!confirmPasswordVisible}
             left={<TextInput.Icon icon="lock-check-outline" color="#A8B5BF" />}
+            right={
+              <TextInput.Icon
+                icon={confirmPasswordVisible ? 'eye-off' : 'eye'}
+                onPress={() => setConfirmPasswordVisible((v) => !v)}
+              />
+            }
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
