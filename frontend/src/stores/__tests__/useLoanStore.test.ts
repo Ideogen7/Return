@@ -103,7 +103,7 @@ describe('useLoanStore', () => {
     it('should create and add loan to list', async () => {
       const newLoan = await useLoanStore.getState().createLoan({
         item: '9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d',
-        borrower: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
+        borrowerId: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
         returnDate: '2026-05-01',
         notes: 'Test loan',
       });

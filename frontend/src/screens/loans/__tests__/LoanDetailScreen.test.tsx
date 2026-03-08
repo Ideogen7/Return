@@ -59,7 +59,7 @@ beforeEach(() => {
 afterEach(() => {
   server.resetHandlers();
   useLoanStore.getState().reset();
-  useAuthStore.setState({ user: null, accessToken: null, refreshToken: null });
+  useAuthStore.setState({ user: null, accessToken: null });
 });
 afterAll(() => server.close());
 

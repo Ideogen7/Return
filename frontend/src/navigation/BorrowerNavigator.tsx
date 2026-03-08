@@ -4,6 +4,9 @@ import { BorrowerListScreen } from '../screens/borrowers/BorrowerListScreen';
 import { CreateBorrowerScreen } from '../screens/borrowers/CreateBorrowerScreen';
 import { BorrowerDetailScreen } from '../screens/borrowers/BorrowerDetailScreen';
 import { EditBorrowerScreen } from '../screens/borrowers/EditBorrowerScreen';
+import { SearchBorrowerScreen } from '../screens/borrowers/SearchBorrowerScreen';
+import { BorrowerInvitationsScreen } from '../screens/borrowers/BorrowerInvitationsScreen';
+import { SentInvitationsScreen } from '../screens/borrowers/SentInvitationsScreen';
 import type { BorrowerStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<BorrowerStackParamList>();
@@ -39,6 +42,21 @@ export function BorrowerNavigator() {
         name="EditBorrower"
         component={EditBorrowerScreen}
         options={{ title: t('borrowers.editContact') }}
+      />
+      <Stack.Screen
+        name="SearchBorrower"
+        component={SearchBorrowerScreen}
+        options={{ title: t('invitations.searchPlaceholder') }}
+      />
+      <Stack.Screen
+        name="BorrowerInvitations"
+        component={BorrowerInvitationsScreen}
+        options={{ title: t('invitations.receivedTitle') }}
+      />
+      <Stack.Screen
+        name="SentInvitations"
+        component={SentInvitationsScreen}
+        options={{ title: t('invitations.sentTitle') }}
       />
     </Stack.Navigator>
   );
