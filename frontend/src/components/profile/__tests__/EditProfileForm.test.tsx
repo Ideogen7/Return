@@ -47,6 +47,7 @@ describe('EditProfileForm', () => {
         firstName: 'Johnny',
         lastName: 'Doe',
         email: 'test@example.com',
+        phone: '',
       });
     });
   });
@@ -65,6 +66,7 @@ describe('EditProfileForm', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'new@example.com',
+        phone: '',
       });
     });
   });

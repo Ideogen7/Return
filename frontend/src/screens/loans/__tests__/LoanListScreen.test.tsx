@@ -117,27 +117,24 @@ describe('LoanListScreen', () => {
     });
   });
 
-  it('should open filter menu and switch to archives', async () => {
+  it('should filter by status chip', async () => {
     renderListScreen();
 
     await waitFor(() => {
       expect(screen.getByTestId('loan-list')).toBeTruthy();
     });
 
-    // Open filter menu
-    fireEvent.press(screen.getByTestId('filter-menu-btn'));
+    // Status chip filter is available
+    expect(screen.getByTestId('filter-chip-RETURNED')).toBeTruthy();
+    expect(screen.getByTestId('filter-chip-CONTESTED')).toBeTruthy();
+
+    // Press a chip to filter
+    fireEvent.press(screen.getByTestId('filter-chip-RETURNED'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('filter-menu-active')).toBeTruthy();
-      expect(screen.getByTestId('filter-menu-archived')).toBeTruthy();
-    });
-
-    // Switch to archives
-    fireEvent.press(screen.getByTestId('filter-menu-archived'));
-
-    // Menu should close (items no longer visible)
-    await waitFor(() => {
-      expect(screen.queryByTestId('filter-menu-archived')).toBeNull();
+      expect(screen.getByTestId('filter-chip-RETURNED').props.accessibilityState?.selected).toBe(
+        true,
+      );
     });
   });
 
