@@ -234,7 +234,11 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
               mode="outlined"
               icon="account-search"
               onPress={() => {
-                navigation.navigate('BorrowerTab' as never, { screen: 'SearchBorrower' } as never);
+                // Cross-stack navigation requires type bypass
+                (navigation as { navigate: (screen: string, params?: object) => void }).navigate(
+                  'BorrowerTab',
+                  { screen: 'SearchBorrower' },
+                );
               }}
               style={styles.inlineCreateBtn}
               testID="search-contact-btn"
