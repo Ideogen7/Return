@@ -506,8 +506,8 @@ que les contacts avec invitation ACCEPTED comme emprunteur.
 
 | ID             | Titre                                                                                           | Dépendance  | Critère de Fin                                               | Temps |
 |----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
-| **CINV-F001**  | Ajouter type `ContactInvitation` (avec `recipientUser`, `rejectedAt`) et `UserSearchResult` (avec `pendingInvitationId`) dans `api.types.ts` | - | Types exportés, `InvitationStatus` enum inclus | 30min |
-| **CINV-F002**  | Créer `useContactInvitationStore` Zustand : `fetchReceivedInvitations`, `fetchSentInvitations`, `sendInvitation`, `acceptInvitation`, `rejectInvitation`, `cancelInvitation` | CINV-F001 | Store créé avec actions async try/catch, direction param supporté | 1h30  |
+| **CINV-F001**  | Ajouter type `ContactInvitation` (avec `recipientUser`, `rejectedAt`) et `UserSearchResult` (avec `alreadyContact`, `pendingInvitation?: boolean`, `pendingInvitationId?: string \| null`) dans `api.types.ts`. Ajouter types `SearchUsersDto` et `SendInvitationDto`. Modifier `CreateLoanDto` : remplacer `borrower: CreateBorrowerDto \| string` par `borrowerId: string` (UUID only, création inline supprimée — cf. OpenAPI `POST /loans`). | - | Types exportés, `InvitationStatus` enum inclus, `CreateLoanDto` mis à jour | 45min |
+| **CINV-F002**  | Créer `useContactInvitationStore` Zustand : `fetchReceivedInvitations` (`?direction=received&status=PENDING`), `fetchSentInvitations` (`?direction=sent`), `searchUsers(query, page?, limit?)` (pagination dans le body — cf. OpenAPI), `sendInvitation`, `acceptInvitation`, `rejectInvitation`, `cancelInvitation` | CINV-F001 | Store créé avec actions async try/catch, direction + status params supportés | 1h30  |
 | **CINV-F003**  | Créer MSW handlers pour les 7 endpoints `/contact-invitations/*` (incl. `?direction=sent`)               | CINV-F001   | Handlers ajoutés dans `handlers.ts`, mock opérationnel       | 1h    |
 | **CINV-F004**  | Tests unitaires `useContactInvitationStore` (fetch received, fetch sent, send, accept, reject, cancel)  | CINV-F002   | 6 tests RNTL passent                                         | 1h30  |
 
@@ -517,7 +517,7 @@ que les contacts avec invitation ACCEPTED comme emprunteur.
 |----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
 | **CINV-F005**  | Créer `SearchBorrowerScreen` : barre de recherche (email / prénom / nom) + FlatList résultats   | CINV-F002   | Écran affiché, recherche déclenche l'action                  | 1h30  |
 | **CINV-F006**  | Créer composant `UserSearchResultItem` : affiche nom + email + badge (déjà contact / pending / nouveau) | CINV-F005 | Badges corrects selon le statut de la relation            | 1h    |
-| **CINV-F007**  | Bouton "Inviter" dans `UserSearchResultItem` → appelle `sendInvitation()` → badge passe à "En attente" ; bouton "Annuler" si `pendingInvitationId` présent → appelle `cancelInvitation(pendingInvitationId)` | CINV-F006 | Invitation envoyée/annulée, badge mis à jour sans re-fetch | 1h    |
+| **CINV-F007**  | Bouton "Inviter" dans `UserSearchResultItem` → appelle `sendInvitation()` → badge passe à "En attente" ; bouton "Annuler" si `pendingInvitationId` présent (`?? null` — champ optionnel dans l'OpenAPI) → appelle `cancelInvitation(pendingInvitationId)` | CINV-F006 | Invitation envoyée/annulée, badge mis à jour sans re-fetch | 1h    |
 
 ### Phase 4.6.3 : BorrowerInvitationsScreen + SentInvitationsScreen (Jour 3)
 
@@ -535,7 +535,7 @@ que les contacts avec invitation ACCEPTED comme emprunteur.
 |----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
 | **CINV-F012**  | Ajouter `SearchBorrower`, `BorrowerInvitations`, et `SentInvitations` dans `BorrowerStackParamList` | CINV-F005 | Navigation typée mise à jour                                 | 30min |
 | **CINV-F013**  | `BorrowerListScreen` : bouton "+" navigue vers `SearchBorrowerScreen` + lien "Invitations envoyées" vers `SentInvitationsScreen` | CINV-F012 | Navigation fonctionne | 30min |
-| **CINV-F014**  | `LoanWizard` step 3 (sélection emprunteur) : sélection par UUID uniquement parmi contacts ACCEPTED. Plus de création inline de borrower | CINV-F012 | Seuls les contacts acceptés sont sélectionnables, `borrowerId` UUID envoyé | 1h30  |
+| **CINV-F014**  | `LoanWizard` step 3 (sélection emprunteur) : sélection par UUID uniquement parmi contacts ACCEPTED. Supprimer la création inline (`BorrowerForm`, `showBorrowerDialog`, `handleInlineBorrowerCreate`, Dialog Portal borrower). Adapter `handleSubmit()` : `borrower: selectedBorrowerId!` → `borrowerId: selectedBorrowerId!` (aligné avec `CreateLoanDto` modifié en CINV-F001) | CINV-F012 | Seuls les contacts acceptés sont sélectionnables, `borrowerId` UUID envoyé, code inline borrower supprimé | 1h30  |
 | **CINV-F015**  | Gérer le cas "aucun contact accepté" dans `LoanWizard` : message + lien vers `SearchBorrowerScreen` | CINV-F014 | Message clair si liste vide                                  | 30min |
 
 ### Phase 4.6.5 : Tests RNTL + Buffer (Jour 5)
@@ -755,5 +755,5 @@ A valider avant de passer au sprint suivant :
 ---
 
 **Co-validé par** : Esdras GBEDOZIN & Ismael AIHOU
-**Date de dernière mise à jour** : 5 mars 2026
-**Version** : 1.3 — Ajout Sprint 4.6 (Contact Invitation System)
+**Date de dernière mise à jour** : 7 mars 2026
+**Version** : 1.4 — Alignement Sprint 4.6 avec OpenAPI (CINV-F001 CreateLoanDto, CINV-F002 status param, CINV-F007 pendingInvitationId optionnel, CINV-F014 handleSubmit)
