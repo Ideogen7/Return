@@ -111,20 +111,26 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
       </Text>
 
       <RadioButton.Group onValueChange={(v) => setLoanType(v as LoanType)} value={loanType}>
-        <View style={[styles.typeCard, ui.card, loanType === 'OBJECT' && styles.typeCardSelected]}>
-          <RadioButton.Android value="OBJECT" color="#6B8E7B" testID="type-object" />
-          <Icon source="package-variant-closed" size={24} color="#4A6355" />
-          <Text variant="bodyLarge" style={styles.typeLabel}>
-            {t('loans.objectLoan')}
-          </Text>
-        </View>
-        <View style={[styles.typeCard, ui.card, loanType === 'MONEY' && styles.typeCardSelected]}>
-          <RadioButton.Android value="MONEY" color="#6B8E7B" testID="type-money" />
-          <Icon source="cash-multiple" size={24} color="#4A6355" />
-          <Text variant="bodyLarge" style={styles.typeLabel}>
-            {t('loans.moneyLoan')}
-          </Text>
-        </View>
+        <Pressable onPress={() => setLoanType('OBJECT')} testID="type-object-card">
+          <View
+            style={[styles.typeCard, ui.card, loanType === 'OBJECT' && styles.typeCardSelected]}
+          >
+            <RadioButton.Android value="OBJECT" color="#6B8E7B" testID="type-object" />
+            <Icon source="package-variant-closed" size={24} color="#4A6355" />
+            <Text variant="bodyLarge" style={styles.typeLabel}>
+              {t('loans.objectLoan')}
+            </Text>
+          </View>
+        </Pressable>
+        <Pressable onPress={() => setLoanType('MONEY')} testID="type-money-card">
+          <View style={[styles.typeCard, ui.card, loanType === 'MONEY' && styles.typeCardSelected]}>
+            <RadioButton.Android value="MONEY" color="#6B8E7B" testID="type-money" />
+            <Icon source="cash-multiple" size={24} color="#4A6355" />
+            <Text variant="bodyLarge" style={styles.typeLabel}>
+              {t('loans.moneyLoan')}
+            </Text>
+          </View>
+        </Pressable>
       </RadioButton.Group>
     </View>
   );
