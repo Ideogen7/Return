@@ -438,18 +438,19 @@ Le problème critique est que **l'emprunteur ne peut pas voir les prêts qui lui
 > toujours une liste vide.
 
 > **Modèle de droits rappel** :
+>
 > - **Prêteur** : créer, voir, modifier (notes/date retour), supprimer, marquer rendu, abandonner
 > - **Emprunteur** : voir les prêts reçus, confirmer, contester (avec raison) — ne peut PAS modifier ni supprimer
 > - **Tiers** : aucun accès (403 Forbidden)
 
 ### Phase 4.5.1 : Listener de liaison emprunteur-utilisateur (Jour 1)
 
-| ID              | Titre                                                                                                              | Dépendance | Critère de Fin                                                                           | Temps |
-|-----------------|--------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------------------|-------|
-| **INTEG-001**   | Test TDD : quand `user.registered` émis, les `Borrower` avec même email reçoivent `userId`                        | LOAN-037   | Test RED écrit (écoute événement, vérifie `userId` mis à jour)                           | 1h    |
-| **INTEG-002**   | Implémenter `@OnEvent('user.registered')` dans `BorrowersService` : chercher tous `Borrower` par email, mettre à jour `userId` | INTEG-001  | Test GREEN passe, `Borrower.userId` lié                                                  | 1h30  |
-| **INTEG-003**   | Test TDD : si aucun `Borrower` ne matche l'email du nouvel utilisateur, le listener ne fait rien (pas d'erreur)    | INTEG-002  | Test GREEN, aucun side effect                                                            | 30min |
-| **INTEG-004**   | Test TDD : si plusieurs `Borrower` (de différents prêteurs) ont le même email, tous reçoivent le `userId`         | INTEG-002  | Test GREEN, `updateMany` appliqué                                                        | 30min |
+| ID            | Titre                                                                                                                          | Dépendance | Critère de Fin                                                 | Temps |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------- | -------------------------------------------------------------- | ----- |
+| **INTEG-001** | Test TDD : quand `user.registered` émis, les `Borrower` avec même email reçoivent `userId`                                     | LOAN-037   | Test RED écrit (écoute événement, vérifie `userId` mis à jour) | 1h    |
+| **INTEG-002** | Implémenter `@OnEvent('user.registered')` dans `BorrowersService` : chercher tous `Borrower` par email, mettre à jour `userId` | INTEG-001  | Test GREEN passe, `Borrower.userId` lié                        | 1h30  |
+| **INTEG-003** | Test TDD : si aucun `Borrower` ne matche l'email du nouvel utilisateur, le listener ne fait rien (pas d'erreur)                | INTEG-002  | Test GREEN, aucun side effect                                  | 30min |
+| **INTEG-004** | Test TDD : si plusieurs `Borrower` (de différents prêteurs) ont le même email, tous reçoivent le `userId`                      | INTEG-002  | Test GREEN, `updateMany` appliqué                              | 30min |
 
 > **Note** : Un même utilisateur peut être emprunteur de plusieurs prêteurs. Chaque prêteur a son propre
 > enregistrement `Borrower` pour la même personne. Le listener doit mettre à jour **tous** les `Borrower`
@@ -461,12 +462,12 @@ Le problème critique est que **l'emprunteur ne peut pas voir les prêts qui lui
 > implémenté au Sprint 4, mais **sans tests unitaires dédiés**. Ces tests doivent être écrits AVANT
 > d'ajouter la migration de rattachement.
 
-| ID              | Titre                                                                                                              | Dépendance | Critère de Fin                                                                           | Temps |
-|-----------------|--------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------------------|-------|
-| **INTEG-005**   | Test TDD : `findAll(role=borrower)` retourne les prêts où `borrower.userId = currentUser`                         | INTEG-002  | Test GREEN, filtre `where.borrower.userId` vérifié                                       | 45min |
-| **INTEG-006**   | Test TDD : `findAll(role=borrower)` + `borrowerId` fourni → `borrowerId` est ignoré (pas de conflit logique)      | INTEG-005  | Test GREEN, le filtre `borrowerId` est sans effet en mode borrower                       | 30min |
-| **INTEG-007**   | Test TDD : `findById()` accessible par l'emprunteur (via `resolveUserRole`) — retourne le prêt                    | INTEG-002  | Test GREEN, réponse `LoanResponse`                                                       | 30min |
-| **INTEG-008**   | Test TDD : `findById()` par un tiers (ni prêteur ni emprunteur) → 403 Forbidden                                   | INTEG-007  | Test GREEN, `ForbiddenException` levée                                                   | 30min |
+| ID            | Titre                                                                                                        | Dépendance | Critère de Fin                                                     | Temps |
+| ------------- | ------------------------------------------------------------------------------------------------------------ | ---------- | ------------------------------------------------------------------ | ----- |
+| **INTEG-005** | Test TDD : `findAll(role=borrower)` retourne les prêts où `borrower.userId = currentUser`                    | INTEG-002  | Test GREEN, filtre `where.borrower.userId` vérifié                 | 45min |
+| **INTEG-006** | Test TDD : `findAll(role=borrower)` + `borrowerId` fourni → `borrowerId` est ignoré (pas de conflit logique) | INTEG-005  | Test GREEN, le filtre `borrowerId` est sans effet en mode borrower | 30min |
+| **INTEG-007** | Test TDD : `findById()` accessible par l'emprunteur (via `resolveUserRole`) — retourne le prêt               | INTEG-002  | Test GREEN, réponse `LoanResponse`                                 | 30min |
+| **INTEG-008** | Test TDD : `findById()` par un tiers (ni prêteur ni emprunteur) → 403 Forbidden                              | INTEG-007  | Test GREEN, `ForbiddenException` levée                             | 30min |
 
 > **Note INTEG-006** : Quand `role=borrower`, le filtre `borrowerId` n'a pas de sens métier (l'utilisateur
 > connecté EST l'emprunteur). Le code doit ignorer ce paramètre dans cette perspective pour éviter un
@@ -475,20 +476,20 @@ Le problème critique est que **l'emprunteur ne peut pas voir les prêts qui lui
 
 ### Phase 4.5.3 : Migration de rattachement des données existantes (Jour 2)
 
-| ID              | Titre                                                                                                              | Dépendance | Critère de Fin                                                                           | Temps |
-|-----------------|--------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------------------|-------|
-| **INTEG-009**   | Créer migration Prisma : rattacher les `Borrower` existants dont l'email correspond à un `User.email` inscrit     | INTEG-002  | Migration appliquée, `Borrower.userId` peuplé pour les correspondances existantes        | 1h    |
-| **INTEG-010**   | Test d'intégration : `GET /loans?role=borrower` retourne les prêts de l'emprunteur après liaison                  | INTEG-005  | Test Supertest passe, réponse non vide                                                   | 1h    |
-| **INTEG-011**   | Test d'intégration : `GET /loans/{id}` accessible par l'emprunteur (via `resolveUserRole`)                        | INTEG-010  | Test Supertest 200 OK pour l'emprunteur                                                  | 30min |
-| **INTEG-012**   | Test d'intégration : `GET /loans?role=borrower` par un utilisateur tiers (ni prêteur ni emprunteur) retourne vide | INTEG-010  | Test Supertest 200 avec `data: []`                                                       | 30min |
+| ID            | Titre                                                                                                             | Dépendance | Critère de Fin                                                                    | Temps |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------- | ----- |
+| **INTEG-009** | Créer migration Prisma : rattacher les `Borrower` existants dont l'email correspond à un `User.email` inscrit     | INTEG-002  | Migration appliquée, `Borrower.userId` peuplé pour les correspondances existantes | 1h    |
+| **INTEG-010** | Test d'intégration : `GET /loans?role=borrower` retourne les prêts de l'emprunteur après liaison                  | INTEG-005  | Test Supertest passe, réponse non vide                                            | 1h    |
+| **INTEG-011** | Test d'intégration : `GET /loans/{id}` accessible par l'emprunteur (via `resolveUserRole`)                        | INTEG-010  | Test Supertest 200 OK pour l'emprunteur                                           | 30min |
+| **INTEG-012** | Test d'intégration : `GET /loans?role=borrower` par un utilisateur tiers (ni prêteur ni emprunteur) retourne vide | INTEG-010  | Test Supertest 200 avec `data: []`                                                | 30min |
 
 ### Phase 4.5.4 : Correctifs OpenAPI + Review (Jour 3)
 
-| ID              | Titre                                                                                                              | Dépendance | Critère de Fin                                                                           | Temps |
-|-----------------|--------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------------------|-------|
-| **INTEG-013**   | OpenAPI : documenter l'accès dual-perspective (`GET /loans/{id}`, `PATCH`, `DELETE` — qui peut faire quoi)         | INTEG-009  | Spec à jour, descriptions explicites sur les droits prêteur/emprunteur                   | 30min |
-| **INTEG-014**   | OpenAPI : documenter que `borrowerId` n'est pertinent qu'en mode `role=lender`                                     | INTEG-013  | Param `borrowerId` : description mise à jour                                             | 15min |
-| **INTEG-015**   | Review code + fix bugs d'intégration avec le frontend                                                              | INTEG-012  | Tous les tests passent, CI verte                                                         | 2h    |
+| ID            | Titre                                                                                                      | Dépendance | Critère de Fin                                                         | Temps |
+| ------------- | ---------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------- | ----- |
+| **INTEG-013** | OpenAPI : documenter l'accès dual-perspective (`GET /loans/{id}`, `PATCH`, `DELETE` — qui peut faire quoi) | INTEG-009  | Spec à jour, descriptions explicites sur les droits prêteur/emprunteur | 30min |
+| **INTEG-014** | OpenAPI : documenter que `borrowerId` n'est pertinent qu'en mode `role=lender`                             | INTEG-013  | Param `borrowerId` : description mise à jour                           | 15min |
+| **INTEG-015** | Review code + fix bugs d'intégration avec le frontend                                                      | INTEG-012  | Tous les tests passent, CI verte                                       | 2h    |
 
 🏁 **Livrable Sprint 4.5** : **Perspective emprunteur fonctionnelle** (`Borrower.userId` lié automatiquement
 à l'inscription, `GET /loans?role=borrower` retourne les prêts, tests unitaires dual-perspective, migration
@@ -506,27 +507,27 @@ l'invitation doit être acceptée avant de pouvoir créer un prêt pour cette pe
 
 ### Taches
 
-| ID            | Titre                                                                                                         | Dépendance    | Critère de Fin                                                                                                   | Temps |
-|---------------|---------------------------------------------------------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------|-------|
-| **CINV-001**  | Ajouter enum `InvitationStatus` (PENDING, ACCEPTED, REJECTED, EXPIRED) dans schema Prisma                     | -             | Enum créé, `prisma migrate dev` passe                                                                            | 30min |
-| **CINV-002**  | Créer table `contact_invitations` (id, senderUserId, recipientEmail, recipientUserId NOT NULL, status, createdAt, expiresAt, acceptedAt, rejectedAt) | CINV-001 | Table créée avec index unique partiel `(senderUserId, recipientEmail) WHERE status = 'PENDING'`, migration appliquée | 1h    |
-| **CINV-003**  | Test TDD : `searchUsers(query, senderId)` — retourne utilisateurs correspondant à email/prénom/nom, exclut soi-même et contacts déjà acceptés | CINV-002 | Test RED écrit                                                                                | 30min |
-| **CINV-004**  | Implémenter `searchUsers()` dans `ContactInvitationsService`                                                  | CINV-003      | Test CINV-003 GREEN                                                                                              | 1h    |
-| **CINV-005**  | Test TDD : `sendInvitation(senderId, recipientEmail)` — cas nominaux + 404 user not found + 409 already sent + 400 self-invitation | CINV-004 | Tests RED écrits                                                                              | 1h    |
-| **CINV-006**  | Implémenter `sendInvitation()` avec expiration 30 jours                                                       | CINV-005      | Tests CINV-005 GREEN                                                                                             | 1h30  |
-| **CINV-007**  | Test TDD : `acceptInvitation(id, userId)` → crée Borrower chez émetteur + émet `ContactInvitationAccepted`   | CINV-006      | Test RED écrit                                                                                                   | 30min |
-| **CINV-008**  | Implémenter `acceptInvitation()` — transaction : update statut + création Borrower avec `userId = recipientUserId` (NON NULL) + `email = recipientEmail` + `lenderUserId = senderUserId` | CINV-007      | Test CINV-007 GREEN, Borrower créé avec `userId` renseigné (pas de répétition du bug Sprint 4.5) | 1h30  |
-| **CINV-009**  | Test TDD : `rejectInvitation(id, userId)` + `listInvitations(userId, direction?, status?)` (direction: sent/received)  | CINV-008      | Tests RED écrits                                                                                                 | 30min |
-| **CINV-010**  | Implémenter `rejectInvitation()` + `listInvitations()` avec filtrage `direction` (sent/received)                     | CINV-009      | Tests CINV-009 GREEN                                                                                             | 1h    |
-| **CINV-011**  | Créer `contact-invitation.events.ts` : constante `CONTACT_INVITATION_EVENTS = { ACCEPTED: 'contact-invitation.accepted', REJECTED: 'contact-invitation.rejected' }` + interfaces `ContactInvitationAcceptedEvent`, `ContactInvitationRejectedEvent` | CINV-008 | Événements typés exportés, nommage aligné avec `USER_EVENTS` / `LOAN_EVENTS` | 30min |
-| **CINV-012**  | Créer `ContactInvitationsController` : 7 endpoints (search, send, list sent, list received, accept, reject, delete) avec Guards JWT + param `?direction` | CINV-010   | Controllers créés, routes accessibles                                                                            | 1h30  |
-| **CINV-013**  | Tests Supertest : 7 endpoints nominaux + cas d'erreur (404, 409, 400, 403) + list sent/received                   | CINV-012      | Tests Supertest GREEN                                                                                            | 2h    |
-| **CINV-014**  | [Forward-compatible] Créer `ContactInvitationListener` : `@OnEvent('user.registered')` — lier invitations PENDING par email. No-op en Sprint 4.6 (recipientUserId déjà renseigné à l'envoi), prépare Sprint 5+ (invitations externes) | CINV-011 | Listener actif, test unitaire passe | 1h    |
-| **CINV-015**  | Créer `ContactInvitationsModule` (imports: PrismaModule, EventEmitter2 / providers / exports)                 | CINV-012      | Module importable dans AppModule                                                                                 | 30min |
-| **CINV-016**  | Tests intégration inter-modules : Loan creation → vérifie contact ACCEPTED requis (403 si non accepté)         | CINV-015      | Test d'intégration passe, 403 documenté dans OpenAPI                                                            | 1h    |
-| **CINV-017**  | Buffer review + fix bugs + documentation OpenAPI endpoints ContactInvitations                                  | CINV-016      | CI verte, OpenAPI validé par Spectral                                                                            | 2h    |
-| **CINV-018**  | Implémenter job CRON d'expiration : `@Cron('0 3 * * *')` → `PENDING → EXPIRED` quand `expiresAt < now()`         | CINV-015      | Job actif, test unitaire vérifie la transition, invitations expirées ne sont plus listables en PENDING             | 1h    |
-| **CINV-019**  | Modifier `LoansService.createLoan()` : vérifier qu'une invitation ACCEPTED existe pour le borrower avant création. Retourner 403 `contact-not-accepted` sinon. Adapter `CreateLoanDto` : `borrowerId` UUID only (supprimer création inline) | CINV-018 | Tests existants adaptés, nouveau test 403 passe | 1h30  |
+| ID           | Titre                                                                                                                                                                                                                                               | Dépendance | Critère de Fin                                                                                                       | Temps |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- | ----- |
+| **CINV-001** | Ajouter enum `InvitationStatus` (PENDING, ACCEPTED, REJECTED, EXPIRED) dans schema Prisma                                                                                                                                                           | -          | Enum créé, `prisma migrate dev` passe                                                                                | 30min |
+| **CINV-002** | Créer table `contact_invitations` (id, senderUserId, recipientEmail, recipientUserId NOT NULL, status, createdAt, expiresAt, acceptedAt, rejectedAt)                                                                                                | CINV-001   | Table créée avec index unique partiel `(senderUserId, recipientEmail) WHERE status = 'PENDING'`, migration appliquée | 1h    |
+| **CINV-003** | Test TDD : `searchUsers(query, senderId)` — retourne utilisateurs correspondant à email/prénom/nom, exclut soi-même et contacts déjà acceptés                                                                                                       | CINV-002   | Test RED écrit                                                                                                       | 30min |
+| **CINV-004** | Implémenter `searchUsers()` dans `ContactInvitationsService`                                                                                                                                                                                        | CINV-003   | Test CINV-003 GREEN                                                                                                  | 1h    |
+| **CINV-005** | Test TDD : `sendInvitation(senderId, recipientEmail)` — cas nominaux + 404 user not found + 409 already sent + 400 self-invitation                                                                                                                  | CINV-004   | Tests RED écrits                                                                                                     | 1h    |
+| **CINV-006** | Implémenter `sendInvitation()` avec expiration 30 jours                                                                                                                                                                                             | CINV-005   | Tests CINV-005 GREEN                                                                                                 | 1h30  |
+| **CINV-007** | Test TDD : `acceptInvitation(id, userId)` → crée Borrower chez émetteur + émet `ContactInvitationAccepted`                                                                                                                                          | CINV-006   | Test RED écrit                                                                                                       | 30min |
+| **CINV-008** | Implémenter `acceptInvitation()` — transaction : update statut + création Borrower avec `userId = recipientUserId` (NON NULL) + `email = recipientEmail` + `lenderUserId = senderUserId`                                                            | CINV-007   | Test CINV-007 GREEN, Borrower créé avec `userId` renseigné (pas de répétition du bug Sprint 4.5)                     | 1h30  |
+| **CINV-009** | Test TDD : `rejectInvitation(id, userId)` + `listInvitations(userId, direction?, status?)` (direction: sent/received)                                                                                                                               | CINV-008   | Tests RED écrits                                                                                                     | 30min |
+| **CINV-010** | Implémenter `rejectInvitation()` + `listInvitations()` avec filtrage `direction` (sent/received)                                                                                                                                                    | CINV-009   | Tests CINV-009 GREEN                                                                                                 | 1h    |
+| **CINV-011** | Créer `contact-invitation.events.ts` : constante `CONTACT_INVITATION_EVENTS = { ACCEPTED: 'contact-invitation.accepted', REJECTED: 'contact-invitation.rejected' }` + interfaces `ContactInvitationAcceptedEvent`, `ContactInvitationRejectedEvent` | CINV-008   | Événements typés exportés, nommage aligné avec `USER_EVENTS` / `LOAN_EVENTS`                                         | 30min |
+| **CINV-012** | Créer `ContactInvitationsController` : 7 endpoints (search, send, list sent, list received, accept, reject, delete) avec Guards JWT + param `?direction`                                                                                            | CINV-010   | Controllers créés, routes accessibles                                                                                | 1h30  |
+| **CINV-013** | Tests Supertest : 7 endpoints nominaux + cas d'erreur (404, 409, 400, 403) + list sent/received                                                                                                                                                     | CINV-012   | Tests Supertest GREEN                                                                                                | 2h    |
+| **CINV-014** | [Forward-compatible] Créer `ContactInvitationListener` : `@OnEvent('user.registered')` — lier invitations PENDING par email. No-op en Sprint 4.6 (recipientUserId déjà renseigné à l'envoi), prépare Sprint 5+ (invitations externes)               | CINV-011   | Listener actif, test unitaire passe                                                                                  | 1h    |
+| **CINV-015** | Créer `ContactInvitationsModule` (imports: PrismaModule, EventEmitter2 / providers / exports)                                                                                                                                                       | CINV-012   | Module importable dans AppModule                                                                                     | 30min |
+| **CINV-016** | Tests intégration inter-modules : Loan creation → vérifie contact ACCEPTED requis (403 si non accepté)                                                                                                                                              | CINV-015   | Test d'intégration passe, 403 documenté dans OpenAPI                                                                 | 1h    |
+| **CINV-017** | Buffer review + fix bugs + documentation OpenAPI endpoints ContactInvitations                                                                                                                                                                       | CINV-016   | CI verte, OpenAPI validé par Spectral                                                                                | 2h    |
+| **CINV-018** | Implémenter job CRON d'expiration : `@Cron('0 3 * * *')` → `PENDING → EXPIRED` quand `expiresAt < now()`                                                                                                                                            | CINV-015   | Job actif, test unitaire vérifie la transition, invitations expirées ne sont plus listables en PENDING               | 1h    |
+| **CINV-019** | Modifier `LoansService.createLoan()` : vérifier qu'une invitation ACCEPTED existe pour le borrower avant création. Retourner 403 `contact-not-accepted` sinon. Adapter `CreateLoanDto` : `borrowerId` UUID only (supprimer création inline)         | CINV-018   | Tests existants adaptés, nouveau test 403 passe                                                                      | 1h30  |
 
 🏁 **Livrable Sprint 4.6** : **Système d'invitation de contacts complet** (module `ContactInvitations` avec
 7 endpoints, table `contact_invitations` avec index unique partiel, consentement explicite garanti, événements
@@ -717,18 +718,18 @@ Cyclé TDD par comportement.
 
 ## Résumé des Sprints
 
-| Sprint           | Durée           | Modules                          | Endpoints livres                                  | Tests          |
-| ---------------- | --------------- | -------------------------------- | ------------------------------------------------- | -------------- |
-| **Sprint 0**     | 3-4 jours       | Setup infrastructuré             | 2 (health + ready) + Docker                       | CI/CD          |
-| **Sprint 1**     | 5 jours         | Auth + Users                     | 10 (Auth: 4, Users: 6)                            | ~20 tests      |
-| **Sprint 2**     | 4 jours         | Borrowers                        | 5                                                 | ~8 tests       |
-| **Sprint 3**     | 4 jours         | Items + Avatar                   | 7 (Items: 6, Avatar: 1)                           | ~10 tests      |
-| **Sprint 4**     | 8 jours         | Loans (coeur métier)             | 8 + intégration inter-modules                     | ~20 tests      |
-| **Sprint 4.5**   | 3 jours         | Corrections intégration Loans    | 0 (listener événement + migration rattachement + tests dual-perspective + doc OpenAPI) | ~12 tests      |
-| **Sprint 4.6**   | 5 jours         | Contact Invitation System        | 6 (search, send, list, accept, reject, delete)    | ~17 tests      |
-| **Sprint 5**     | 5 jours         | Reminders + Notifications        | 3 + système auto                                  | ~12 tests      |
-| **Sprint 6**     | 4 jours         | History + R2 + Déploiement       | 5 (History: 2, Borrower stats/loans: 2, E2E) + R2 | E2E complet    |
-| **TOTAL**        | **46-50 jours** | **8 modules + 1 correctif**     | **~46 endpoints** (+ 3 réservés V2)               | **~91+ tests** |
+| Sprint         | Durée           | Modules                       | Endpoints livres                                                                       | Tests          |
+| -------------- | --------------- | ----------------------------- | -------------------------------------------------------------------------------------- | -------------- |
+| **Sprint 0**   | 3-4 jours       | Setup infrastructuré          | 2 (health + ready) + Docker                                                            | CI/CD          |
+| **Sprint 1**   | 5 jours         | Auth + Users                  | 10 (Auth: 4, Users: 6)                                                                 | ~20 tests      |
+| **Sprint 2**   | 4 jours         | Borrowers                     | 5                                                                                      | ~8 tests       |
+| **Sprint 3**   | 4 jours         | Items + Avatar                | 7 (Items: 6, Avatar: 1)                                                                | ~10 tests      |
+| **Sprint 4**   | 8 jours         | Loans (coeur métier)          | 8 + intégration inter-modules                                                          | ~20 tests      |
+| **Sprint 4.5** | 3 jours         | Corrections intégration Loans | 0 (listener événement + migration rattachement + tests dual-perspective + doc OpenAPI) | ~12 tests      |
+| **Sprint 4.6** | 5 jours         | Contact Invitation System     | 6 (search, send, list, accept, reject, delete)                                         | ~17 tests      |
+| **Sprint 5**   | 5 jours         | Reminders + Notifications     | 3 + système auto                                                                       | ~12 tests      |
+| **Sprint 6**   | 4 jours         | History + R2 + Déploiement    | 5 (History: 2, Borrower stats/loans: 2, E2E) + R2                                      | E2E complet    |
+| **TOTAL**      | **46-50 jours** | **8 modules + 1 correctif**   | **~46 endpoints** (+ 3 réservés V2)                                                    | **~91+ tests** |
 
 > **Endpoints réservés V2** : 3 endpoints Reminders (`GET /loans/{id}/reminders`, `GET /reminders/{id}`,
 > `POST /reminders/{id}/cancel`) sont définis dans `openapi.yaml` mais ne sont pas implémentés en V1 car
@@ -742,16 +743,16 @@ Cyclé TDD par comportement.
 
 ## Points de Synchronisation Frontend/Backend
 
-| Moment             | Frontend peut brancher               | Backend disponible                                         |
-| ------------------ | ------------------------------------ | ---------------------------------------------------------- |
-| **Fin Sprint 1**   | Authentification + Profil            | `/auth/*` + `/users/me`                                    |
-| **Fin Sprint 2**   | Gestion emprunteurs                  | `/borrowers/*`                                             |
-| **Fin Sprint 3**   | Enregistrement objets + photos       | `/items/*`                                                 |
-| **Fin Sprint 4**   | Création et suivi de prêts (prêteur) | `/loans/*`                                                 |
-| **Fin Sprint 4.5** | Perspective emprunteur fonctionnelle | `Borrower.userId` lié + `GET /loans?role=borrower` correct |
+| Moment             | Frontend peut brancher               | Backend disponible                                              |
+| ------------------ | ------------------------------------ | --------------------------------------------------------------- |
+| **Fin Sprint 1**   | Authentification + Profil            | `/auth/*` + `/users/me`                                         |
+| **Fin Sprint 2**   | Gestion emprunteurs                  | `/borrowers/*`                                                  |
+| **Fin Sprint 3**   | Enregistrement objets + photos       | `/items/*`                                                      |
+| **Fin Sprint 4**   | Création et suivi de prêts (prêteur) | `/loans/*`                                                      |
+| **Fin Sprint 4.5** | Perspective emprunteur fonctionnelle | `Borrower.userId` lié + `GET /loans?role=borrower` correct      |
 | **Fin Sprint 4.6** | Système d'invitation de contacts     | `/contact-invitations/*` — 6 endpoints + consentement explicite |
-| **Fin Sprint 5**   | Notifications push                   | `/notifications/*` + rappels auto                          |
-| **Fin Sprint 6**   | Statistiques complètes               | `/history/*` + seed data                                   |
+| **Fin Sprint 5**   | Notifications push                   | `/notifications/*` + rappels auto                               |
+| **Fin Sprint 6**   | Statistiques complètes               | `/history/*` + seed data                                        |
 
 ---
 
