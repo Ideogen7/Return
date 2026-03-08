@@ -1,5 +1,7 @@
+import { useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { TextInput, Button, HelperText } from 'react-native-paper';
+import { TextInput, Button, HelperText, Text } from 'react-native-paper';
+import PhoneInput from 'react-native-phone-number-input';
 import { useForm, Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { ui } from '../../config/theme.config';
@@ -13,6 +15,7 @@ interface EditProfileFormProps {
 
 export function EditProfileForm({ user, onSubmit, isLoading }: EditProfileFormProps) {
   const { t } = useTranslation();
+  const phoneRef = useRef<PhoneInput>(null);
   const {
     control,
     handleSubmit,
@@ -113,24 +116,36 @@ export function EditProfileForm({ user, onSubmit, isLoading }: EditProfileFormPr
         </HelperText>
       )}
 
+      <Text variant="labelMedium" style={styles.phoneLabel}>
+        {t('profile.phone')}
+      </Text>
       <Controller
         control={control}
         name="phone"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
-            label={t('profile.phone')}
-            mode="outlined"
-            keyboardType="phone-pad"
-            left={<TextInput.Icon icon="phone-outline" color="#A8B5BF" />}
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value ?? ''}
-            testID="phone-input"
-            style={[styles.input, ui.input]}
-            outlineStyle={styles.outline}
+        rules={{
+          pattern: {
+            value: /^\+[1-9]\d{6,14}$/,
+            message: t('profile.phoneInvalidFormat'),
+          },
+        }}
+        render={({ field: { onChange } }) => (
+          <PhoneInput
+            ref={phoneRef}
+            defaultCode="FR"
+            layout="first"
+            onChangeFormattedText={(text) => {
+              onChange(text || undefined);
+            }}
+            containerStyle={styles.phoneContainer}
+            textContainerStyle={styles.phoneTextContainer}
           />
         )}
       />
+      {errors.phone && (
+        <HelperText type="error" testID="phone-error">
+          {errors.phone.message}
+        </HelperText>
+      )}
 
       <Button
         mode="contained"
@@ -153,6 +168,19 @@ const styles = StyleSheet.create({
   container: { padding: 16 },
   input: { marginBottom: 8 },
   outline: { borderRadius: 12 },
+  phoneLabel: { color: '#A8B5BF', marginBottom: 6, marginTop: 4 },
+  phoneContainer: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#C9C4BB',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
+  },
+  phoneTextContainer: {
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
   button: { marginTop: 20, borderRadius: 12 },
   buttonLabel: { fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
   buttonContent: { paddingVertical: 8, flexDirection: 'row-reverse' },

@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, MinLength, MaxLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Matches, MinLength, MaxLength } from 'class-validator';
 
 /**
  * DTO pour la mise à jour partielle du profil utilisateur.
@@ -27,6 +27,6 @@ export class UpdateUserDto {
   lastName?: string;
 
   @IsOptional()
-  @IsString()
+  @Matches(/^\+[1-9]\d{6,14}$/, { message: 'Phone must be in E.164 format (e.g. +33612345678)' })
   phone?: string;
 }

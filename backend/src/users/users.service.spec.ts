@@ -35,6 +35,7 @@ const MOCK_USER = {
   lastName: 'Doe',
   role: UserRole.LENDER,
   profilePicture: null,
+  phone: null,
   pushNotificationsEnabled: true,
   reminderEnabled: true,
   language: 'fr',
