@@ -355,7 +355,10 @@ describe('ContactInvitationsService', () => {
 
       expect(result.status).toBe('ACCEPTED');
 
-      // Verify Borrower upsert with userId = recipientUserId (NOT null — avoid Sprint 4.5 bug)
+      // Verify TWO bidirectional Borrower upserts
+      expect(txMock.borrower.upsert).toHaveBeenCalledTimes(2);
+
+      // 1. Sender's contacts: recipient (Marie) added to Jean's list
       expect(txMock.borrower.upsert).toHaveBeenCalledWith({
         where: {
           lenderUserId_email: {
@@ -370,6 +373,24 @@ describe('ContactInvitationsService', () => {
           userId: RECIPIENT_USER_ID,
           email: 'marie.dupont@example.com',
           lenderUserId: SENDER_USER_ID,
+        }),
+      });
+
+      // 2. Recipient's contacts: sender (Jean) added to Marie's list
+      expect(txMock.borrower.upsert).toHaveBeenCalledWith({
+        where: {
+          lenderUserId_email: {
+            lenderUserId: RECIPIENT_USER_ID,
+            email: 'jean.martin@example.com',
+          },
+        },
+        update: expect.objectContaining({
+          userId: SENDER_USER_ID,
+        }),
+        create: expect.objectContaining({
+          userId: SENDER_USER_ID,
+          email: 'jean.martin@example.com',
+          lenderUserId: RECIPIENT_USER_ID,
         }),
       });
 

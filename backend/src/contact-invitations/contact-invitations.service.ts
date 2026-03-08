@@ -249,7 +249,7 @@ export class ContactInvitationsService {
         },
       });
 
-      // Upsert Borrower in sender's contacts with userId = recipientUserId.
+      // Upsert Borrower in sender's contacts (Ismaël gets Ozias).
       // Uses upsert to safely handle pre-existing Borrower for the same
       // (lenderUserId, email) — avoids P2002 unique constraint violation.
       // userId MUST be set to avoid the Sprint 4.5 bug.
@@ -271,6 +271,29 @@ export class ContactInvitationsService {
           email: invitation.recipientEmail,
           userId: invitation.recipientUserId,
           lenderUserId: invitation.senderUserId,
+        },
+      });
+
+      // Upsert Borrower in recipient's contacts (Ozias gets Ismaël).
+      // The relationship is bidirectional: both users become contacts of each other.
+      await tx.borrower.upsert({
+        where: {
+          lenderUserId_email: {
+            lenderUserId: invitation.recipientUserId,
+            email: invitation.senderUser.email,
+          },
+        },
+        update: {
+          firstName: invitation.senderUser.firstName,
+          lastName: invitation.senderUser.lastName,
+          userId: invitation.senderUserId,
+        },
+        create: {
+          firstName: invitation.senderUser.firstName,
+          lastName: invitation.senderUser.lastName,
+          email: invitation.senderUser.email,
+          userId: invitation.senderUserId,
+          lenderUserId: invitation.recipientUserId,
         },
       });
 
