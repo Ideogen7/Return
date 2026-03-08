@@ -52,7 +52,7 @@ export class ContactInvitationsService {
     const page = params.page ?? 1;
     const limit = params.limit ?? 20;
     const skip = (page - 1) * limit;
-    const query = params.query.trim();
+    const query = params.query;
 
     // Search by email (exact), firstName or lastName (contains, case-insensitive)
     const where: Prisma.UserWhereInput = {
@@ -141,11 +141,13 @@ export class ContactInvitationsService {
     senderId: string,
     dto: SendInvitationDto,
   ): Promise<ContactInvitationResponse> {
-    const recipientEmail = dto.recipientEmail.toLowerCase().trim();
+    const recipientEmail = dto.recipientEmail.trim();
 
-    // Find recipient user
-    const recipient = await this.prisma.user.findUnique({
-      where: { email: recipientEmail },
+    // Find recipient user (case-insensitive email lookup)
+    const recipient = await this.prisma.user.findFirst({
+      where: {
+        email: { equals: recipientEmail, mode: 'insensitive' },
+      },
     });
 
     if (!recipient) {
@@ -168,11 +170,12 @@ export class ContactInvitationsService {
       );
     }
 
-    // Check for existing PENDING invitation
+    // Check for existing PENDING invitation (use canonical email from DB)
+    const canonicalEmail = recipient.email;
     const existingPending = await this.prisma.contactInvitation.findFirst({
       where: {
         senderUserId: senderId,
-        recipientEmail,
+        recipientEmail: canonicalEmail,
         status: InvitationStatus.PENDING,
       },
     });
@@ -192,7 +195,7 @@ export class ContactInvitationsService {
     const invitation = await this.prisma.contactInvitation.create({
       data: {
         senderUserId: senderId,
-        recipientEmail,
+        recipientEmail: canonicalEmail,
         recipientUserId: recipient.id,
         status: InvitationStatus.PENDING,
         expiresAt,
@@ -246,10 +249,23 @@ export class ContactInvitationsService {
         },
       });
 
-      // Create Borrower in sender's contacts with userId = recipientUserId
-      // This is CRITICAL: userId MUST be set to avoid the Sprint 4.5 bug
-      const borrower = await tx.borrower.create({
-        data: {
+      // Upsert Borrower in sender's contacts with userId = recipientUserId.
+      // Uses upsert to safely handle pre-existing Borrower for the same
+      // (lenderUserId, email) — avoids P2002 unique constraint violation.
+      // userId MUST be set to avoid the Sprint 4.5 bug.
+      const borrower = await tx.borrower.upsert({
+        where: {
+          lenderUserId_email: {
+            lenderUserId: invitation.senderUserId,
+            email: invitation.recipientEmail,
+          },
+        },
+        update: {
+          firstName: invitation.recipientUser.firstName,
+          lastName: invitation.recipientUser.lastName,
+          userId: invitation.recipientUserId,
+        },
+        create: {
           firstName: invitation.recipientUser.firstName,
           lastName: invitation.recipientUser.lastName,
           email: invitation.recipientEmail,

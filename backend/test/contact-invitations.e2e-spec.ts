@@ -295,11 +295,13 @@ describe('ContactInvitations (e2e)', () => {
 
     it('should return 404 when recipient user not found', async () => {
       service.sendInvitation.mockRejectedValue(
-        new ProblemDetailsException(HttpStatus.NOT_FOUND, {
-          type: 'https://api.return.app/errors/user-not-found',
-          title: 'User Not Found',
-          detail: 'No registered user found for this email.',
-        }),
+        new ProblemDetailsException(
+          HttpStatus.NOT_FOUND,
+          'user-not-found',
+          'User Not Found',
+          'No registered user found for this email.',
+          '/v1/contact-invitations',
+        ),
       );
 
       await request(app.getHttpServer())

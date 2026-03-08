@@ -1,9 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { PrismaService } from '../prisma/prisma.service.js';
 import { USER_EVENTS } from '../common/events/user.events.js';
 import type { UserRegisteredEvent } from '../common/events/user.events.js';
-import { InvitationStatus } from '@prisma/client';
 
 /**
  * Forward-compatible listener for user registration events.
@@ -20,10 +18,6 @@ import { InvitationStatus } from '@prisma/client';
  */
 @Injectable()
 export class ContactInvitationListener {
-  private readonly logger = new Logger(ContactInvitationListener.name);
-
-  constructor(private readonly prisma: PrismaService) {}
-
   /**
    * When a new user registers, find all PENDING invitations sent to their
    * email that don't yet have a recipientUserId, and link them.
@@ -35,24 +29,21 @@ export class ContactInvitationListener {
   async handleUserRegistered(event: UserRegisteredEvent): Promise<void> {
     const { userId, email } = event;
 
-    const result = await this.prisma.contactInvitation.updateMany({
-      where: {
-        recipientEmail: { equals: email, mode: 'insensitive' },
-        // Sprint 5+: match invitations where recipientUserId IS NULL
-        // (external invitations to non-registered users).
-        // Cast needed because field is NOT NULL in Sprint 4.6 schema.
-        recipientUserId: { equals: null as unknown as string },
-        status: InvitationStatus.PENDING,
-      },
-      data: {
-        recipientUserId: userId,
-      },
-    });
-
-    if (result.count > 0) {
-      this.logger.log(
-        `Linked ${result.count} pending invitation(s) to newly registered User ${userId}`,
-      );
-    }
+    // Sprint 4.6: intentional no-op.
+    // recipientUserId is non-nullable in the current schema, so we must NOT
+    // issue a query that filters on recipientUserId = NULL (Prisma would
+    // reject it or return 0 rows).
+    //
+    // Sprint 5+: when invitations to external (non-registered) users are
+    // supported and recipientUserId becomes nullable, replace the early
+    // return with a Prisma updateMany():
+    //   - find PENDING invitations where:
+    //     - recipientEmail matches the newly registered user's email (case-insensitive)
+    //     - recipientUserId IS NULL
+    //   - set recipientUserId = userId
+    //
+    // The implementation is deferred to avoid invalid Prisma filters.
+    void userId;
+    void email;
   }
 }

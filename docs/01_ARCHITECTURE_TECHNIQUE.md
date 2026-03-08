@@ -398,8 +398,10 @@ avec invitation email externe).
 ### Matrice RBAC — Invitations de Contact
 
 | Action                            | Prêteur (émetteur) | Emprunteur (destinataire) | Système |
-| --------------------------------- | ------------------ | ------------------------- | ------- | --- | ------------------------------- | ------- | --- | --- | --- | ----------------------------- | --- | ------- | --- |
-| Envoyer une invitation            | ✅ CREATE          | ❌                        | ❌      |     | Lister ses invitations envoyées | ✅ READ | ❌  | ❌  |     | Lister ses invitations reçues | ❌  | ✅ READ | ❌  |
+| --------------------------------- | ------------------ | ------------------------- | ------- |
+| Envoyer une invitation            | ✅ CREATE          | ❌                        | ❌      |
+| Lister ses invitations envoyées   | ✅ READ            | ❌                        | ❌      |
+| Lister ses invitations reçues     | ❌                 | ✅ READ                   | ❌      |
 | Accepter / Rejeter une invitation | ❌                 | ✅ UPDATE                 | ❌      |
 | Annuler une invitation envoyée    | ✅ DELETE          | ❌                        | ❌      |
 | Expirer les invitations (CRON)    | ❌                 | ❌                        | ✅      |

@@ -197,7 +197,7 @@ describe('ContactInvitationsService', () => {
 
   describe('sendInvitation', () => {
     it('should create a PENDING invitation for a registered user', async () => {
-      prisma.user.findUnique.mockResolvedValue(RECIPIENT_USER);
+      prisma.user.findFirst.mockResolvedValue(RECIPIENT_USER);
       prisma.contactInvitation.findFirst.mockResolvedValue(null);
       prisma.contactInvitation.create.mockResolvedValue({
         ...MOCK_INVITATION,
@@ -223,7 +223,7 @@ describe('ContactInvitationsService', () => {
     });
 
     it('should throw 400 for self-invitation', async () => {
-      prisma.user.findUnique.mockResolvedValue(SENDER_USER);
+      prisma.user.findFirst.mockResolvedValue(SENDER_USER);
 
       try {
         await service.sendInvitation(SENDER_USER_ID, {
@@ -238,7 +238,7 @@ describe('ContactInvitationsService', () => {
     });
 
     it('should throw 404 when recipient is not registered', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
 
       try {
         await service.sendInvitation(SENDER_USER_ID, {
@@ -253,7 +253,7 @@ describe('ContactInvitationsService', () => {
     });
 
     it('should throw 409 when a PENDING invitation already exists', async () => {
-      prisma.user.findUnique.mockResolvedValue(RECIPIENT_USER);
+      prisma.user.findFirst.mockResolvedValue(RECIPIENT_USER);
       prisma.contactInvitation.findFirst.mockResolvedValue(MOCK_INVITATION);
 
       try {
@@ -269,7 +269,7 @@ describe('ContactInvitationsService', () => {
     });
 
     it('should set expiration to 30 days from creation', async () => {
-      prisma.user.findUnique.mockResolvedValue(RECIPIENT_USER);
+      prisma.user.findFirst.mockResolvedValue(RECIPIENT_USER);
       prisma.contactInvitation.findFirst.mockResolvedValue(null);
       prisma.contactInvitation.create.mockResolvedValue({
         ...MOCK_INVITATION,
@@ -291,7 +291,7 @@ describe('ContactInvitationsService', () => {
     });
 
     it('should allow re-invitation after rejection (partial unique index)', async () => {
-      prisma.user.findUnique.mockResolvedValue(RECIPIENT_USER);
+      prisma.user.findFirst.mockResolvedValue(RECIPIENT_USER);
       // findFirst returns null → no PENDING invitation exists
       // (the previous one was REJECTED, so the partial unique index allows a new one)
       prisma.contactInvitation.findFirst.mockResolvedValue(null);
@@ -331,7 +331,7 @@ describe('ContactInvitationsService', () => {
         status: InvitationStatus.ACCEPTED,
         acceptedAt: new Date(),
       });
-      txMock.borrower.create.mockResolvedValue({
+      txMock.borrower.upsert.mockResolvedValue({
         id: BORROWER_ID,
         firstName: 'Marie',
         lastName: 'Dupont',
@@ -355,9 +355,18 @@ describe('ContactInvitationsService', () => {
 
       expect(result.status).toBe('ACCEPTED');
 
-      // Verify Borrower creation with userId = recipientUserId (NOT null — avoid Sprint 4.5 bug)
-      expect(txMock.borrower.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
+      // Verify Borrower upsert with userId = recipientUserId (NOT null — avoid Sprint 4.5 bug)
+      expect(txMock.borrower.upsert).toHaveBeenCalledWith({
+        where: {
+          lenderUserId_email: {
+            lenderUserId: SENDER_USER_ID,
+            email: 'marie.dupont@example.com',
+          },
+        },
+        update: expect.objectContaining({
+          userId: RECIPIENT_USER_ID,
+        }),
+        create: expect.objectContaining({
           userId: RECIPIENT_USER_ID,
           email: 'marie.dupont@example.com',
           lenderUserId: SENDER_USER_ID,

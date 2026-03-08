@@ -97,24 +97,33 @@ export class LoansService {
       const itemId = await this.resolveItem(tx, dto.item, lenderId);
       const borrowerId = await this.resolveBorrower(tx, dto.borrowerId, lenderId);
 
-      // CINV-019: Verify ACCEPTED contact invitation exists for this borrower
+      // CINV-019: Verify ACCEPTED contact invitation exists for this borrower.
+      // All borrowers MUST have a userId (linked via invitation acceptance).
+      // Borrowers without userId are not valid for loan creation.
       const borrower = await tx.borrower.findUnique({
         where: { id: borrowerId },
         select: { userId: true },
       });
-      if (borrower?.userId) {
-        const hasAccepted = await this.contactInvitationsService.hasAcceptedContact(
-          lenderId,
-          borrower.userId,
+      if (!borrower?.userId) {
+        throw new ForbiddenException(
+          'contact-not-accepted',
+          'Contact Not Accepted',
+          'You can only create a loan for a contact with an ACCEPTED invitation.',
+          '/v1/loans',
         );
-        if (!hasAccepted) {
-          throw new ForbiddenException(
-            'contact-not-accepted',
-            'Contact Not Accepted',
-            'You can only create a loan for a contact with an ACCEPTED invitation.',
-            '/v1/loans',
-          );
-        }
+      }
+
+      const hasAccepted = await this.contactInvitationsService.hasAcceptedContact(
+        lenderId,
+        borrower.userId,
+      );
+      if (!hasAccepted) {
+        throw new ForbiddenException(
+          'contact-not-accepted',
+          'Contact Not Accepted',
+          'You can only create a loan for a contact with an ACCEPTED invitation.',
+          '/v1/loans',
+        );
       }
 
       return tx.loan.create({

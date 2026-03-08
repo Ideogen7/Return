@@ -244,6 +244,23 @@ describe('LoansService', () => {
       }
     });
 
+    it('should throw 403 contact-not-accepted when borrower has no userId', async () => {
+      prisma.item.findUnique.mockResolvedValue(MOCK_ITEM);
+      prisma.borrower.findUnique.mockResolvedValue({
+        ...MOCK_BORROWER,
+        userId: null,
+      });
+
+      try {
+        await service.create(LENDER_USER_ID, CREATE_DTO);
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+        expect(err.response.type).toContain('contact-not-accepted');
+      }
+    });
+
     it('should throw 429 RateLimitException when daily limit exceeded', async () => {
       redisClient.get.mockResolvedValue('15');
 

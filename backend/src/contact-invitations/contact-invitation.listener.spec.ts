@@ -1,6 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
-import { PrismaService } from '../prisma/prisma.service.js';
 import { ContactInvitationListener } from './contact-invitation.listener.js';
 import type { UserRegisteredEvent } from '../common/events/user.events.js';
 
@@ -17,40 +15,21 @@ const EMAIL = 'marie.dupont@example.com';
 
 describe('ContactInvitationListener', () => {
   let listener: ContactInvitationListener;
-  let prisma: DeepMockProxy<PrismaService>;
 
   beforeEach(async () => {
-    prisma = mockDeep<PrismaService>();
-
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ContactInvitationListener, { provide: PrismaService, useValue: prisma }],
+      providers: [ContactInvitationListener],
     }).compile();
 
     listener = module.get<ContactInvitationListener>(ContactInvitationListener);
   });
 
   describe('handleUserRegistered', () => {
-    it('should attempt to link pending invitations by email (no-op in Sprint 4.6)', async () => {
-      prisma.contactInvitation.updateMany.mockResolvedValue({ count: 0 });
-
+    it('should be a no-op in Sprint 4.6 (recipientUserId is non-nullable)', async () => {
       const event: UserRegisteredEvent = { userId: USER_ID, email: EMAIL };
-      await listener.handleUserRegistered(event);
 
-      expect(prisma.contactInvitation.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: { recipientUserId: USER_ID },
-        }),
-      );
-    });
-
-    it('should log when invitations are linked', async () => {
-      prisma.contactInvitation.updateMany.mockResolvedValue({ count: 2 });
-
-      const event: UserRegisteredEvent = { userId: USER_ID, email: EMAIL };
-      await listener.handleUserRegistered(event);
-
-      // Verify it completes without error (logging is a side effect)
-      expect(prisma.contactInvitation.updateMany).toHaveBeenCalled();
+      // Should complete without error or side effects
+      await expect(listener.handleUserRegistered(event)).resolves.toBeUndefined();
     });
   });
 });
