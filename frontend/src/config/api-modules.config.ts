@@ -8,7 +8,7 @@ const MOCK_MODULES: Record<string, boolean> = {
   notifications: true,
   users: false,
   history: true,
-  'contact-invitations': true,
+  'contact-invitations': false,
 };
 
 export function getBaseUrl(endpoint: string): string {
