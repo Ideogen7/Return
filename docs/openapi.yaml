@@ -1577,7 +1577,7 @@ paths:
       summary: Refuser une invitation de contact
       description: |
         L'emprunteur (destinataire) refuse l'invitation. Aucun contact n'est créé.
-        Seul le destinataire peut refuser. Idempotent si déjà rejeté.
+        Seul le destinataire peut refuser. Retourne 409 si l'invitation n'est plus PENDING.
       operationId: rejectContactInvitation
       parameters:
         - name: invitationId
@@ -3204,7 +3204,7 @@ components:
           items:
             $ref: '#/components/schemas/ContactInvitation'
         pagination:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: '#/components/schemas/PaginationMetadata'
 
     PaginatedUserSearchResults:
       type: object
@@ -3214,7 +3214,7 @@ components:
           items:
             $ref: '#/components/schemas/UserSearchResult'
         pagination:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: '#/components/schemas/PaginationMetadata'
 
     CreateBorrowerDto:
       type: object

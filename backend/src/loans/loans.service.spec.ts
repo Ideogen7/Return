@@ -5,6 +5,7 @@ import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RedisService } from '../redis/redis.service.js';
 import { LoansService } from './loans.service.js';
+import { ContactInvitationsService } from '../contact-invitations/contact-invitations.service.js';
 import { LOAN_EVENTS } from '../common/events/loan.events.js';
 import type { ProblemDetails } from '../common/exceptions/problem-details.exception.js';
 import { LoanStatus, ItemCategory, UserRole } from '@prisma/client';
@@ -111,6 +112,7 @@ describe('LoansService', () => {
   let eventEmitter: { emit: jest.Mock };
   let redisClient: ReturnType<typeof createMockRedisClient>;
   let redisService: { getClient: jest.Mock };
+  let contactInvitationsService: { hasAcceptedContact: jest.Mock };
 
   beforeEach(async () => {
     prisma = mockDeep<PrismaService>();
@@ -121,6 +123,7 @@ describe('LoansService', () => {
     eventEmitter = { emit: jest.fn() };
     redisClient = createMockRedisClient();
     redisService = { getClient: jest.fn().mockReturnValue(redisClient) };
+    contactInvitationsService = { hasAcceptedContact: jest.fn().mockResolvedValue(true) };
 
     // Default: no rate limit hit
     redisClient.get.mockResolvedValue(null);
@@ -133,6 +136,7 @@ describe('LoansService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: RedisService, useValue: redisService },
         { provide: EventEmitter2, useValue: eventEmitter },
+        { provide: ContactInvitationsService, useValue: contactInvitationsService },
       ],
     }).compile();
 
@@ -146,7 +150,7 @@ describe('LoansService', () => {
   describe('create', () => {
     const CREATE_DTO = {
       item: ITEM_ID,
-      borrower: BORROWER_ID,
+      borrowerId: BORROWER_ID,
       returnDate: '2099-06-01',
       notes: 'Test loan',
     };
@@ -213,7 +217,7 @@ describe('LoansService', () => {
 
       await service.create(LENDER_USER_ID, {
         item: inlineItem as never,
-        borrower: BORROWER_ID,
+        borrowerId: BORROWER_ID,
       });
 
       expect(prisma.item.create).toHaveBeenCalledWith({
@@ -225,47 +229,36 @@ describe('LoansService', () => {
       });
     });
 
-    it('should create inline borrower when borrower is an object', async () => {
-      const inlineBorrower = {
-        firstName: 'Jean',
-        lastName: 'Martin',
-        email: 'jean@example.com',
-      };
+    it('should throw 403 contact-not-accepted when no ACCEPTED invitation exists', async () => {
+      contactInvitationsService.hasAcceptedContact.mockResolvedValue(false);
       prisma.item.findUnique.mockResolvedValue(MOCK_ITEM);
-      prisma.borrower.findUnique.mockResolvedValue(null); // no existing
-      prisma.borrower.create.mockResolvedValue({ ...MOCK_BORROWER, firstName: 'Jean' });
-      prisma.loan.create.mockResolvedValue(MOCK_LOAN);
+      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
 
-      await service.create(LENDER_USER_ID, {
-        item: ITEM_ID,
-        borrower: inlineBorrower as never,
-      });
-
-      expect(prisma.borrower.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          firstName: 'Jean',
-          lastName: 'Martin',
-          email: 'jean@example.com',
-          lenderUserId: LENDER_USER_ID,
-        }),
-      });
+      try {
+        await service.create(LENDER_USER_ID, CREATE_DTO);
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+        expect(err.response.type).toContain('contact-not-accepted');
+      }
     });
 
-    it('should reuse existing borrower when inline borrower email already exists for lender', async () => {
+    it('should throw 403 contact-not-accepted when borrower has no userId', async () => {
       prisma.item.findUnique.mockResolvedValue(MOCK_ITEM);
-      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER); // existing
-      prisma.loan.create.mockResolvedValue(MOCK_LOAN);
-
-      await service.create(LENDER_USER_ID, {
-        item: ITEM_ID,
-        borrower: {
-          firstName: 'Marie',
-          lastName: 'Dupont',
-          email: 'marie@example.com',
-        } as never,
+      prisma.borrower.findUnique.mockResolvedValue({
+        ...MOCK_BORROWER,
+        userId: null,
       });
 
-      expect(prisma.borrower.create).not.toHaveBeenCalled();
+      try {
+        await service.create(LENDER_USER_ID, CREATE_DTO);
+        fail('Expected ForbiddenException');
+      } catch (error) {
+        const err = error as { response: ProblemDetails };
+        expect(err.response.status).toBe(HttpStatus.FORBIDDEN);
+        expect(err.response.type).toContain('contact-not-accepted');
+      }
     });
 
     it('should throw 429 RateLimitException when daily limit exceeded', async () => {
