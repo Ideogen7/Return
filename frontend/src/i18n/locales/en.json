@@ -243,7 +243,11 @@
     "emptySent": "No invitations sent",
     "receivedTitle": "Received invitations",
     "sentTitle": "Sent invitations",
-    "noBorrowers": "No contacts. Invite users to lend them items."
+    "noBorrowers": "No contacts. Invite users to lend them items.",
+    "statusPending": "Pending",
+    "statusAccepted": "Accepted",
+    "statusRejected": "Rejected",
+    "statusExpired": "Expired"
   },
   "navigation": {
     "loans": "Loans",

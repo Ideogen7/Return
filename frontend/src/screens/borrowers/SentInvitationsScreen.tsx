@@ -14,10 +14,10 @@ const STATUS_STYLES: Record<InvitationStatus, { bg: string; text: string }> = {
 };
 
 const STATUS_LABELS: Record<InvitationStatus, string> = {
-  PENDING: 'invitations.pending',
-  ACCEPTED: 'invitations.accept',
-  REJECTED: 'invitations.reject',
-  EXPIRED: 'common.error',
+  PENDING: 'invitations.statusPending',
+  ACCEPTED: 'invitations.statusAccepted',
+  REJECTED: 'invitations.statusRejected',
+  EXPIRED: 'invitations.statusExpired',
 };
 
 export function SentInvitationsScreen() {
