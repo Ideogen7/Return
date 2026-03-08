@@ -18,6 +18,7 @@ export interface User {
   lastName: string;
   role: UserRole;
   profilePicture?: string | null;
+  phone?: string | null;
   settings?: UserSettings;
   createdAt: string;
   lastLoginAt?: string | null;
@@ -55,6 +56,7 @@ export interface UpdateProfileDto {
   firstName?: string;
   lastName?: string;
   email?: string;
+  phone?: string;
 }
 
 export interface ChangePasswordDto {

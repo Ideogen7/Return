@@ -27,6 +27,7 @@ export function toSafeUser(user: User): SafeUser {
     lastName: user.lastName,
     role: user.role,
     profilePicture: user.profilePicture,
+    phone: user.phone,
     settings: {
       pushNotificationsEnabled: user.pushNotificationsEnabled,
       reminderEnabled: user.reminderEnabled,

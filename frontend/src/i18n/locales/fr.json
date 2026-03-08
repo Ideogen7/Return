@@ -65,7 +65,8 @@
     "loansReceived": "Reçus",
     "returnedOnTime": "À temps",
     "returnedLate": "En retard",
-    "trustScore": "Confiance"
+    "trustScore": "Confiance",
+    "phone": "Téléphone"
   },
   "settings": {
     "title": "Paramètres",

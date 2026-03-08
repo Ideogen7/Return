@@ -22,6 +22,7 @@ export function EditProfileForm({ user, onSubmit, isLoading }: EditProfileFormPr
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
+      phone: user.phone ?? '',
     },
   });
 
@@ -111,6 +112,25 @@ export function EditProfileForm({ user, onSubmit, isLoading }: EditProfileFormPr
           {errors.email.message}
         </HelperText>
       )}
+
+      <Controller
+        control={control}
+        name="phone"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label={t('profile.phone')}
+            mode="outlined"
+            keyboardType="phone-pad"
+            left={<TextInput.Icon icon="phone-outline" color="#A8B5BF" />}
+            onBlur={onBlur}
+            onChangeText={onChange}
+            value={value ?? ''}
+            testID="phone-input"
+            style={[styles.input, ui.input]}
+            outlineStyle={styles.outline}
+          />
+        )}
+      />
 
       <Button
         mode="contained"

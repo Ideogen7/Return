@@ -31,6 +31,7 @@ model User {
 
   // Profil optionnel
   profilePicture String? @map("profile_picture")
+  phone          String? @db.VarChar(20)
 
   // Préférences (embarquées dans la même table pour simplifier le MVP)
   pushNotificationsEnabled Boolean @default(true) @map("push_notifications_enabled")

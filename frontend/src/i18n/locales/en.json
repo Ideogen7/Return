@@ -65,7 +65,8 @@
     "loansReceived": "Received",
     "returnedOnTime": "On time",
     "returnedLate": "Late",
-    "trustScore": "Trust"
+    "trustScore": "Trust",
+    "phone": "Phone"
   },
   "settings": {
     "title": "Settings",
