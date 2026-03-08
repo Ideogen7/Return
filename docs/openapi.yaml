@@ -1404,7 +1404,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedUserSearchResults'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/ValidationError'
 
   /contact-invitations:
     post:
@@ -3204,7 +3204,7 @@ components:
           items:
             $ref: '#/components/schemas/ContactInvitation'
         pagination:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: '#/components/schemas/PaginationMetadata'
 
     PaginatedUserSearchResults:
       type: object
@@ -3214,7 +3214,7 @@ components:
           items:
             $ref: '#/components/schemas/UserSearchResult'
         pagination:
-          $ref: '#/components/schemas/PaginationMeta'
+          $ref: '#/components/schemas/PaginationMetadata'
 
     CreateBorrowerDto:
       type: object
