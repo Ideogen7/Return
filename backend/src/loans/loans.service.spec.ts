@@ -340,7 +340,7 @@ describe('LoansService', () => {
       sortOrder: 'desc',
     };
 
-    it('should return paginated loans excluding archived by default', async () => {
+    it('should return paginated loans for lender', async () => {
       prisma.loan.findMany.mockResolvedValue([MOCK_LOAN]);
       prisma.loan.count.mockResolvedValue(1);
 
@@ -354,36 +354,9 @@ describe('LoansService', () => {
           where: expect.objectContaining({
             lenderId: LENDER_USER_ID,
             deletedAt: null,
-            status: {
-              notIn: [
-                LoanStatus.RETURNED,
-                LoanStatus.NOT_RETURNED,
-                LoanStatus.ABANDONED,
-                LoanStatus.CONTESTED,
-              ],
-            },
           }),
         }),
       );
-    });
-
-    it('should include archived when includeArchived=true', async () => {
-      prisma.loan.findMany.mockResolvedValue([]);
-      prisma.loan.count.mockResolvedValue(0);
-
-      await service.findAll(LENDER_USER_ID, { ...DEFAULT_QUERY, includeArchived: true });
-
-      expect(prisma.loan.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            lenderId: LENDER_USER_ID,
-            deletedAt: null,
-          }),
-        }),
-      );
-      // Should NOT have status filter
-      const call = prisma.loan.findMany.mock.calls[0][0] as { where: Record<string, unknown> };
-      expect(call.where.status).toBeUndefined();
     });
 
     it('should filter by specific statuses', async () => {

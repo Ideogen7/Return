@@ -75,7 +75,6 @@ export class LoansController {
       role: query.role ?? 'lender',
       status: query.status,
       borrowerId: query.borrowerId,
-      includeArchived: query.includeArchived ?? false,
       page: query.page ?? 1,
       limit: query.limit ?? 20,
       sortBy: query.sortBy ?? 'createdAt',

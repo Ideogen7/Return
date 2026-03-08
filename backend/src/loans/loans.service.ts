@@ -45,14 +45,6 @@ const MAX_LOANS_PER_DAY = 15;
 /** Transaction client type for Prisma interactive transactions */
 type TxClient = Prisma.TransactionClient;
 
-/** Archived statuses that are excluded from default listing */
-const ARCHIVED_STATUSES: LoanStatus[] = [
-  LoanStatus.RETURNED,
-  LoanStatus.NOT_RETURNED,
-  LoanStatus.ABANDONED,
-  LoanStatus.CONTESTED,
-];
-
 type LoanWithRelations = Loan & {
   item: Item & { photos: Photo[] };
   lender: User;
@@ -167,14 +159,13 @@ export class LoansService {
       role?: 'lender' | 'borrower';
       status?: LoanStatus[];
       borrowerId?: string;
-      includeArchived?: boolean;
       page: number;
       limit: number;
       sortBy: string;
       sortOrder: string;
     },
   ): Promise<PaginatedLoansResponse> {
-    const { page, limit, sortBy, sortOrder, borrowerId, includeArchived } = query;
+    const { page, limit, sortBy, sortOrder, borrowerId } = query;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {
@@ -197,9 +188,6 @@ export class LoansService {
     // Status filter
     if (query.status && query.status.length > 0) {
       where.status = { in: query.status };
-    } else if (!includeArchived) {
-      // By default, exclude archived statuses
-      where.status = { notIn: ARCHIVED_STATUSES };
     }
 
     const [loans, totalItems] = await Promise.all([

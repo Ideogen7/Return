@@ -1,15 +1,6 @@
 import { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
-import {
-  ActivityIndicator,
-  FAB,
-  Icon,
-  Text,
-  Chip,
-  SegmentedButtons,
-  IconButton,
-  Menu,
-} from 'react-native-paper';
+import { ActivityIndicator, FAB, Icon, Text, Chip, SegmentedButtons } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,14 +8,6 @@ import { LoanCard } from '../../components/loans/LoanCard';
 import { useLoanStore } from '../../stores/useLoanStore';
 import type { LoanStackParamList } from '../../navigation/types';
 import type { Loan, LoanStatus } from '../../types/api.types';
-
-const ACTIVE_STATUSES: LoanStatus[] = [
-  'PENDING_CONFIRMATION',
-  'ACTIVE',
-  'ACTIVE_BY_DEFAULT',
-  'CONTESTED',
-  'AWAITING_RETURN',
-];
 
 const FILTER_STATUSES: { status: LoanStatus; label: string }[] = [
   { status: 'PENDING_CONFIRMATION', label: 'loans.statusPendingConfirmation' },
@@ -41,14 +24,12 @@ export function LoanListScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { loans, isLoading, error, fetchLoans } = useLoanStore();
   const [perspective, setPerspective] = useState<'lender' | 'borrower'>('lender');
-  const [tab, setTab] = useState<'active' | 'archived'>('active');
   const [statusFilter, setStatusFilter] = useState<LoanStatus | undefined>();
-  const [menuVisible, setMenuVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      fetchLoans({ role: perspective, includeArchived: tab === 'archived' }).catch(() => {});
-    }, [fetchLoans, tab, perspective]),
+      fetchLoans({ role: perspective }).catch(() => {});
+    }, [fetchLoans, perspective]),
   );
 
   const handlePress = (id: string) => {
@@ -60,8 +41,6 @@ export function LoanListScreen({ navigation }: Props) {
   };
 
   const filteredLoans = loans.filter((loan) => {
-    if (tab === 'active' && !ACTIVE_STATUSES.includes(loan.status)) return false;
-    if (tab === 'archived' && ACTIVE_STATUSES.includes(loan.status)) return false;
     if (statusFilter && loan.status !== statusFilter) return false;
     return true;
   });
@@ -88,52 +67,18 @@ export function LoanListScreen({ navigation }: Props) {
   return (
     <View style={styles.container} testID="loan-list">
       <View style={styles.tabs}>
-        <View style={styles.controlRow}>
-          <SegmentedButtons
-            value={perspective}
-            onValueChange={(v) => {
-              setPerspective(v as 'lender' | 'borrower');
-              setStatusFilter(undefined);
-            }}
-            buttons={[
-              { value: 'lender', label: t('loans.myLoans') },
-              { value: 'borrower', label: t('loans.myBorrowings') },
-            ]}
-            style={styles.segmentedFlex}
-          />
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <IconButton
-                icon="filter-variant"
-                size={24}
-                onPress={() => setMenuVisible(true)}
-                accessibilityLabel={t('loans.filterLoans')}
-                testID="filter-menu-btn"
-              />
-            }
-          >
-            <Menu.Item
-              title={t('loans.activeTab')}
-              leadingIcon={tab === 'active' ? 'check' : undefined}
-              onPress={() => {
-                setTab('active');
-                setMenuVisible(false);
-              }}
-              testID="filter-menu-active"
-            />
-            <Menu.Item
-              title={t('loans.archivedTab')}
-              leadingIcon={tab === 'archived' ? 'check' : undefined}
-              onPress={() => {
-                setTab('archived');
-                setMenuVisible(false);
-              }}
-              testID="filter-menu-archived"
-            />
-          </Menu>
-        </View>
+        <SegmentedButtons
+          value={perspective}
+          onValueChange={(v) => {
+            setPerspective(v as 'lender' | 'borrower');
+            setStatusFilter(undefined);
+          }}
+          buttons={[
+            { value: 'lender', label: t('loans.myLoans') },
+            { value: 'borrower', label: t('loans.myBorrowings') },
+          ]}
+          style={styles.segmentedButtons}
+        />
       </View>
 
       <View style={styles.filters}>
@@ -195,8 +140,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7F4EF' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   tabs: { paddingHorizontal: 16, paddingTop: 12 },
-  controlRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  segmentedFlex: { flex: 1 },
+  segmentedButtons: { marginBottom: 8 },
   filters: { paddingBottom: 4 },
   chipRow: { paddingHorizontal: 16, gap: 8 },
   chip: { backgroundColor: '#EDE9E2' },

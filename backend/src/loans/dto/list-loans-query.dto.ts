@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsEnum, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { LoanStatus } from '@prisma/client';
 
@@ -33,15 +33,6 @@ export class ListLoansQueryDto {
   @IsOptional()
   @IsUUID()
   borrowerId?: string;
-
-  @IsOptional()
-  @Transform(({ value }: { value: unknown }) => {
-    if (value === 'true' || value === '1') return true;
-    if (value === 'false' || value === '0') return false;
-    return value as boolean;
-  })
-  @IsBoolean()
-  includeArchived?: boolean;
 
   @IsOptional()
   @Type(() => Number)
