@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, StyleSheet, View, ScrollView } from 'react-native';
 import { ActivityIndicator, FAB, Icon, Text, Chip, Switch } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
@@ -27,11 +28,13 @@ export function ItemListScreen({ navigation }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<ItemCategory | undefined>();
   const [availableOnly, setAvailableOnly] = useState(false);
 
-  useEffect(() => {
-    fetchItems({ category: selectedCategory, available: availableOnly || undefined }).catch(
-      () => {},
-    );
-  }, [fetchItems, selectedCategory, availableOnly]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchItems({ category: selectedCategory, available: availableOnly || undefined }).catch(
+        () => {},
+      );
+    }, [fetchItems, selectedCategory, availableOnly]),
+  );
 
   const handlePress = (id: string) => {
     navigation.navigate('ItemDetail', { id });

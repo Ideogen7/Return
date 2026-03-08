@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
@@ -11,6 +11,7 @@ import {
   Menu,
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LoanCard } from '../../components/loans/LoanCard';
 import { useLoanStore } from '../../stores/useLoanStore';
@@ -44,9 +45,11 @@ export function LoanListScreen({ navigation }: Props) {
   const [statusFilter, setStatusFilter] = useState<LoanStatus | undefined>();
   const [menuVisible, setMenuVisible] = useState(false);
 
-  useEffect(() => {
-    fetchLoans({ role: perspective, includeArchived: tab === 'archived' }).catch(() => {});
-  }, [fetchLoans, tab, perspective]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchLoans({ role: perspective, includeArchived: tab === 'archived' }).catch(() => {});
+    }, [fetchLoans, tab, perspective]),
+  );
 
   const handlePress = (id: string) => {
     navigation.navigate('LoanDetail', { id });

@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Badge, FAB, Icon, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
@@ -16,10 +17,12 @@ export function BorrowerListScreen({ navigation }: Props) {
   const { borrowers, isLoading, error, fetchBorrowers } = useBorrowerStore();
   const { pendingCount, fetchReceivedInvitations } = useContactInvitationStore();
 
-  useEffect(() => {
-    fetchBorrowers().catch(() => {});
-    fetchReceivedInvitations().catch(() => {});
-  }, [fetchBorrowers, fetchReceivedInvitations]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchBorrowers().catch(() => {});
+      fetchReceivedInvitations().catch(() => {});
+    }, [fetchBorrowers, fetchReceivedInvitations]),
+  );
 
   const handlePress = (id: string) => {
     navigation.navigate('BorrowerDetail', { id });
