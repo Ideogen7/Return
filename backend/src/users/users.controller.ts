@@ -139,6 +139,19 @@ export class UsersController {
   }
 
   /**
+   * DELETE /v1/users/me/avatar
+   *
+   * Supprime la photo de profil de l'utilisateur.
+   *
+   * @returns 204 No Content
+   */
+  @Delete('me/avatar')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAvatar(@Request() req: { user: AuthenticatedUser }): Promise<void> {
+    await this.usersService.deleteAvatar(req.user.userId);
+  }
+
+  /**
    * GET /v1/users/me/settings
    *
    * Retourne les préférences de l'utilisateur.

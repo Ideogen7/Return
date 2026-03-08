@@ -103,6 +103,13 @@ export const useContactInvitationStore = create<ContactInvitationState>((set) =>
         ),
         isLoading: false,
       }));
+      // Refresh sent invitations list silently (without setting isLoading)
+      apiClient
+        .get<PaginatedResponse<ContactInvitation>>('/contact-invitations', {
+          params: { direction: 'sent' },
+        })
+        .then(({ data }) => set({ sentInvitations: data.data }))
+        .catch(() => {});
       return invitation;
     } catch (err) {
       set({ isLoading: false, error: extractProblemDetails(err) });

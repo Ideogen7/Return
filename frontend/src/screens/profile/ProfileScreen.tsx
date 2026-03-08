@@ -35,6 +35,15 @@ export function ProfileScreen({ navigation }: Props) {
     }
   };
 
+  const handleDeleteAvatar = async () => {
+    try {
+      await useAuthStore.getState().deleteAvatar();
+      setSnackbar({ message: t('profile.profileUpdated'), type: 'success' });
+    } catch {
+      setSnackbar({ message: t('errors.unknownError'), type: 'error' });
+    }
+  };
+
   if (isLoading || !user) {
     return (
       <View style={styles.loaderContainer}>
@@ -49,6 +58,19 @@ export function ProfileScreen({ navigation }: Props) {
         <ProfileCard user={user} />
         <View style={styles.photoPickerWrapper}>
           <PhotoPicker onPhotoPicked={handleAvatarPicked} currentPhotoCount={0} />
+          {user.profilePicture && (
+            <Button
+              mode="text"
+              icon="delete-outline"
+              onPress={handleDeleteAvatar}
+              textColor="#D97A6B"
+              compact
+              testID="delete-avatar-btn"
+              style={styles.deleteAvatarBtn}
+            >
+              {t('profile.deletePhoto')}
+            </Button>
+          )}
         </View>
       </View>
 
@@ -142,6 +164,7 @@ const styles = StyleSheet.create({
   logoutButton: { marginTop: 8 },
   logoutLabel: { fontSize: 14 },
   avatarSection: { position: 'relative' },
-  photoPickerWrapper: { alignSelf: 'center', marginVertical: 8 },
+  photoPickerWrapper: { alignSelf: 'center', alignItems: 'center', marginVertical: 8 },
+  deleteAvatarBtn: { marginTop: 4 },
   snackbarError: { backgroundColor: '#D97A6B' },
 });

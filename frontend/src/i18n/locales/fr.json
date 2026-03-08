@@ -67,7 +67,8 @@
     "returnedLate": "En retard",
     "trustScore": "Confiance",
     "phone": "Téléphone",
-    "phoneInvalidFormat": "Format invalide (ex: +33612345678)"
+    "phoneInvalidFormat": "Format invalide (ex: +33612345678)",
+    "deletePhoto": "Supprimer la photo"
   },
   "settings": {
     "title": "Paramètres",
@@ -176,7 +177,8 @@
     "categoryOther": "Autre",
     "deletePhoto": "Supprimer la photo",
     "confirmDeletePhoto": "Êtes-vous sûr de vouloir supprimer cette photo ?",
-    "photoDeleteFailed": "La suppression de la photo a échoué. Veuillez réessayer."
+    "photoDeleteFailed": "La suppression de la photo a échoué. Veuillez réessayer.",
+    "deletedItem": "Objet supprimé"
   },
   "loans": {
     "title": "Prêts",
@@ -192,7 +194,9 @@
     "objectLoan": "Objet",
     "moneyLoan": "Argent",
     "confirmLoan": "Confirmer le prêt",
+    "confirmLoanWarning": "Confirmez-vous avoir reçu cet objet en prêt ?",
     "contestLoan": "Refuser le prêt",
+    "contestWarning": "Veuillez expliquer pourquoi vous refusez ce prêt.",
     "returnLoan": "Marquer comme rendu",
     "abandonLoan": "Abandonner le prêt",
     "deleteLoan": "Supprimer le prêt",

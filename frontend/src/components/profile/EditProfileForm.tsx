@@ -35,7 +35,7 @@ function parsePhone(phone: string | undefined | null) {
   }
   // Fallback: try to extract dial code from +XX or +XXX pattern
   const match = phone.match(/^(\+\d{1,3})(.*)/);
-  if (match) return { dialCode: match[1], national: match[2] };
+  if (match) return { dialCode: match[1] ?? '+33', national: match[2] ?? '' };
   return { dialCode: '+33', national: phone };
 }
 
@@ -65,7 +65,7 @@ export function EditProfileForm({ user, onSubmit, isLoading }: EditProfileFormPr
     },
   });
 
-  const selectedCountry = COUNTRY_CODES.find((c) => c.dial === dialCode) ?? COUNTRY_CODES[0];
+  const selectedCountry = COUNTRY_CODES.find((c) => c.dial === dialCode) ?? COUNTRY_CODES[0]!;
 
   const updatePhone = (dial: string, national: string) => {
     if (national) {

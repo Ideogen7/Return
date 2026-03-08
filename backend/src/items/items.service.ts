@@ -79,7 +79,7 @@ export class ItemsService {
     const { page, limit, category } = query;
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = { userId };
+    const where: Record<string, unknown> = { userId, deletedAt: null };
     if (category) {
       where.category = category;
     }
@@ -192,13 +192,11 @@ export class ItemsService {
       );
     }
 
-    // Supprimer les photos du storage
-    for (const photo of item.photos) {
-      await this.photoStorage.delete(photo.url);
-    }
-
-    // Cascade delete supprime les photos en DB automatiquement
-    await this.prisma.item.delete({ where: { id: itemId } });
+    // Soft delete : l'item reste en DB pour préserver l'historique des prêts
+    await this.prisma.item.update({
+      where: { id: itemId },
+      data: { deletedAt: new Date() },
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -269,7 +267,7 @@ export class ItemsService {
       include: { photos: true },
     });
 
-    if (!item) {
+    if (!item || item.deletedAt !== null) {
       throw new NotFoundException('Item', itemId, `/v1/items/${itemId}`);
     }
 

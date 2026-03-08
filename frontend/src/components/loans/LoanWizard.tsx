@@ -10,7 +10,7 @@ import {
   Portal,
   Dialog,
 } from 'react-native-paper';
-import { DatePickerInput } from 'react-native-paper-dates';
+import { Calendar } from 'react-native-paper-dates';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import i18n from '../../config/i18n.config';
@@ -41,6 +41,7 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
   const [selectedBorrowerId, setSelectedBorrowerId] = useState<string | null>(null);
   const [returnDate, setReturnDate] = useState('');
   const [returnDateObj, setReturnDateObj] = useState<Date | undefined>();
+  const [calendarExpanded, setCalendarExpanded] = useState(false);
   const [notes, setNotes] = useState('');
 
   const [showItemDialog, setShowItemDialog] = useState(false);
@@ -297,19 +298,31 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
           </View>
         </View>
 
-        <DatePickerInput
-          locale={i18n.language}
-          label={t('loans.returnDate')}
-          value={returnDateObj}
-          onChange={(d) => {
-            setReturnDateObj(d);
-            setReturnDate(d ? d.toISOString().slice(0, 10) : '');
-          }}
-          inputMode="start"
+        <Button
           mode="outlined"
+          icon="calendar"
+          onPress={() => setCalendarExpanded((v) => !v)}
+          style={styles.input}
           testID="return-date-input"
-          style={[styles.input, ui.input]}
-        />
+        >
+          {returnDateObj ? returnDateObj.toLocaleDateString(i18n.language) : t('loans.returnDate')}
+        </Button>
+        {calendarExpanded && (
+          <Calendar
+            locale={i18n.language}
+            mode="single"
+            date={returnDateObj}
+            onChange={({ date }) => {
+              if (date) {
+                setReturnDateObj(date);
+                setReturnDate(
+                  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+                );
+              }
+              setCalendarExpanded(false);
+            }}
+          />
+        )}
 
         <TextInput
           label={t('loans.notes')}

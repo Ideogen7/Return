@@ -78,7 +78,7 @@ function computeBorrowerMetrics(loans: Loan[]): BorrowerMetrics {
 
 async function fetchLoansForRole(role: 'lender' | 'borrower'): Promise<Loan[]> {
   const { data } = await apiClient.get<PaginatedResponse<Loan>>('/loans', {
-    params: { role, includeArchived: true, limit: 100 },
+    params: { role, limit: 100 },
   });
   return data.data;
 }

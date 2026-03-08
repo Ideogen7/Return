@@ -143,6 +143,9 @@ model Item {
   // Propriétaire (prêteur)
   userId String @map("user_id") @db.Uuid
 
+  // Soft delete
+  deletedAt DateTime? @map("deleted_at")
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

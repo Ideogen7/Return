@@ -11,7 +11,7 @@ import {
   Icon,
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
-import { DatePickerInput } from 'react-native-paper-dates';
+import { Calendar } from 'react-native-paper-dates';
 import i18n from '../../config/i18n.config';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LoanTimeline } from '../../components/loans/LoanTimeline';
@@ -43,10 +43,14 @@ export function LoanDetailScreen({ route, navigation }: Props) {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [abandonDialogVisible, setAbandonDialogVisible] = useState(false);
   const [returnDialogVisible, setReturnDialogVisible] = useState(false);
+  const [confirmDialogVisible, setConfirmDialogVisible] = useState(false);
+  const [contestDialogVisible, setContestDialogVisible] = useState(false);
+  const [contestReason, setContestReason] = useState('');
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [editNotes, setEditNotes] = useState('');
   const [editReturnDate, setEditReturnDate] = useState('');
   const [editReturnDateObj, setEditReturnDateObj] = useState<Date | undefined>();
+  const [calendarExpanded, setCalendarExpanded] = useState(false);
   const [apiError, setApiError] = useState<string | undefined>();
 
   useEffect(() => {
@@ -87,6 +91,30 @@ export function LoanDetailScreen({ route, navigation }: Props) {
     }
   };
 
+  const handleConfirmLoan = async () => {
+    setConfirmDialogVisible(false);
+    setApiError(undefined);
+    try {
+      await useLoanStore.getState().confirmLoan(id);
+    } catch (err) {
+      const problem = parseProblemDetails(err as AxiosError);
+      setApiError(problem ? getErrorMessage(problem, t) : t('errors.unknownError'));
+    }
+  };
+
+  const handleContestLoan = async () => {
+    if (contestReason.length < 10) return;
+    setContestDialogVisible(false);
+    setApiError(undefined);
+    try {
+      await useLoanStore.getState().contestLoan(id, { reason: contestReason });
+      setContestReason('');
+    } catch (err) {
+      const problem = parseProblemDetails(err as AxiosError);
+      setApiError(problem ? getErrorMessage(problem, t) : t('errors.unknownError'));
+    }
+  };
+
   const handleEdit = async () => {
     setEditDialogVisible(false);
     setApiError(undefined);
@@ -106,6 +134,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
     const existingDate = selectedLoan?.returnDate ?? '';
     setEditReturnDate(existingDate);
     setEditReturnDateObj(existingDate ? new Date(existingDate) : undefined);
+    setCalendarExpanded(false);
     setEditDialogVisible(true);
   };
 
@@ -221,7 +250,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
             <Button
               mode="contained"
               icon="check"
-              onPress={() => navigation.navigate('ConfirmLoan', { id })}
+              onPress={() => setConfirmDialogVisible(true)}
               style={[styles.primaryButton, styles.confirmBtn]}
               labelStyle={styles.buttonLabel}
               contentStyle={styles.buttonContent}
@@ -232,7 +261,10 @@ export function LoanDetailScreen({ route, navigation }: Props) {
             <Button
               mode="outlined"
               icon="close"
-              onPress={() => navigation.navigate('ConfirmLoan', { id })}
+              onPress={() => {
+                setContestReason('');
+                setContestDialogVisible(true);
+              }}
               style={[styles.dangerButton, styles.contestBtn]}
               textColor="#D97A6B"
               labelStyle={styles.buttonLabel}
@@ -304,6 +336,68 @@ export function LoanDetailScreen({ route, navigation }: Props) {
       </View>
 
       <Portal>
+        {/* Confirm loan dialog */}
+        <Dialog
+          visible={confirmDialogVisible}
+          onDismiss={() => setConfirmDialogVisible(false)}
+          testID="confirm-loan-dialog"
+        >
+          <Dialog.Title>{t('loans.confirmLoan')}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">{t('loans.confirmLoanWarning')}</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmDialogVisible(false)} testID="cancel-confirm-btn">
+              {t('common.cancel')}
+            </Button>
+            <Button onPress={handleConfirmLoan} testID="submit-confirm-btn">
+              {t('common.confirm')}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Contest loan dialog */}
+        <Dialog
+          visible={contestDialogVisible}
+          onDismiss={() => setContestDialogVisible(false)}
+          testID="contest-loan-dialog"
+        >
+          <Dialog.Title>{t('loans.contestLoan')}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.contestDialogInfo}>
+              {t('loans.contestWarning')}
+            </Text>
+            <TextInput
+              label={t('loans.contestReason')}
+              value={contestReason}
+              onChangeText={setContestReason}
+              multiline
+              numberOfLines={3}
+              maxLength={500}
+              testID="contest-reason-input"
+              contentStyle={{ textAlignVertical: 'top' }}
+            />
+            <HelperText
+              type={contestReason.length > 0 && contestReason.length < 10 ? 'error' : 'info'}
+            >
+              {contestReason.length}/500 (min 10)
+            </HelperText>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setContestDialogVisible(false)} testID="cancel-contest-btn">
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onPress={handleContestLoan}
+              disabled={contestReason.length < 10}
+              textColor="#D97A6B"
+              testID="submit-contest-btn"
+            >
+              {t('loans.contestLoan')}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
         {/* Delete dialog */}
         <Dialog
           visible={deleteDialogVisible}
@@ -371,30 +465,48 @@ export function LoanDetailScreen({ route, navigation }: Props) {
           testID="edit-loan-dialog"
         >
           <Dialog.Title>{t('loans.editLoan')}</Dialog.Title>
-          <Dialog.Content>
-            <DatePickerInput
-              locale={i18n.language}
-              label={t('loans.returnDate')}
-              value={editReturnDateObj}
-              onChange={(d) => {
-                setEditReturnDateObj(d);
-                setEditReturnDate(d ? d.toISOString().slice(0, 10) : '');
-              }}
-              inputMode="start"
-              mode="outlined"
-              testID="edit-return-date-input"
-              style={styles.editInput}
-            />
-            <TextInput
-              label={t('loans.notes')}
-              value={editNotes}
-              onChangeText={setEditNotes}
-              multiline
-              numberOfLines={3}
-              testID="edit-notes-input"
-              contentStyle={{ textAlignVertical: 'top' }}
-            />
-          </Dialog.Content>
+          <Dialog.ScrollArea style={styles.editScrollArea}>
+            <ScrollView>
+              <View style={styles.editContent}>
+                <Button
+                  mode="outlined"
+                  icon="calendar"
+                  onPress={() => setCalendarExpanded((v) => !v)}
+                  style={styles.editInput}
+                  testID="edit-return-date-input"
+                >
+                  {editReturnDateObj
+                    ? editReturnDateObj.toLocaleDateString(i18n.language)
+                    : t('loans.returnDate')}
+                </Button>
+                {calendarExpanded && (
+                  <Calendar
+                    locale={i18n.language}
+                    mode="single"
+                    date={editReturnDateObj}
+                    onChange={({ date }) => {
+                      if (date) {
+                        setEditReturnDateObj(date);
+                        setEditReturnDate(
+                          `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+                        );
+                      }
+                      setCalendarExpanded(false);
+                    }}
+                  />
+                )}
+                <TextInput
+                  label={t('loans.notes')}
+                  value={editNotes}
+                  onChangeText={setEditNotes}
+                  multiline
+                  numberOfLines={3}
+                  testID="edit-notes-input"
+                  contentStyle={{ textAlignVertical: 'top' }}
+                />
+              </View>
+            </ScrollView>
+          </Dialog.ScrollArea>
           <Dialog.Actions>
             <Button onPress={() => setEditDialogVisible(false)} testID="cancel-edit-btn">
               {t('common.cancel')}
@@ -429,6 +541,9 @@ const styles = StyleSheet.create({
   buttonLabel: { fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
   buttonContent: { paddingVertical: 6 },
   contestValue: { color: '#D97A6B' },
+  editScrollArea: { maxHeight: 420, paddingHorizontal: 0 },
+  editContent: { paddingHorizontal: 24, paddingVertical: 8 },
+  contestDialogInfo: { marginBottom: 12 },
   editInput: { marginBottom: 12 },
   confirmRow: { flexDirection: 'row', gap: 10 },
   confirmBtn: { flex: 1, borderRadius: 12 },
