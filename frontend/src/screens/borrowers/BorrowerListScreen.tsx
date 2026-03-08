@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Badge, Button, FAB, Icon, Text } from 'react-native-paper';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Badge, FAB, Icon, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BorrowerCard } from '../../components/borrowers/BorrowerCard';
@@ -47,29 +47,31 @@ export function BorrowerListScreen({ navigation }: Props) {
   return (
     <View style={styles.container} testID="borrower-list">
       <View style={styles.invitationLinks}>
-        <Button
-          mode="text"
-          icon="email-outline"
+        <Pressable
           onPress={() => navigation.navigate('BorrowerInvitations')}
           testID="received-invitations-link"
-          contentStyle={styles.linkContent}
+          style={styles.linkButton}
         >
-          {t('invitations.receivedTitle')}
+          <Icon source="email-outline" size={16} color="#6B8E7B" />
+          <Text variant="labelLarge" style={styles.linkText}>
+            {t('invitations.receivedTitle')}
+          </Text>
           {pendingCount > 0 && (
             <Badge size={18} style={styles.badge}>
               {pendingCount}
             </Badge>
           )}
-        </Button>
-        <Button
-          mode="text"
-          icon="send-outline"
+        </Pressable>
+        <Pressable
           onPress={() => navigation.navigate('SentInvitations')}
           testID="sent-invitations-link"
-          contentStyle={styles.linkContent}
+          style={styles.linkButton}
         >
-          {t('invitations.sentTitle')}
-        </Button>
+          <Icon source="send-outline" size={16} color="#6B8E7B" />
+          <Text variant="labelLarge" style={styles.linkText}>
+            {t('invitations.sentTitle')}
+          </Text>
+        </Pressable>
       </View>
       <FlatList<Borrower>
         data={borrowers}
@@ -113,8 +115,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 8,
   },
-  linkContent: { flexDirection: 'row-reverse' },
-  badge: { backgroundColor: '#D97A6B', marginLeft: 6 },
+  linkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  linkText: { color: '#6B8E7B' },
+  badge: { backgroundColor: '#D97A6B' },
   fab: {
     position: 'absolute',
     right: 16,
