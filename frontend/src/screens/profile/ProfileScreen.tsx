@@ -47,7 +47,9 @@ export function ProfileScreen({ navigation }: Props) {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.avatarSection}>
         <ProfileCard user={user} />
-        <PhotoPicker onPhotoPicked={handleAvatarPicked} currentPhotoCount={0} />
+        <View style={styles.photoPickerWrapper}>
+          <PhotoPicker onPhotoPicked={handleAvatarPicked} currentPhotoCount={0} />
+        </View>
       </View>
 
       <LenderStats />
@@ -140,5 +142,6 @@ const styles = StyleSheet.create({
   logoutButton: { marginTop: 8 },
   logoutLabel: { fontSize: 14 },
   avatarSection: { position: 'relative' },
+  photoPickerWrapper: { alignSelf: 'center', marginVertical: 8 },
   snackbarError: { backgroundColor: '#D97A6B' },
 });

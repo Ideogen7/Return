@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, HelperText } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
@@ -20,6 +21,9 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/;
 
 export function ChangePasswordForm({ onSubmit, isLoading, error }: ChangePasswordFormProps) {
   const { t } = useTranslation();
+  const [currentVisible, setCurrentVisible] = useState(false);
+  const [newVisible, setNewVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
   const {
     control,
     handleSubmit,
@@ -43,8 +47,14 @@ export function ChangePasswordForm({ onSubmit, isLoading, error }: ChangePasswor
           <TextInput
             label={t('profile.currentPassword')}
             mode="outlined"
-            secureTextEntry
+            secureTextEntry={!currentVisible}
             left={<TextInput.Icon icon="lock-outline" color="#A8B5BF" />}
+            right={
+              <TextInput.Icon
+                icon={currentVisible ? 'eye-off' : 'eye'}
+                onPress={() => setCurrentVisible((v) => !v)}
+              />
+            }
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -74,8 +84,14 @@ export function ChangePasswordForm({ onSubmit, isLoading, error }: ChangePasswor
           <TextInput
             label={t('profile.newPassword')}
             mode="outlined"
-            secureTextEntry
+            secureTextEntry={!newVisible}
             left={<TextInput.Icon icon="lock-plus-outline" color="#A8B5BF" />}
+            right={
+              <TextInput.Icon
+                icon={newVisible ? 'eye-off' : 'eye'}
+                onPress={() => setNewVisible((v) => !v)}
+              />
+            }
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -103,8 +119,14 @@ export function ChangePasswordForm({ onSubmit, isLoading, error }: ChangePasswor
           <TextInput
             label={t('profile.confirmNewPassword')}
             mode="outlined"
-            secureTextEntry
+            secureTextEntry={!confirmVisible}
             left={<TextInput.Icon icon="lock-check-outline" color="#A8B5BF" />}
+            right={
+              <TextInput.Icon
+                icon={confirmVisible ? 'eye-off' : 'eye'}
+                onPress={() => setConfirmVisible((v) => !v)}
+              />
+            }
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
