@@ -689,12 +689,26 @@ describe('ContactInvitationsService', () => {
   // ===========================================================================
 
   describe('hasAcceptedContact', () => {
-    it('should return true when an ACCEPTED invitation exists between sender and borrower', async () => {
+    it('should return true when lender sent the invitation (direct direction)', async () => {
       prisma.contactInvitation.findFirst.mockResolvedValue({
         ...MOCK_INVITATION,
         status: InvitationStatus.ACCEPTED,
       });
 
+      const result = await service.hasAcceptedContact(SENDER_USER_ID, RECIPIENT_USER_ID);
+      expect(result).toBe(true);
+    });
+
+    it('should return true when lender received the invitation (reverse direction)', async () => {
+      // Borrower sent the invitation, lender accepted it
+      prisma.contactInvitation.findFirst.mockResolvedValue({
+        ...MOCK_INVITATION,
+        senderUserId: RECIPIENT_USER_ID,
+        recipientUserId: SENDER_USER_ID,
+        status: InvitationStatus.ACCEPTED,
+      });
+
+      // hasAcceptedContact(lenderId=SENDER, borrowerUserId=RECIPIENT)
       const result = await service.hasAcceptedContact(SENDER_USER_ID, RECIPIENT_USER_ID);
       expect(result).toBe(true);
     });

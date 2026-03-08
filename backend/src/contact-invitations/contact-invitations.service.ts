@@ -457,11 +457,17 @@ export class ContactInvitationsService {
   // ---------------------------------------------------------------------------
 
   async hasAcceptedContact(senderUserId: string, recipientUserId: string): Promise<boolean> {
+    // Check both directions: the lender may have sent OR received the invitation.
     const invitation = await this.prisma.contactInvitation.findFirst({
       where: {
-        senderUserId,
-        recipientUserId,
-        status: InvitationStatus.ACCEPTED,
+        OR: [
+          { senderUserId, recipientUserId, status: InvitationStatus.ACCEPTED },
+          {
+            senderUserId: recipientUserId,
+            recipientUserId: senderUserId,
+            status: InvitationStatus.ACCEPTED,
+          },
+        ],
       },
     });
     return invitation !== null;
