@@ -3,8 +3,11 @@ jest.mock('../../config/api-modules.config', () => ({
   getBaseUrl: () => 'http://localhost:3000/v1',
 }));
 
+import { http, HttpResponse } from 'msw';
 import { server } from '../../../__mocks__/server';
 import { useContactInvitationStore } from '../useContactInvitationStore';
+
+const API_BASE = 'http://localhost:3000/v1';
 
 beforeAll(() => server.listen());
 afterEach(() => {
@@ -112,6 +115,64 @@ describe('useContactInvitationStore', () => {
 
       const state = useContactInvitationStore.getState();
       expect(state.sentInvitations).toHaveLength(0);
+      expect(state.isLoading).toBe(false);
+    });
+  });
+
+  describe('error paths', () => {
+    it('should set error state on fetchReceivedInvitations failure', async () => {
+      server.use(
+        http.get(`${API_BASE}/contact-invitations`, () => {
+          return HttpResponse.json(
+            {
+              type: 'https://api.return.app/errors/internal-server-error',
+              title: 'Internal Server Error',
+              status: 500,
+              detail: 'An unexpected error occurred',
+              instance: '/contact-invitations',
+              timestamp: '2026-03-08T10:00:00Z',
+              requestId: 'req-mock',
+            },
+            { status: 500 },
+          );
+        }),
+      );
+
+      await expect(
+        useContactInvitationStore.getState().fetchReceivedInvitations(),
+      ).rejects.toThrow();
+
+      const state = useContactInvitationStore.getState();
+      expect(state.receivedInvitations).toHaveLength(0);
+      expect(state.error).not.toBeNull();
+      expect(state.error?.status).toBe(500);
+      expect(state.isLoading).toBe(false);
+    });
+
+    it('should set error state on sendInvitation failure (409 already sent)', async () => {
+      server.use(
+        http.post(`${API_BASE}/contact-invitations`, () => {
+          return HttpResponse.json(
+            {
+              type: 'https://api.return.app/errors/invitation-already-sent',
+              title: 'Invitation Already Sent',
+              status: 409,
+              detail: 'A pending invitation already exists for this email.',
+              instance: '/contact-invitations',
+              timestamp: '2026-03-08T10:00:00Z',
+              requestId: 'req-mock',
+            },
+            { status: 409 },
+          );
+        }),
+      );
+
+      await expect(
+        useContactInvitationStore.getState().sendInvitation('already@example.com'),
+      ).rejects.toThrow();
+
+      const state = useContactInvitationStore.getState();
+      expect(state.error?.status).toBe(409);
       expect(state.isLoading).toBe(false);
     });
   });
