@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { NavigationContainer } from '@react-navigation/native';
 import { PaperProvider } from 'react-native-paper';
 import { server } from '../../../../__mocks__/server';
 import { LoanWizard } from '../LoanWizard';
@@ -18,7 +19,9 @@ const mockSubmit = jest.fn();
 function renderWizard() {
   return render(
     <PaperProvider>
-      <LoanWizard onSubmit={mockSubmit} isLoading={false} />
+      <NavigationContainer>
+        <LoanWizard onSubmit={mockSubmit} isLoading={false} />
+      </NavigationContainer>
     </PaperProvider>,
   );
 }
@@ -111,7 +114,7 @@ describe('LoanWizard', () => {
     expect(mockSubmit).toHaveBeenCalledTimes(1);
     expect(mockSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
-        borrower: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
+        borrowerId: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
       }),
     );
   });
@@ -147,8 +150,8 @@ describe('LoanWizard', () => {
     expect(screen.getByTestId('inline-create-item-btn')).toBeTruthy();
   });
 
-  it('should show inline create borrower button on step 3', async () => {
-    await setupStoresWithData();
+  it('should show empty state with search contact button on step 3 when no borrowers', async () => {
+    await useItemStore.getState().fetchItems();
     renderWizard();
 
     // Go to step 2
@@ -165,6 +168,7 @@ describe('LoanWizard', () => {
       expect(screen.getByTestId('wizard-step-3')).toBeTruthy();
     });
 
-    expect(screen.getByTestId('inline-create-borrower-btn')).toBeTruthy();
+    expect(screen.getByTestId('no-borrowers-empty')).toBeTruthy();
+    expect(screen.getByTestId('search-contact-btn')).toBeTruthy();
   });
 });

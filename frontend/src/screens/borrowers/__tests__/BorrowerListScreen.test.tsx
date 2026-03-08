@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { Text } from 'react-native';
 import { BorrowerListScreen } from '../BorrowerListScreen';
 import { useBorrowerStore } from '../../../stores/useBorrowerStore';
+import { useContactInvitationStore } from '../../../stores/useContactInvitationStore';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { BorrowerStackParamList } from '../../../navigation/types';
 
@@ -23,6 +24,18 @@ function DummyEditBorrower() {
   return <Text>EditBorrowerScreen</Text>;
 }
 
+function DummySearchBorrower() {
+  return <Text>SearchBorrowerScreen</Text>;
+}
+
+function DummyBorrowerInvitations() {
+  return <Text>BorrowerInvitationsScreen</Text>;
+}
+
+function DummySentInvitations() {
+  return <Text>SentInvitationsScreen</Text>;
+}
+
 function renderListScreen() {
   return render(
     <PaperProvider>
@@ -32,6 +45,9 @@ function renderListScreen() {
           <Stack.Screen name="CreateBorrower" component={DummyCreateBorrower} />
           <Stack.Screen name="BorrowerDetail" component={DummyBorrowerDetail} />
           <Stack.Screen name="EditBorrower" component={DummyEditBorrower} />
+          <Stack.Screen name="SearchBorrower" component={DummySearchBorrower} />
+          <Stack.Screen name="BorrowerInvitations" component={DummyBorrowerInvitations} />
+          <Stack.Screen name="SentInvitations" component={DummySentInvitations} />
         </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>,
@@ -42,6 +58,7 @@ beforeAll(() => server.listen());
 afterEach(() => {
   server.resetHandlers();
   useBorrowerStore.getState().reset();
+  useContactInvitationStore.getState().reset();
 });
 afterAll(() => server.close());
 
@@ -97,7 +114,7 @@ describe('BorrowerListScreen', () => {
     });
   });
 
-  it('should navigate to create on FAB press', async () => {
+  it('should navigate to search on FAB press', async () => {
     renderListScreen();
 
     await waitFor(() => {
@@ -107,7 +124,7 @@ describe('BorrowerListScreen', () => {
     fireEvent.press(screen.getByTestId('add-borrower-fab'));
 
     await waitFor(() => {
-      expect(screen.getByText('CreateBorrowerScreen')).toBeTruthy();
+      expect(screen.getByText('SearchBorrowerScreen')).toBeTruthy();
     });
   });
 });
