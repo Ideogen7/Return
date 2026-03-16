@@ -336,7 +336,7 @@ Cyclé TDD par comportement.
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------- | ----- |
 | **LOAN-005**  | RED : Test `POST /loans` (success 201, status=PENDING_CONFIRMATION, item=UUID, borrower=UUID)                                          | LOAN-004   | Test écrit, échoue                 | 30min |
 | **LOAN-005b** | RED : Test `POST /loans` (success 201, item=CreateItemDto inline, borrower=CreateBorrowerDto inline)                                   | LOAN-005   | Test écrit, échoue                 | 20min |
-| **LOAN-006**  | RED : Test `POST /loans` (erreur 400 si returnDate < today)                                                                            | LOAN-005   | Test écrit, échoue                 | 15min |
+| **LOAN-006**  | RED : Test `POST /loans` (erreur 400 si returnDate < today + 2 jours). La date de retour doit être au minimum J+2 (2 jours après la création) | LOAN-005   | Test écrit, échoue                 | 20min |
 | **LOAN-006b** | RED : Test `POST /loans` (erreur 429 si > 15 prêts/jour)                                                                               | LOAN-006   | Test écrit, échoue                 | 15min |
 | **LOAN-007**  | GREEN : Implémenter `LoanFactory.toCreateInput()` (validation business rules)                                                          | LOAN-004   | Pattern Factory appliqué           | 1h30  |
 | **LOAN-008**  | GREEN : Implémenter `LoanService.create()` (oneOf item/borrower, appel Factory + EventBus LOAN_CREATED via Prisma, rate limit 15/jour) | LOAN-007   | Tests LOAN-005 à LOAN-006b passent | 2h30  |
@@ -541,14 +541,15 @@ Un prêt ne peut être créé que pour un contact avec invitation ACCEPTED.
 
 ### Objectif
 
-Système de rappels 100% automatiques + Notifications push. **Pas de rappels manuels** -- les rappels sont
+Système de rappels 100% automatiques + Notifications push + Conteneurisation dev. **Pas de rappels manuels** -- les rappels sont
 exclusivement geres par le système selon la politique fixe.
 
-### Phase 5.0 : Setup FCM
+### Phase 5.0 : Setup FCM + Docker Dev
 
 | ID          | Titre                                                                                       | Dépendance | Critère de Fin                             | Temps |
 | ----------- | ------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------ | ----- |
 | **REM-001** | Configurer Firebasé SDK (projet Firebase, service account, google-services.json, test push) | SETUP-001  | Notification push de test reçue sur device | 2h    |
+| **REM-001b** | Créer `backend/Dockerfile.dev` (node:22-slim, npm ci, prisma generate, `npx nest start --watch`, volume src pour hot reload) | SETUP-001  | `docker build` backend dev réussit, hot reload fonctionnel | 45min |
 
 ### Phase 5.1 : Base de Données
 
@@ -566,8 +567,8 @@ Cyclé TDD par comportement.
 
 | ID          | Titre                                                                                                                                                    | Dépendance        | Critère de Fin                    | Temps |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | --------------------------------- | ----- |
-| **REM-005** | RED : Test création automatique de 5 rappels (PREVENTIVE J-3, ON_DUE_DATE J, FIRST_OVERDUE J+7, SECOND_OVERDUE J+14, FINAL_OVERDUE J+21) quand prêt créé | REM-004           | Test écrit, échoue                | 30min |
-| **REM-006** | GREEN : Implémenter `ReminderPolicy.calculateDates()` (politique fixe : J-3, J, J+7, J+14, J+21)                                                         | REM-005           | Politique de calcul fonctionnelle | 1h    |
+| **REM-005** | RED : Test création automatique de 5 rappels (PREVENTIVE adaptatif J-3 ou J-1, ON_DUE_DATE J, FIRST_OVERDUE J+7, SECOND_OVERDUE J+14, FINAL_OVERDUE J+21) quand prêt créé. Tester les 2 cas : Δ ≥ 3 → J-3, Δ = 2 → J-1 | REM-004           | Test écrit, échoue                | 45min |
+| **REM-006** | GREEN : Implémenter `ReminderPolicy.calculateDates()` (politique adaptative : PREVENTIVE à J-3 si Δ ≥ 3, sinon J-1 ; puis J, J+7, J+14, J+21). Valider aussi que `returnDate >= createdAt + 2 jours` | REM-005           | Politique de calcul fonctionnelle | 1h30  |
 | **REM-007** | GREEN : Implémenter `ReminderService.scheduleReminders()` (création automatique via Prisma + BullMQ)                                                     | REM-006           | Test REM-005 passe                | 2h    |
 | **REM-008** | GREEN : Écouter événement `LOAN_CREATED` (EventBus) pour déclenchér `scheduleReminders()`                                                                | REM-007, LOAN-008 | Pattern Observer appliqué         | 1h    |
 
@@ -609,7 +610,7 @@ Cyclé TDD par comportement.
 | **REM-019** | Créer `NotificationsController.markAsRead()` (PATCH /notifications/{id}/read)  | REM-017    | Test REM-016 passe | 30min |
 | **REM-022** | Créer `NotificationsController.markAllAsRead()` (POST /notifications/read-all) | REM-021    | Test REM-020 passe | 30min |
 
-🏁 **Livrable Sprint 5** : **Frontend reçoit des notifications push automatiques** (3 endpoints Notifications + système de rappels automatique en arrière-plan).
+🏁 **Livrable Sprint 5** : **Frontend reçoit des notifications push automatiques** (3 endpoints Notifications + système de rappels automatique en arrière-plan + `Dockerfile.dev` backend pour environnement Docker unifié).
 
 ---
 

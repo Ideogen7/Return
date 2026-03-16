@@ -417,15 +417,18 @@ export class NotificationListener {
 La politique de rappel est **unique et fixe** — il n'y a pas de politique alternative en V1 :
 
 ```typescript
-// Service simple avec politique fixe (pas de Strategy Pattern)
+// Service simple avec politique fixe adaptative (pas de Strategy Pattern)
 export class ReminderPolicy {
   /**
    * Calcule les 5 dates de rappel automatiques pour un prêt.
-   * Politique fixe : J-3, J, J+7, J+14, J+21
+   * Politique adaptative : PREVENTIVE (J-3 si Δ≥3, J-1 sinon), J, J+7, J+14, J+21
+   * Contrainte : returnDate >= createdAt + 2 jours (validé en amont)
    */
-  static calculateDates(returnDate: Date): Date[] {
+  static calculateDates(returnDate: Date, createdAt: Date): Date[] {
+    const delta = differenceInDays(returnDate, createdAt);
+    const preventiveDate = delta >= 3 ? subDays(returnDate, 3) : subDays(returnDate, 1);
     return [
-      subDays(returnDate, 3),   // J-3 : PREVENTIVE
+      preventiveDate,            // PREVENTIVE : J-3 ou J-1 selon Δ
       returnDate,                // J   : ON_DUE_DATE
       addDays(returnDate, 7),   // J+7 : FIRST_OVERDUE
       addDays(returnDate, 14),  // J+14 : SECOND_OVERDUE
@@ -1004,9 +1007,9 @@ git branch -d feature/loan-confirmation
 ```
 feat(reminders): implement automatic reminder scheduling
 
-Schedule 5 reminders (J-3, J, J+7, J+14, J+21) via BullMQ when a loan
-is created with a return date. Each reminder uses a random template
-from the appropriate tier pool.
+Schedule 5 reminders (PREVENTIVE adaptive J-3/J-1, J, J+7, J+14, J+21)
+via BullMQ when a loan is created with a return date (min J+2).
+Each reminder uses a random template from the appropriate tier pool.
 
 Closes #87
 ```
@@ -1149,7 +1152,7 @@ Avant d'approuver une PR, vérifier :
 
 - **Factory Pattern** : Création d'entités complexes (`LoanFactory.toCreateInput()`).
 - **Observer/Event-Driven** : Communication inter-modules via `EventEmitter2` + `@OnEvent`.
-- **Politique fixe de rappels** : J-3, J, J+7, J+14, J+21 (pas de Strategy Pattern en V1).
+- **Politique fixe de rappels adaptative** : PREVENTIVE (J-3 si Δ≥3, J-1 sinon), J, J+7, J+14, J+21. Date retour minimum J+2. Pas de Strategy Pattern en V1.
 
 ## TDD Workflow (STRICT)
 
@@ -1210,7 +1213,8 @@ Toutes les erreurs API retournent un objet ProblemDetails :
 
 ## Rappels Automatiques (100% automatiques, pas de rappels manuels)
 
-- Politique fixe : J-3, J, J+7, J+14, J+21
+- Politique fixe adaptative : PREVENTIVE (J-3 si Δ≥3, J-1 si Δ<3), ON_DUE_DATE (J), FIRST_OVERDUE (J+7), SECOND_OVERDUE (J+14), FINAL_OVERDUE (J+21)
+- **Contrainte** : date de retour minimum J+2 (2 jours après la création du prêt)
 - Templates prédéfinis avec pool aléatoire par tier
 - Push notifications uniquement en V1 (FCM)
 - Après le 5e rappel ignoré → statut NOT_RETURNED

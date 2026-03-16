@@ -33,7 +33,7 @@ Modules NestJS découplés par événements (EventEmitter2 + @OnEvent) :
 - **Items** : Objets prêtés (CRUD, photos max 5, catégories, valeur estimée)
 - **Loans** : Cycle de vie des prêts (8 statuts, types OBJECT/MONEY) — Sprint 4
 - **ContactInvitations** : Invitations entre utilisateurs inscrits (recherche, envoi, acceptation, rejet, expiration) — Sprint 4.6
-- **Reminders** : Rappels automatiques (BullMQ jobs) — politique fixe J-3, J, J+7, J+14, J+21 — Sprint 5
+- **Reminders** : Rappels automatiques (BullMQ jobs) — politique fixe avec PREVENTIVE adaptatif (J-3 si Δ≥3, sinon J-1), J, J+7, J+14, J+21. Date retour minimum J+2. — Sprint 5
 - **Notifications** : Push (FCM) en V1. Email, SMS en V2+.
 
 ## Architecture & Patterns Obligatoires
@@ -41,7 +41,7 @@ Modules NestJS découplés par événements (EventEmitter2 + @OnEvent) :
 - **SOLID strict** — SRP via EventBus, DIP via interfaces pour services externes (storage, notifications, queue)
 - **Prisma directement dans les services** — Pas de Repository Pattern pour le MVP (décision pragmatique)
 - **Factory Pattern** : Création d'entités complexes (`LoanFactory.toCreateInput()`)
-- **Politique de rappels fixe** : J-3, J, J+7, J+14, J+21 (pas de Strategy Pattern en V1 — YAGNI)
+- **Politique de rappels fixe** : PREVENTIVE adaptatif (J-3 si Δ≥3, J-1 si Δ<3), ON_DUE_DATE (J), FIRST_OVERDUE (J+7), SECOND_OVERDUE (J+14), FINAL_OVERDUE (J+21). Date retour minimum J+2 validée côté frontend + backend.
 - **Observer/Event-Driven** : Communication inter-modules via `EventEmitter2` (`@OnEvent`)
 
 ## Standards de Développement
@@ -149,14 +149,20 @@ utils/          — error.ts (extractProblemDetails, getErrorMessage, ERROR_TYPE
 ### Commandes
 
 ```bash
-# Frontend
+# Environnement complet (Docker) — recommandé
+docker compose up                       # Lance postgres + redis + backend + frontend (Expo Web)
+
+# Frontend (sans Docker)
 cd frontend && npx expo start --web    # Dev (BROWSER=none pour éviter l'ouverture auto)
 cd frontend && npx jest --verbose       # Tests
 cd frontend && npm run typecheck        # Vérification TypeScript (tsc --noEmit)
 
-# Backend
+# Backend (sans Docker)
 cd backend && npx nest start --watch    # Dev
 cd backend && npx jest --verbose        # Tests
+
+# Infra seule (sans backend/frontend)
+docker compose up postgres redis        # Uniquement les services d'infrastructure
 ```
 
 ## Avancement
@@ -168,7 +174,7 @@ cd backend && npx jest --verbose        # Tests
 | Sprint 3 | Items + Photos | Fait | Fait |
 | Sprint 4 | Loans | Fait | Fait |
 | Sprint 4.6 | Contact Invitations | — | — |
-| Sprint 5 | Notifications | — | — |
+| Sprint 5 | Docker Dev + Validation J+2 + Notifications | — | — |
 | Sprint 6 | Dashboard + History | — | — |
 
 ## Documents de Référence

@@ -9,7 +9,7 @@ info:
     Cette API permet de :
     - Gérer des prêts d'objets (photo, retour physique) et d'argent (montant, remboursement)
     - Suivre le cycle de vie complet d'un prêt (création, confirmation, rappels, retour)
-    - Planifier et envoyer des rappels automatiques diplomatiques (J-3, J, J+7, J+14, J+21)
+    - Planifier et envoyer des rappels automatiques diplomatiques (PREVENTIVE adaptatif J-3/J-1, J, J+7, J+14, J+21)
     - Consulter l'historique et les statistiques de prêts
 
     **Architecture** : Monolithe Modulaire (NestJS 11.x + PostgreSQL 17+)
@@ -54,7 +54,7 @@ tags:
     description: Endpoints de santé pour monitoring et load balancer
 
 security:
-  - BearerAuth: []
+  - BearerAuth: [ ]
 
 paths:
   # =============================================================================
@@ -70,7 +70,7 @@ paths:
         Inscription d'un nouvel utilisateur. Retourne un JWT valide après création.
         Le compte est créé avec le rôle `LENDER` par défaut.
       operationId: registerUser
-      security: [] # Public endpoint
+      security: [ ] # Public endpoint
       requestBody:
         required: true
         content:
@@ -134,7 +134,7 @@ paths:
         Authentification par email + mot de passe. Retourne un access token (15 min)
         et un refresh token (30 jours).
       operationId: loginUser
-      security: [] # Public endpoint
+      security: [ ] # Public endpoint
       requestBody:
         required: true
         content:
@@ -184,7 +184,7 @@ paths:
         Le refresh token est à usage unique (rotation) : un nouveau refresh token
         est retourné à chaque appel. L'ancien token est immédiatement invalidé.
       operationId: refreshToken
-      security: [] # Public endpoint (le refresh token est dans le body)
+      security: [ ] # Public endpoint (le refresh token est dans le body)
       requestBody:
         required: true
         content:
@@ -251,7 +251,7 @@ paths:
               $ref: '#/components/schemas/LoanStatus'
           style: form
           explode: false
-          example: [ACTIVE, AWAITING_RETURN]
+          example: [ ACTIVE, AWAITING_RETURN ]
         - name: borrowerId
           in: query
           description: |
@@ -291,7 +291,7 @@ paths:
           description: Champ de tri
           schema:
             type: string
-            enum: [createdAt, returnDate, status]
+            enum: [ createdAt, returnDate, status ]
             default: createdAt
           example: returnDate
         - name: sortOrder
@@ -299,7 +299,7 @@ paths:
           description: Ordre de tri
           schema:
             type: string
-            enum: [asc, desc]
+            enum: [ asc, desc ]
             default: desc
           example: asc
         - name: role
@@ -310,7 +310,7 @@ paths:
             Par défaut 'lender'.
           schema:
             type: string
-            enum: [lender, borrower]
+            enum: [ lender, borrower ]
             default: lender
           example: lender
       responses:
@@ -527,6 +527,10 @@ paths:
                   format: date
                   nullable: true
                   example: '2026-03-20'
+                  description: |
+                    Nouvelle date de retour prévue (null = indéfinie).
+                    **Contrainte** : doit être au minimum 2 jours après la date de création du prêt (J+2).
+                    Si des rappels sont déjà planifiés, ils seront recalculés automatiquement.
                 notes:
                   type: string
                   nullable: true
@@ -1088,14 +1092,14 @@ paths:
           description: Champ de tri
           schema:
             type: string
-            enum: [firstName, lastName, trustScore, totalLoans]
+            enum: [ firstName, lastName, trustScore, totalLoans ]
             default: firstName
           example: trustScore
         - name: sortOrder
           in: query
           schema:
             type: string
-            enum: [asc, desc]
+            enum: [ asc, desc ]
             default: asc
         - name: page
           in: query
@@ -1943,7 +1947,7 @@ paths:
                   description: Mot de passe pour confirmer
                 confirmationText:
                   type: string
-                  enum: ['DELETE MY ACCOUNT']
+                  enum: [ 'DELETE MY ACCOUNT' ]
                   description: 'Doit être exactement "DELETE MY ACCOUNT"'
       responses:
         '204':
@@ -2120,7 +2124,7 @@ paths:
             type: array
             items:
               type: string
-              enum: [RETURNED, NOT_RETURNED, CONTESTED, ABANDONED]
+              enum: [ RETURNED, NOT_RETURNED, CONTESTED, ABANDONED ]
           style: form
           explode: false
         - name: borrowerId
@@ -2275,7 +2279,7 @@ paths:
         Retourne le statut du serveur. Utilisé par le load balancer Fly.io
         pour déterminer si l'instance est vivante.
       operationId: healthCheck
-      security: []
+      security: [ ]
       responses:
         '200':
           description: Serveur opérationnel
@@ -2304,7 +2308,7 @@ paths:
         Vérifie que toutes les dépendances sont opérationnelles
         (PostgreSQL, Redis, FCM). Utilisé pour le routing du load balancer.
       operationId: readinessCheck
-      security: []
+      security: [ ]
       responses:
         '200':
           description: Toutes les dépendances opérationnelles
@@ -2321,15 +2325,15 @@ paths:
                     properties:
                       database:
                         type: string
-                        enum: [ok, error]
+                        enum: [ ok, error ]
                         example: ok
                       redis:
                         type: string
-                        enum: [ok, error]
+                        enum: [ ok, error ]
                         example: ok
                       fcm:
                         type: string
-                        enum: [ok, error]
+                        enum: [ ok, error ]
                         example: ok
         '503':
           description: Une ou plusieurs dépendances indisponibles
@@ -2404,7 +2408,9 @@ components:
           format: date
           nullable: true
           example: '2026-03-15'
-          description: Date de retour prévue (null = indéfinie)
+          description: |
+            Date de retour prévue (null = indéfinie).
+            Contrainte : minimum J+2 (2 jours après createdAt).
         status:
           $ref: '#/components/schemas/LoanStatus'
         confirmationDate:
@@ -2462,7 +2468,7 @@ components:
         - **CONTESTED** : Prêt refusé/contesté par l'emprunteur
         - **AWAITING_RETURN** : Date de retour dépassée, rappels automatiques en cours
         - **RETURNED** : Objet restitué / argent remboursé, prêt clos avec succès
-        - **NOT_RETURNED** : Objet non restitué après les 5 rappels automatiques (J-3, J, J+7, J+14, J+21)
+        - **NOT_RETURNED** : Objet non restitué après les 5 rappels automatiques (PREVENTIVE, ON_DUE_DATE, FIRST_OVERDUE, SECOND_OVERDUE, FINAL_OVERDUE)
         - **ABANDONED** : Prêt abandonné manuellement par le prêteur
       example: ACTIVE
 
@@ -2690,7 +2696,7 @@ components:
         - FINAL_OVERDUE
       description: |
         Type de rappel (politique fixe, 5 rappels automatiques) :
-        - **PREVENTIVE** : 3 jours avant la date de retour (J-3)
+        - **PREVENTIVE** : Rappel préventif **adaptatif** — planifié à **J-3** si le délai avant retour (Δ) ≥ 3 jours, sinon à **J-1** (la veille). La contrainte de date minimum J+2 garantit que Δ ≥ 2, donc le PREVENTIVE est toujours envoyé avant l'échéance.
         - **ON_DUE_DATE** : Le jour de la date de retour (J)
         - **FIRST_OVERDUE** : 7 jours après la date de retour (J+7)
         - **SECOND_OVERDUE** : 14 jours après (J+14)
@@ -2698,6 +2704,13 @@ components:
 
         Chaque rappel utilise un template prédéfini avec pool aléatoire de messages
         diplomatiques, sélectionné automatiquement par tier. Pas de rappel manuel.
+
+        **Règle de planification du PREVENTIVE** :
+        ```
+        Δ = returnDate - createdAt (en jours)
+        Si Δ ≥ 3 → PREVENTIVE planifié à returnDate - 3 jours (J-3)
+        Si Δ < 3 → PREVENTIVE planifié à returnDate - 1 jour  (J-1)
+        ```
       example: PREVENTIVE
 
     ReminderStatus:
@@ -2800,7 +2813,7 @@ components:
           description: Activer/désactiver les rappels automatiques
         language:
           type: string
-          enum: [fr, en]
+          enum: [ fr, en ]
           example: fr
           description: Langue de l'interface et des notifications (V1 — FR et EN)
         timezone:
@@ -3038,7 +3051,11 @@ components:
           format: date
           nullable: true
           example: '2026-03-15'
-          description: Date de retour prévue (null = indéfinie)
+          description: |
+            Date de retour prévue (null = indéfinie).
+            **Contrainte** : doit être au minimum 2 jours après la date de création du prêt (J+2).
+            Exemple : si le prêt est créé le 16/03, la date de retour minimum est le 18/03.
+            Retourne une erreur 400 si la contrainte n'est pas respectée.
         notes:
           type: string
           nullable: true

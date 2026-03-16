@@ -21,14 +21,15 @@
 
 **Durée estimée** : 6 Sprints de 5 jours + buffer intégration (35-40 jours calendaires).
 
-> **Note Containerisation** : L'application mobile React Native n'est **pas conteneurisée**. Les builds natifs (
-> iOS/Android) sont gérés par **Expo/EAS Build** (cloud). Seul le backend est conteneurisé (Docker + Fly.io). Voir
-> `04_ROADMAP_BACKEND.md` Sprint 0 et Phase 6.5.
+> **Note Containerisation** : À partir du Sprint 5, l'environnement de développement est **conteneurisé** via Docker
+> (`docker compose up` → postgres + redis + backend + frontend Expo Web). Le frontend est servi en **Expo Web uniquement**
+> dans le conteneur — les builds natifs (iOS/Android) restent gérés par **Expo/EAS Build** (cloud).
+> Voir Phase 5.0 pour les détails de mise en place.
 
 **Stack Frontend** :
 
 | Technologie              | Version | Rôle                                  |
-| ------------------------ | ------- | ------------------------------------- |
+|--------------------------|---------|---------------------------------------|
 | React Native             | 0.78+   | Framework mobile                      |
 | Expo (dev-client)        | SDK 52+ | Toolchain, builds natifs, OTA updates |
 | TypeScript               | 5.8+    | Typage statique                       |
@@ -44,7 +45,7 @@
 **Tests** :
 
 | Outil                        | Scope                          | Quand                       |
-| ---------------------------- | ------------------------------ | --------------------------- |
+|------------------------------|--------------------------------|-----------------------------|
 | React Native Testing Library | Composants, formulaires, flows | Sprint 1 → Sprint 6 (MVP)   |
 | Jest                         | Stores Zustand, utilitaires    | Sprint 1 → Sprint 6 (MVP)   |
 | Detox                        | Tests E2E bout en bout         | Post-MVP (flows stabilises) |
@@ -60,7 +61,7 @@ Mettre en place l'infrastructuré Frontend avant tout développement fonctionnel
 ### Taches
 
 | ID            | Titre                                                                   | Dépendance | Critère de Fin                                                 | Temps |
-| ------------- | ----------------------------------------------------------------------- | ---------- | -------------------------------------------------------------- | ----- |
+|---------------|-------------------------------------------------------------------------|------------|----------------------------------------------------------------|-------|
 | **SETUP-001** | Initialiser projet React Native avec **Expo (dev-client)**              | -          | `npx expo start` fonctionne                                    | 30min |
 | **SETUP-002** | Configurer TypeScript strict + ESLint + Prettier                        | SETUP-001  | `npm run lint` passe sans erreur                               | 30min |
 | **SETUP-003** | Installer React Navigation 7.x (Stack + Tab Navigator)                  | SETUP-001  | Navigation fonctionne entre 2 écrans de test                   | 1h    |
@@ -92,7 +93,7 @@ immédiatement.**
 ### Phase 1.1 : Gestion d'État (Zustand Store) (Jour 1)
 
 | ID           | Titre                                                                   | Dépendance          | Critère de Fin                                         | Temps |
-| ------------ | ----------------------------------------------------------------------- | ------------------- | ------------------------------------------------------ | ----- |
+|--------------|-------------------------------------------------------------------------|---------------------|--------------------------------------------------------|-------|
 | **AUTH-001** | Créer `useAuthStore` (state: user, accessToken, isAuthenticated)        | SETUP-006           | Store créé avec actions login/logout                   | 1h    |
 | **AUTH-002** | Créer action `login(email, password)` (appelle `/auth/login`)           | AUTH-001, SETUP-010 | Action fonctionnelle (appelle mock API)                | 1h30  |
 | **AUTH-003** | Créer action `register(email, password, firstName, lastName)`           | AUTH-001            | Action fonctionnelle (appelle mock API)                | 1h    |
@@ -102,7 +103,7 @@ immédiatement.**
 ### Phase 1.2 : Composants UI (Dumb) (Jour 2)
 
 | ID           | Titre                                                                    | Dépendance | Critère de Fin                                   | Temps |
-| ------------ | ------------------------------------------------------------------------ | ---------- | ------------------------------------------------ | ----- |
+|--------------|--------------------------------------------------------------------------|------------|--------------------------------------------------|-------|
 | **AUTH-006** | Créer composant `LoginForm` (email + password + bouton)                  | SETUP-007  | Formulaire affiche, validation react-hook-form   | 1h    |
 | **AUTH-007** | Créer composant `RegisterForm` (email + password + firstName + lastName) | SETUP-007  | Formulaire affiche, validation mot de passe fort | 1h30  |
 | **AUTH-008** | Créer composant `ProfileCard` (affichage infos user)                     | SETUP-007  | Card affiché firstName, lastName, email          | 45min |
@@ -112,7 +113,7 @@ immédiatement.**
 ### Phase 1.3 : Écrans (Smart Components) (Jour 3)
 
 | ID            | Titre                                                                       | Dépendance         | Critère de Fin                              | Temps |
-| ------------- | --------------------------------------------------------------------------- | ------------------ | ------------------------------------------- | ----- |
+|---------------|-----------------------------------------------------------------------------|--------------------|---------------------------------------------|-------|
 | **AUTH-011**  | Créer écran `LoginScreen` (connecté LoginForm au store)                     | AUTH-002, AUTH-006 | Connexion réussie redirigé vers Dashboard   | 1h    |
 | **AUTH-012**  | Créer écran `RegisterScreen` (connecté RegisterForm au store)               | AUTH-003, AUTH-007 | Inscription réussie redirigé vers Dashboard | 1h    |
 | **AUTH-013**  | Créer écran `ProfileScreen` (affiché ProfileCard + bouton "Éditer")         | AUTH-001, AUTH-008 | Affiche infos utilisateur connecté          | 45min |
@@ -128,7 +129,7 @@ immédiatement.**
 ### Phase 1.4 : Navigation + Guards (Jour 4)
 
 | ID           | Titre                                                                                               | Dépendance                                        | Critère de Fin                                       | Temps |
-| ------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------- | ----- |
+|--------------|-----------------------------------------------------------------------------------------------------|---------------------------------------------------|------------------------------------------------------|-------|
 | **AUTH-017** | Configurer Stack Navigator Auth (Login → Register)                                                  | SETUP-003, AUTH-011, AUTH-012                     | Navigation fonctionnelle entre Login et Register     | 30min |
 | **AUTH-018** | Configurer Stack Navigator App (Dashboard → Profile → EditProfile → ChangePassword → DeleteAccount) | SETUP-003, AUTH-013, AUTH-014, AUTH-015, AUTH-016 | Navigation fonctionnelle dans l'app                  | 45min |
 | **AUTH-019** | Créer `AuthGuard` (redirect vers Login si pas authentifie)                                          | AUTH-001, SETUP-003                               | Acces à Dashboard impossible sans login              | 1h    |
@@ -138,7 +139,7 @@ immédiatement.**
 ### Phase 1.5 : Tests + Gestion d'Erreurs (Jour 5)
 
 | ID           | Titre                                                            | Dépendance | Critère de Fin                                    | Temps |
-| ------------ | ---------------------------------------------------------------- | ---------- | ------------------------------------------------- | ----- |
+|--------------|------------------------------------------------------------------|------------|---------------------------------------------------|-------|
 | **AUTH-022** | Afficher erreur RFC 7807 si login échoue (401 ou 400)            | AUTH-011   | Message "Email ou mot de passe incorrect" affiché | 1h    |
 | **AUTH-023** | Afficher erreur si email déjà utilisé lors de register (409)     | AUTH-012   | Message "Cet email est déjà utilisé" affiché      | 45min |
 | **AUTH-024** | Afficher erreur 409 si suppression compte avec prêts actifs      | AUTH-016   | Message explicatif affiché                        | 30min |
@@ -164,14 +165,14 @@ notifications et interagir avec le pret.
 ### Phase 2.1 : Gestion d'État (Zustand Store)
 
 | ID           | Titre                                                                                        | Dépendance | Critère de Fin               | Temps |
-| ------------ | -------------------------------------------------------------------------------------------- | ---------- | ---------------------------- | ----- |
+|--------------|----------------------------------------------------------------------------------------------|------------|------------------------------|-------|
 | **BORR-001** | Créer `useBorrowerStore` (state: borrowers[], selectedBorrower)                              | SETUP-006  | Store créé avec actions CRUD | 1h    |
 | **BORR-002** | Créer actions `fetchBorrowers()`, `createBorrower()`, `updateBorrower()`, `deleteBorrower()` | BORR-001   | Actions appellent API mock   | 2h    |
 
 ### Phase 2.2 : Composants UI (Dumb)
 
 | ID           | Titre                                                                 | Dépendance | Critère de Fin                   | Temps |
-| ------------ | --------------------------------------------------------------------- | ---------- | -------------------------------- | ----- |
+|--------------|-----------------------------------------------------------------------|------------|----------------------------------|-------|
 | **BORR-003** | Créer composant `BorrowerCard` (affichage firstName, lastName, email) | SETUP-007  | Card affichée dans liste         | 45min |
 | **BORR-004** | Créer composant `BorrowerForm` (création/édition emprunteur)          | SETUP-007  | Formulaire avec validation email | 1h30  |
 | **BORR-005** | Créer composant `BorrowerStatsBadge` (trustScore + nb prêts)          | SETUP-007  | Badge colore selon trustScore    | 1h    |
@@ -179,7 +180,7 @@ notifications et interagir avec le pret.
 ### Phase 2.3 : Écrans (Smart Components)
 
 | ID           | Titre                                                                      | Dépendance         | Critère de Fin                        | Temps |
-| ------------ | -------------------------------------------------------------------------- | ------------------ | ------------------------------------- | ----- |
+|--------------|----------------------------------------------------------------------------|--------------------|---------------------------------------|-------|
 | **BORR-006** | Créer écran `BorrowerListScreen` (FlatList de BorrowerCard)                | BORR-002, BORR-003 | Liste paginée avec bouton "+ Nouveau" | 1h30  |
 | **BORR-007** | Créer écran `CreateBorrowerScreen` (BorrowerForm)                          | BORR-002, BORR-004 | Création d'emprunteur via API mock    | 1h    |
 | **BORR-008** | Créer écran `BorrowerDetailScreen` (stats + bouton "Éditer" + "Supprimer") | BORR-002, BORR-005 | Details emprunteur affiches           | 1h    |
@@ -188,7 +189,7 @@ notifications et interagir avec le pret.
 ### Phase 2.4 : Navigation + Tests
 
 | ID           | Titre                                                            | Dépendance          | Critère de Fin                                           | Temps |
-| ------------ | ---------------------------------------------------------------- | ------------------- | -------------------------------------------------------- | ----- |
+|--------------|------------------------------------------------------------------|---------------------|----------------------------------------------------------|-------|
 | **BORR-010** | Ajouter onglet "Contacts" dans Tab Navigator                     | SETUP-003, BORR-006 | Onglet accessible depuis Dashboard                       | 30min |
 | **BORR-011** | Gerer erreur 409 si email emprunteur existe déjà pour ce prêteur | BORR-007            | Message "Email déjà utilisé pour cet emprunteur" affiché | 45min |
 | **BORR-012** | Écrire test RNTL : BorrowerForm validation + création            | BORR-004            | Test RNTL passe                                          | 1h    |
@@ -208,7 +209,7 @@ scope V1**.
 ### Phase 3.1 : Gestion d'État (Zustand Store)
 
 | ID           | Titre                                                                                                                           | Dépendance | Critère de Fin               | Temps |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------- | ----- |
+|--------------|---------------------------------------------------------------------------------------------------------------------------------|------------|------------------------------|-------|
 | **ITEM-001** | Créer `useItemStore` (state: items[], selectedItem)                                                                             | SETUP-006  | Store créé avec actions CRUD | 1h    |
 | **ITEM-002** | Créer actions `fetchItems()`, `fetchItem(id)`, `createItem()`, `updateItem()`, `deleteItem()`, `uploadPhoto()`, `deletePhoto()` | ITEM-001   | Actions appellent API mock   | 2h30  |
 
@@ -219,7 +220,7 @@ scope V1**.
 ### Phase 3.2 : Composants UI (Dumb)
 
 | ID           | Titre                                                                                      | Dépendance | Critère de Fin                                     | Temps |
-| ------------ | ------------------------------------------------------------------------------------------ | ---------- | -------------------------------------------------- | ----- |
+|--------------|--------------------------------------------------------------------------------------------|------------|----------------------------------------------------|-------|
 | **ITEM-003** | Créer composant `ItemCard` (photo + nom + categorie + valeur)                              | SETUP-007  | Card affichée dans liste                           | 1h    |
 | **ITEM-004** | Créer composant `ItemForm` (création/édition manuelle avec selecteur categorie)            | SETUP-007  | Formulaire avec dropdown ItemCategory              | 1h30  |
 | **ITEM-005** | Créer composant `PhotoPicker` (sélection photo via ImagePicker, validation JPEG/PNG ≤ 5MB) | SETUP-001  | Bouton "Prendre une photo" fonctionne              | 1h30  |
@@ -235,7 +236,7 @@ scope V1**.
 ### Phase 3.3 : Écrans (Smart Components)
 
 | ID           | Titre                                                                                          | Dépendance                   | Critère de Fin                                                   | Temps |
-| ------------ | ---------------------------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------- | ----- |
+|--------------|------------------------------------------------------------------------------------------------|------------------------------|------------------------------------------------------------------|-------|
 | **ITEM-007** | Créer écran `ItemListScreen` (FlatList de ItemCard avec filtres category + available)          | ITEM-002, ITEM-003           | Liste paginée et filtrée avec bouton "+ Nouveau"                 | 1h30  |
 | **ITEM-008** | Créer écran `CreateItemScreen` (ItemForm + PhotoPicker, workflow 2 étapes : créer puis upload) | ITEM-002, ITEM-004, ITEM-005 | Création item via API mock, puis upload photos sur item existant | 1h30  |
 | **ITEM-009** | Créer écran `ItemDetailScreen` (PhotoGallery + infos + boutons "Éditer" / "Supprimer")         | ITEM-002, ITEM-006           | Details objet affiches via GET `/items/{itemId}`                 | 1h    |
@@ -254,7 +255,7 @@ scope V1**.
 ### Phase 3.4 : Navigation + Tests + Gestion d'Erreurs
 
 | ID            | Titre                                                                   | Dépendance          | Critère de Fin                                                        | Temps |
-| ------------- | ----------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------- | ----- |
+|---------------|-------------------------------------------------------------------------|---------------------|-----------------------------------------------------------------------|-------|
 | **ITEM-011**  | Ajouter onglet "Objets" dans Tab Navigator                              | SETUP-003, ITEM-007 | Onglet accessible                                                     | 30min |
 | **ITEM-012**  | Gérer erreur 400 si category=MONEY sans estimatedValue                  | ITEM-008            | Message "Montant obligatoire pour MONEY" affiché                      | 45min |
 | **ITEM-012b** | Gérer erreur 409 `item-currently-loaned` à la suppression d'un item     | ITEM-009            | Message "Impossible de supprimer un objet actuellement prêté" affiché | 30min |
@@ -282,7 +283,7 @@ physique (OBJECT)** et **Argent (MONEY)**.
 > l'intégration frontend a été omise. Cette phase comble le manque avant d'attaquer les Loans.
 
 | ID             | Titre                                                                                                                    | Dépendance      | Critère de Fin                                  | Temps |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------- | ----------------------------------------------- | ----- |
+|----------------|--------------------------------------------------------------------------------------------------------------------------|-----------------|-------------------------------------------------|-------|
 | **AVATAR-001** | Ajouter action `updateAvatar(formData)` dans `useAuthStore` → `PUT /users/me/avatar` + mise à jour `user.profilePicture` | SETUP-006       | Action store appelle API réel, state mis à jour | 45min |
 | **AVATAR-002** | Modifier `ProfileCard` : afficher `user.profilePicture` (Image) au lieu de l'icône statique, fallback sur icône si null  | AUTH-008        | Photo affichée si existante, icône sinon        | 30min |
 | **AVATAR-003** | Ajouter bouton camera overlay sur l'avatar dans `ProfileScreen` → `PhotoPicker` (réutiliser composant Items)             | AVATAR-002      | Tap sur avatar → choix galerie/camera → upload  | 1h    |
@@ -301,42 +302,48 @@ AWAITING_RETURN → RETURNED (rendu) | NOT_RETURNED (5 rappels ignorés) | ABAND
 
 ### Politique de rappels (automatique, backend)
 
-| Rappel | Moment     | Description                     |
-| ------ | ---------- | ------------------------------- |
-| 1      | J-3        | Rappel préventif avant échéance |
-| 2      | J (jour J) | Rappel le jour de l'échéance    |
-| 3      | J+7        | Premier rappel post-échéance    |
-| 4      | J+14       | Deuxieme rappel post-échéance   |
-| 5      | J+21       | Dernier rappel → NOT_RETURNED   |
+| Rappel | Type | Moment | Description |
+|--------|------|--------|-------------|
+| 1 | PREVENTIVE | **J-3** (si Δ ≥ 3) ou **J-1** (si Δ < 3) | Rappel préventif adaptatif avant échéance |
+| 2 | ON_DUE_DATE | J (jour J) | Rappel le jour de l'échéance |
+| 3 | FIRST_OVERDUE | J+7 | Premier rappel post-échéance |
+| 4 | SECOND_OVERDUE | J+14 | Deuxieme rappel post-échéance |
+| 5 | FINAL_OVERDUE | J+21 | Dernier rappel → NOT_RETURNED |
 
+> **Contrainte date retour minimum J+2** : La date de retour doit être au minimum 2 jours après la création du prêt.
+> Cette validation est appliquée côté frontend (calendrier bloqué avant J+2) et côté backend (API retourne 400).
+> Grâce à cette contrainte, Δ ≥ 2 est garanti et le rappel PREVENTIVE est toujours envoyé avant l'échéance.
+>
 > Les rappels sont 100% automatiques cote backend (BullMQ). Le frontend **ne géré pas** l'envoi de rappels manuels en
 > V1. Il reçoit et affiché les notifications push resultantes.
 
 ### Phase 4.1 : Gestion d'État (Zustand Store)
 
 | ID           | Titre                                                                                                                                                    | Dépendance | Critère de Fin               | Temps |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------- | ----- |
+|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|------------|------------------------------|-------|
 | **LOAN-001** | Créer `useLoanStore` (state: loans[], filters, selectedLoan)                                                                                             | SETUP-006  | Store créé avec actions CRUD | 1h30  |
 | **LOAN-002** | Créer actions `fetchLoans(filters)`, `fetchLoan(id)`, `createLoan()`, `updateLoan()`, `deleteLoan()`, `confirmLoan()`, `contestLoan()`, `updateStatus()` | LOAN-001   | Actions appellent API mock   | 3h30  |
 
 ### Phase 4.2 : Composants UI (Dumb) (Jours 1-2)
 
-| ID           | Titre                                                                                                                                                                                                                         | Dépendance | Critère de Fin                        | Temps |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------- | ----- |
-| **LOAN-003** | Créer composant `LoanCard` (photo objet + nom + emprunteur + status badge + type OBJECT/MONEY)                                                                                                                                | SETUP-007  | Card affichée dans liste              | 1h30  |
-| **LOAN-004** | Créer composant `StatusBadge` (PENDING_CONFIRMATION en orange, ACTIVE en vert, ACTIVE_BY_DEFAULT en vert clair, AWAITING_RETURN en rouge, CONTESTED en gris, RETURNED en bleu, NOT_RETURNED en noir, ABANDONED en gris foncé) | SETUP-007  | Badge coloré selon status (8 statuts) | 1h    |
-| **LOAN-005** | Créer composant `LoanWizard` (step 1: type OBJECT/MONEY, step 2: sélection objet existant ou saisie montant, step 3: sélection emprunteur existant, step 4: date retour + notes)                                              | SETUP-007  | Wizard 4 étapes fonctionnel           | 4h    |
-| **LOAN-006** | Créer composant `LoanTimeline` (affichage historique statuts)                                                                                                                                                                 | SETUP-007  | Timeline verticale avec dates         | 2h    |
-| **LOAN-007** | Créer composant `ConfirmationDialog` (pour emprunteur : "Accepter" / "Refuser")                                                                                                                                               | SETUP-007  | Dialog modale avec 2 boutons          | 1h    |
+| ID           | Titre                                                                                                                                                                                                                                                                   | Dépendance | Critère de Fin                        | Temps |
+|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|---------------------------------------|-------|
+| **LOAN-003** | Créer composant `LoanCard` (photo objet + nom + emprunteur + status badge + type OBJECT/MONEY)                                                                                                                                                                          | SETUP-007  | Card affichée dans liste              | 1h30  |
+| **LOAN-004** | Créer composant `StatusBadge` (PENDING_CONFIRMATION en orange, ACTIVE en vert, ACTIVE_BY_DEFAULT en vert clair, AWAITING_RETURN en rouge, CONTESTED en gris, RETURNED en bleu, NOT_RETURNED en noir, ABANDONED en gris foncé)                                           | SETUP-007  | Badge coloré selon status (8 statuts) | 1h    |
+| **LOAN-005** | Créer composant `LoanWizard` (step 1: type OBJECT/MONEY, step 2: sélection objet existant ou saisie montant, step 3: sélection emprunteur existant, step 4: date retour + notes). **Contrainte** : le calendrier bloque les dates avant J+2 (2 jours après aujourd'hui) | SETUP-007  | Wizard 4 étapes fonctionnel           | 4h    |
+| **LOAN-006** | Créer composant `LoanTimeline` (affichage historique statuts)                                                                                                                                                                                                           | SETUP-007  | Timeline verticale avec dates         | 2h    |
+| **LOAN-007** | Créer composant `ConfirmationDialog` (pour emprunteur : "Accepter" / "Refuser")                                                                                                                                                                                         | SETUP-007  | Dialog modale avec 2 boutons          | 1h    |
 
 > **Note LOAN-005** : Le `LoanWizard` géré les deux types de prêts. Pour un prêt de type OBJECT, l'utilisateur
-> sélectionné un objet existant (cree au préalable via le module Items). Pour un prêt de type MONEY, l'utilisateur saisit
-> directement le montant. L'emprunteur est toujours sélectionné parmi les contacts existants (compte Return obligatoire).
+> sélectionné un objet existant (cree au préalable via le module Items). Pour un prêt de type MONEY, l'utilisateur
+> saisit
+> directement le montant. L'emprunteur est toujours sélectionné parmi les contacts existants (compte Return
+> obligatoire).
 
 ### Phase 4.3 : Écrans (Smart Components) (Jours 3-4)
 
 | ID           | Titre                                                                                                                                       | Dépendance                   | Critère de Fin                                                  | Temps |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------- | ----- |
+|--------------|---------------------------------------------------------------------------------------------------------------------------------------------|------------------------------|-----------------------------------------------------------------|-------|
 | **LOAN-008** | Créer écran `LoanListScreen` (FlatList de LoanCard avec filtres status + onglets "En cours" / "Archives")                                   | LOAN-002, LOAN-003, LOAN-004 | Liste filtree avec bouton "+ Nouveau pret"                      | 2h    |
 | **LOAN-009** | Créer écran `CreateLoanScreen` (LoanWizard — type OBJECT/MONEY + sélection emprunteur existant)                                             | LOAN-002, LOAN-005           | Création prêt via API mock (type + objet/montant + emprunteur)  | 2h30  |
 | **LOAN-010** | Créer écran `LoanDetailScreen` (infos complètes + LoanTimeline + boutons actions selon status + édition notes/date + suppression + abandon) | LOAN-002, LOAN-006           | Affichage détails + actions contextuelles (edit/delete/abandon) | 3h    |
@@ -344,20 +351,22 @@ AWAITING_RETURN → RETURNED (rendu) | NOT_RETURNED (5 rappels ignorés) | ABAND
 | **LOAN-012** | Créer écran `ReturnLoanScreen` (bouton "Confirmer le retour")                                                                               | LOAN-002                     | Changement status → RETURNED via API mock                       | 1h    |
 
 > **Note LOAN-009** : Le frontend ne créé pas d'objet ni d'emprunteur inline lors de la création d'un pret.
-> L'utilisateur doit d'abord créer l'objet (module Items) et l'emprunteur (module Borrowers) via leurs écrans dédiés, puis
+> L'utilisateur doit d'abord créer l'objet (module Items) et l'emprunteur (module Borrowers) via leurs écrans dédiés,
+> puis
 > les sélectionnér par UUID dans le wizard de création de pret. Pour un prêt de type MONEY, la sélection d'objet est
 > remplacee par la saisie du montant.
 
 ### Phase 4.4 : Navigation + Workflow (Jour 5)
 
 | ID           | Titre                                                                                                                                                                                                                                                     | Dépendance          | Critère de Fin                                     | Temps |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | -------------------------------------------------- | ----- |
+|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|----------------------------------------------------|-------|
 | **LOAN-013** | Ajouter onglet "Prêts" dans Tab Navigator (écran par defaut)                                                                                                                                                                                              | SETUP-003, LOAN-008 | Onglet accessible                                  | 30min |
 | **LOAN-014** | Implémenter deep linking pour confirmation emprunteur (Universal Links iOS / App Links Android → ConfirmLoanScreen)                                                                                                                                       | LOAN-011            | Lien `return://loans/{id}/confirm` fonctionne      | 4-6h  |
 | **LOAN-015** | Afficher boutons conditionnels selon status : "Marquer rendu" (ACTIVE/AWAITING_RETURN → RETURNED), "Abandonner" (ACTIVE/AWAITING_RETURN → ABANDONED), "Modifier" (notes/returnDate via PATCH), "Supprimer" (soft delete via DELETE, interdit si RETURNED) | LOAN-010            | Boutons corrects selon machine à états (8 statuts) | 2h    |
 
 > **Note LOAN-014** : Le deep linking necessite la configuration des Universal Links (iOS :
-> `apple-app-site-association`) et App Links (Android : `assetlinks.json`). L'emprunteur doit obligatoirement disposer d'
+> `apple-app-site-association`) et App Links (Android : `assetlinks.json`). L'emprunteur doit obligatoirement disposer
+> d'
 > un compte Return et etre authentifie dans l'app pour acceder à `ConfirmLoanScreen` (derriere `AuthGuard`). Si
 > l'emprunteur n'a pas l'app installee, le lien redirigé vers une page web avec instructions d'installation. Prevoir un
 > mécanisme de magic link ou token temporaire pour simplifier le parcours emprunteur. Estimation réaliste : 4-6h (
@@ -365,17 +374,18 @@ AWAITING_RETURN → RETURNED (rendu) | NOT_RETURNED (5 rappels ignorés) | ABAND
 
 ### Phase 4.5 : Tests (Jours 6-7)
 
-| ID           | Titre                                                                                                                                                                                                     | Dépendance | Critère de Fin                            | Temps |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------- | ----- |
-| **LOAN-016** | Gérer erreur 400 si returnDate < today                                                                                                                                                                    | LOAN-009   | Message "Date de retour invalide" affiché | 45min |
-| **LOAN-017** | Écrire test RNTL : LoanWizard flow (4 étapes, type OBJECT)                                                                                                                                                | LOAN-005   | Test RNTL passe                           | 1h30  |
-| **LOAN-018** | Écrire test RNTL : LoanWizard flow (type MONEY)                                                                                                                                                           | LOAN-005   | Test RNTL passe                           | 1h    |
-| **LOAN-019** | Écrire test RNTL : ConfirmationDialog accept/refuse                                                                                                                                                       | LOAN-007   | Test RNTL passe                           | 1h    |
-| **LOAN-020** | Écrire test RNTL : StatusBadge affichage correct par statut (8 statuts)                                                                                                                                   | LOAN-004   | Test RNTL passe                           | 1h    |
-| **LOAN-021** | Ajouter 5 types d'erreur Loans dans `error.ts` + `en.json`/`fr.json` : `loan-not-found`, `daily-loan-limit-exceeded`, `loan-already-returned`, `forbidden-status-transition`, `invalid-status-transition` | LOAN-002   | Erreurs mappées et traduites FR/EN        | 30min |
-| **LOAN-022** | Écrire tests RNTL : LoanDetailScreen — édition notes/date, suppression prêt, abandon                                                                                                                      | LOAN-010   | 3 tests RNTL passent                      | 1h30  |
+| ID           | Titre                                                                                                                                                                                                                         | Dépendance | Critère de Fin                              | Temps |
+|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|---------------------------------------------|-------|
+| **LOAN-016** | Gérer erreur 400 si returnDate < today + 2 jours. Le calendrier doit bloquer les dates avant J+2 (minDate = aujourd'hui + 2 jours). Message d'erreur : "La date de retour doit être au minimum 2 jours après la date du prêt" | LOAN-009   | Message d'erreur affiché, calendrier bloqué | 45min |
+| **LOAN-017** | Écrire test RNTL : LoanWizard flow (4 étapes, type OBJECT)                                                                                                                                                                    | LOAN-005   | Test RNTL passe                             | 1h30  |
+| **LOAN-018** | Écrire test RNTL : LoanWizard flow (type MONEY)                                                                                                                                                                               | LOAN-005   | Test RNTL passe                             | 1h    |
+| **LOAN-019** | Écrire test RNTL : ConfirmationDialog accept/refuse                                                                                                                                                                           | LOAN-007   | Test RNTL passe                             | 1h    |
+| **LOAN-020** | Écrire test RNTL : StatusBadge affichage correct par statut (8 statuts)                                                                                                                                                       | LOAN-004   | Test RNTL passe                             | 1h    |
+| **LOAN-021** | Ajouter 5 types d'erreur Loans dans `error.ts` + `en.json`/`fr.json` : `loan-not-found`, `daily-loan-limit-exceeded`, `loan-already-returned`, `forbidden-status-transition`, `invalid-status-transition`                     | LOAN-002   | Erreurs mappées et traduites FR/EN          | 30min |
+| **LOAN-022** | Écrire tests RNTL : LoanDetailScreen — édition notes/date, suppression prêt, abandon                                                                                                                                          | LOAN-010   | 3 tests RNTL passent                        | 1h30  |
 
-📦 **Livrable Sprint 4** : **Gestion complète des prêts** (workflow 8 statuts, 2 types OBJECT/MONEY, édition/suppression/abandon, connecté au Mock
+📦 **Livrable Sprint 4** : **Gestion complète des prêts** (workflow 8 statuts, 2 types OBJECT/MONEY,
+édition/suppression/abandon, connecté au Mock
 Server), couvert par tests RNTL.
 
 ---
@@ -386,7 +396,8 @@ Server), couvert par tests RNTL.
 
 Corriger les problèmes révélés par les tests d'intégration avec le backend réel :
 
-- **Bug critique** : l'emprunteur ne voit aucun prêt dans "Mes emprunts" (cause backend — voir roadmap backend Sprint 4.5)
+- **Bug critique** : l'emprunteur ne voit aucun prêt dans "Mes emprunts" (cause backend — voir roadmap backend Sprint
+  4.5)
 - **UX** : double SegmentedButtons empilés dans `LoanListScreen` (perspective + statut)
 - **UX** : onglet "Prêts" ambigu — doit couvrir prêts ET emprunts
 - **UX** : profil sans statistiques emprunteur (score de confiance personnel)
@@ -411,7 +422,7 @@ Corriger les problèmes révélés par les tests d'intégration avec le backend 
 ### Phase 4.5.1 : Refactoring LoanListScreen — UX contrôles (Jour 1)
 
 | ID            | Titre                                                                                                                                                  | Dépendance | Critère de Fin                                              | Temps |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ----------------------------------------------------------- | ----- |
+|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|------------|-------------------------------------------------------------|-------|
 | **INTEG-F01** | Refactorer `LoanListScreen` : remplacer les 2 SegmentedButtons empilés par un seul contrôle combiné (ex: Chips filtres ou SegmentedButtons + dropdown) | LOAN-008   | Un seul niveau de contrôle visible, UX mobile fluide        | 2h    |
 | **INTEG-F02** | Implémenter le comportement combiné : la perspective (prêteur/emprunteur) détermine les données, le filtre (en cours/archives) affine l'affichage      | INTEG-F01  | Changement de perspective recharge les données correctement | 1h    |
 | **INTEG-F03** | Masquer le FAB "+" en mode emprunteur (déjà fait, vérifier après refactoring)                                                                          | INTEG-F01  | FAB invisible quand perspective = borrower                  | 15min |
@@ -424,7 +435,7 @@ Corriger les problèmes révélés par les tests d'intégration avec le backend 
 ### Phase 4.5.2 : LoanCard perspective-aware (Jour 1)
 
 | ID            | Titre                                                                                                                                       | Dépendance | Critère de Fin                                                              | Temps |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- | ----- |
+|---------------|---------------------------------------------------------------------------------------------------------------------------------------------|------------|-----------------------------------------------------------------------------|-------|
 | **INTEG-F04** | `LoanCard` : ajouter prop `perspective: 'lender' \| 'borrower'` — afficher le **prêteur** quand `borrower`, l'**emprunteur** quand `lender` | INTEG-F02  | En mode "Mes emprunts", la carte affiche qui a prêté l'objet (pas soi-même) | 45min |
 
 > **Justification** : Actuellement `LoanCard` affiche toujours le nom de l'emprunteur. Quand Bob consulte
@@ -434,7 +445,7 @@ Corriger les problèmes révélés par les tests d'intégration avec le backend 
 ### Phase 4.5.3 : Renommage onglet navigation (Jour 1)
 
 | ID            | Titre                                                                                                                           | Dépendance | Critère de Fin                                  | Temps |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------- | ----- |
+|---------------|---------------------------------------------------------------------------------------------------------------------------------|------------|-------------------------------------------------|-------|
 | **INTEG-F05** | Renommer l'onglet "Prêts" → "Suivi" dans `AppNavigator.tsx` + i18n (`navigation.loans` → `navigation.tracking`)                 | LOAN-013   | Onglet affiché "Suivi" en FR / "Tracking" en EN | 30min |
 | **INTEG-F06** | Mettre à jour `fr.json` et `en.json` : ajouter clé `navigation.tracking` + conserver `navigation.loans` pour rétrocompatibilité | INTEG-F05  | i18n FR : "Suivi", EN : "Tracking"              | 15min |
 
@@ -449,7 +460,7 @@ Corriger les problèmes révélés par les tests d'intégration avec le backend 
 > L'emprunteur ne devrait voir que Confirmer et Contester.
 
 | ID            | Titre                                                                                                                                               | Dépendance | Critère de Fin                                              | Temps |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------- | ----- |
+|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|------------|-------------------------------------------------------------|-------|
 | **INTEG-F07** | Déterminer la perspective dans `LoanDetailScreen` : comparer `loan.lender.id` avec `authStore.user.id` — si identique → prêteur, sinon → emprunteur | LOAN-010   | Variable `isLender` / `isBorrower` calculée automatiquement | 30min |
 | **INTEG-F08** | Afficher les boutons conditionnels selon la perspective :                                                                                           |            |                                                             |       |
 |               | — **Prêteur** : Modifier, Supprimer, Marquer rendu, Abandonner (comportement actuel)                                                                |            |                                                             |       |
@@ -467,7 +478,7 @@ Corriger les problèmes révélés par les tests d'intégration avec le backend 
 ### Phase 4.5.5 : Statistiques emprunteur dans le profil (Jour 2)
 
 | ID            | Titre                                                                                                                                                                  | Dépendance | Critère de Fin                                                                 | Temps |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------ | ----- |
+|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|--------------------------------------------------------------------------------|-------|
 | **INTEG-F11** | Créer composant `BorrowerStats` : charge les prêts via `fetchLoans({ role: 'borrower' })` et calcule les métriques                                                     | LOAN-001   | Composant affiche : prêts reçus, rendus à temps, en retard, score de confiance | 2h    |
 | **INTEG-F12** | Intégrer `BorrowerStats` dans `ProfileScreen` sous `LenderStats`                                                                                                       | INTEG-F11  | Deux cards de stats visibles dans le profil (prêteur + emprunteur)             | 30min |
 | **INTEG-F13** | Ajouter clés i18n pour `BorrowerStats` : `profile.borrowerStatistics`, `profile.loansReceived`, `profile.returnedOnTime`, `profile.returnedLate`, `profile.trustScore` | INTEG-F11  | Clés disponibles en FR et EN                                                   | 15min |
@@ -481,7 +492,7 @@ Corriger les problèmes révélés par les tests d'intégration avec le backend 
 ### Phase 4.5.6 : MSW Handlers + Tests (Jour 3)
 
 | ID            | Titre                                                                                                                                     | Dépendance         | Critère de Fin                                                               | Temps |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------- | ----- |
+|---------------|-------------------------------------------------------------------------------------------------------------------------------------------|--------------------|------------------------------------------------------------------------------|-------|
 | **INTEG-F14** | MSW : `GET /loans` handler doit respecter le param `role` — retourner des mocks différents selon la perspective                           | INTEG-F02          | En mode borrower, le mock retourne des prêts où l'utilisateur est emprunteur | 45min |
 | **INTEG-F15** | Écrire test RNTL : `LoanListScreen` — contrôle combiné perspective/statut fonctionne                                                      | INTEG-F02          | Test RNTL passe                                                              | 1h    |
 | **INTEG-F16** | Écrire test RNTL : `LoanDetailScreen` — boutons corrects selon perspective (emprunteur: confirmer/contester, prêteur: modifier/supprimer) | INTEG-F08          | 2 tests RNTL passent                                                         | 1h30  |
@@ -507,25 +518,25 @@ que les contacts avec invitation ACCEPTED comme emprunteur.
 
 ### Phase 4.6.1 : Store + Types + MSW (Jour 1)
 
-| ID             | Titre                                                                                           | Dépendance  | Critère de Fin                                               | Temps |
-|----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
-| **CINV-F001**  | Ajouter type `ContactInvitation` (avec `recipientUser`, `rejectedAt`) et `UserSearchResult` (avec `alreadyContact`, `pendingInvitation?: boolean`, `pendingInvitationId?: string \| null`) dans `api.types.ts`. Ajouter types `SearchUsersDto` et `SendInvitationDto`. Modifier `CreateLoanDto` : remplacer `borrower: CreateBorrowerDto \| string` par `borrowerId: string` (UUID only, création inline supprimée — cf. OpenAPI `POST /loans`). | - | Types exportés, `InvitationStatus` enum inclus, `CreateLoanDto` mis à jour | 45min |
-| **CINV-F002**  | Créer `useContactInvitationStore` Zustand : `fetchReceivedInvitations` (`?direction=received&status=PENDING`), `fetchSentInvitations` (`?direction=sent`), `searchUsers(query, page?, limit?)` (pagination dans le body — cf. OpenAPI), `sendInvitation`, `acceptInvitation`, `rejectInvitation`, `cancelInvitation` | CINV-F001 | Store créé avec actions async try/catch, direction + status params supportés | 1h30  |
-| **CINV-F003**  | Créer MSW handlers pour les 7 endpoints `/contact-invitations/*` (incl. `?direction=sent`)               | CINV-F001   | Handlers ajoutés dans `handlers.ts`, mock opérationnel       | 1h    |
-| **CINV-F004**  | Tests unitaires `useContactInvitationStore` (fetch received, fetch sent, send, accept, reject, cancel)  | CINV-F002   | 6 tests RNTL passent                                         | 1h30  |
+| ID            | Titre                                                                                                                                                                                                                                                                                                                                                                                                                                            | Dépendance | Critère de Fin                                                               | Temps |
+|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------------------------|-------|
+| **CINV-F001** | Ajouter type `ContactInvitation` (avec `recipientUser`, `rejectedAt`) et `UserSearchResult` (avec `alreadyContact`, `pendingInvitation?: boolean`, `pendingInvitationId?: string \| null`) dans `api.types.ts`. Ajouter types `SearchUsersDto` et `SendInvitationDto`. Modifier `CreateLoanDto` : remplacer `borrower: CreateBorrowerDto \| string` par `borrowerId: string` (UUID only, création inline supprimée — cf. OpenAPI `POST /loans`). | -          | Types exportés, `InvitationStatus` enum inclus, `CreateLoanDto` mis à jour   | 45min |
+| **CINV-F002** | Créer `useContactInvitationStore` Zustand : `fetchReceivedInvitations` (`?direction=received&status=PENDING`), `fetchSentInvitations` (`?direction=sent`), `searchUsers(query, page?, limit?)` (pagination dans le body — cf. OpenAPI), `sendInvitation`, `acceptInvitation`, `rejectInvitation`, `cancelInvitation`                                                                                                                             | CINV-F001  | Store créé avec actions async try/catch, direction + status params supportés | 1h30  |
+| **CINV-F003** | Créer MSW handlers pour les 7 endpoints `/contact-invitations/*` (incl. `?direction=sent`)                                                                                                                                                                                                                                                                                                                                                       | CINV-F001  | Handlers ajoutés dans `handlers.ts`, mock opérationnel                       | 1h    |
+| **CINV-F004** | Tests unitaires `useContactInvitationStore` (fetch received, fetch sent, send, accept, reject, cancel)                                                                                                                                                                                                                                                                                                                                           | CINV-F002  | 6 tests RNTL passent                                                         | 1h30  |
 
 ### Phase 4.6.2 : SearchBorrowerScreen (Jour 2)
 
-| ID             | Titre                                                                                           | Dépendance  | Critère de Fin                                               | Temps |
-|----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
-| **CINV-F005**  | Créer `SearchBorrowerScreen` : barre de recherche (email / prénom / nom) + FlatList résultats   | CINV-F002   | Écran affiché, recherche déclenche l'action                  | 1h30  |
-| **CINV-F006**  | Créer composant `UserSearchResultItem` : affiche nom + email + badge (déjà contact / pending / nouveau) | CINV-F005 | Badges corrects selon le statut de la relation            | 1h    |
-| **CINV-F007**  | Bouton "Inviter" dans `UserSearchResultItem` → appelle `sendInvitation()` → badge passe à "En attente" ; bouton "Annuler" si `pendingInvitationId` présent (`?? null` — champ optionnel dans l'OpenAPI) → appelle `cancelInvitation(pendingInvitationId)` | CINV-F006 | Invitation envoyée/annulée, badge mis à jour sans re-fetch | 1h    |
+| ID            | Titre                                                                                                                                                                                                                                                     | Dépendance | Critère de Fin                                             | Temps |
+|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|------------------------------------------------------------|-------|
+| **CINV-F005** | Créer `SearchBorrowerScreen` : barre de recherche (email / prénom / nom) + FlatList résultats                                                                                                                                                             | CINV-F002  | Écran affiché, recherche déclenche l'action                | 1h30  |
+| **CINV-F006** | Créer composant `UserSearchResultItem` : affiche nom + email + badge (déjà contact / pending / nouveau)                                                                                                                                                   | CINV-F005  | Badges corrects selon le statut de la relation             | 1h    |
+| **CINV-F007** | Bouton "Inviter" dans `UserSearchResultItem` → appelle `sendInvitation()` → badge passe à "En attente" ; bouton "Annuler" si `pendingInvitationId` présent (`?? null` — champ optionnel dans l'OpenAPI) → appelle `cancelInvitation(pendingInvitationId)` | CINV-F006  | Invitation envoyée/annulée, badge mis à jour sans re-fetch | 1h    |
 
 ### Phase 4.6.3 : BorrowerInvitationsScreen + SentInvitationsScreen (Jour 3)
 
 | ID             | Titre                                                                                                                                                                                 | Dépendance | Critère de Fin                                                | Temps |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------- | ----- |
+|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|---------------------------------------------------------------|-------|
 | **CINV-F008**  | Créer `BorrowerInvitationsScreen` : liste des invitations PENDING reçues (nom prêteur, date)                                                                                          | CINV-F002  | Écran affiche les invitations                                 | 1h    |
 | **CINV-F009**  | Bouton "Accepter" → `acceptInvitation()` → invitation disparaît de la liste                                                                                                           | CINV-F008  | Contact créé, liste mise à jour                               | 1h    |
 | **CINV-F010**  | Bouton "Refuser" → `rejectInvitation()` → invitation disparaît de la liste                                                                                                            | CINV-F008  | Invitation rejetée, liste mise à jour                         | 30min |
@@ -534,17 +545,17 @@ que les contacts avec invitation ACCEPTED comme emprunteur.
 
 ### Phase 4.6.4 : Navigation + Intégration LoanWizard (Jour 4)
 
-| ID             | Titre                                                                                           | Dépendance  | Critère de Fin                                               | Temps |
-|----------------|-------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------|-------|
-| **CINV-F012**  | Ajouter `SearchBorrower`, `BorrowerInvitations`, et `SentInvitations` dans `BorrowerStackParamList` | CINV-F005 | Navigation typée mise à jour                                 | 30min |
-| **CINV-F013**  | `BorrowerListScreen` : bouton "+" navigue vers `SearchBorrowerScreen` + lien "Invitations envoyées" vers `SentInvitationsScreen` | CINV-F012 | Navigation fonctionne | 30min |
-| **CINV-F014**  | `LoanWizard` step 3 (sélection emprunteur) : sélection par UUID uniquement parmi contacts ACCEPTED. Supprimer la création inline (`BorrowerForm`, `showBorrowerDialog`, `handleInlineBorrowerCreate`, Dialog Portal borrower). Adapter `handleSubmit()` : `borrower: selectedBorrowerId!` → `borrowerId: selectedBorrowerId!` (aligné avec `CreateLoanDto` modifié en CINV-F001) | CINV-F012 | Seuls les contacts acceptés sont sélectionnables, `borrowerId` UUID envoyé, code inline borrower supprimé | 1h30  |
-| **CINV-F015**  | Gérer le cas "aucun contact accepté" dans `LoanWizard` : message + lien vers `SearchBorrowerScreen` | CINV-F014 | Message clair si liste vide                                  | 30min |
+| ID            | Titre                                                                                                                                                                                                                                                                                                                                                                            | Dépendance | Critère de Fin                                                                                            | Temps |
+|---------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|-----------------------------------------------------------------------------------------------------------|-------|
+| **CINV-F012** | Ajouter `SearchBorrower`, `BorrowerInvitations`, et `SentInvitations` dans `BorrowerStackParamList`                                                                                                                                                                                                                                                                              | CINV-F005  | Navigation typée mise à jour                                                                              | 30min |
+| **CINV-F013** | `BorrowerListScreen` : bouton "+" navigue vers `SearchBorrowerScreen` + lien "Invitations envoyées" vers `SentInvitationsScreen`                                                                                                                                                                                                                                                 | CINV-F012  | Navigation fonctionne                                                                                     | 30min |
+| **CINV-F014** | `LoanWizard` step 3 (sélection emprunteur) : sélection par UUID uniquement parmi contacts ACCEPTED. Supprimer la création inline (`BorrowerForm`, `showBorrowerDialog`, `handleInlineBorrowerCreate`, Dialog Portal borrower). Adapter `handleSubmit()` : `borrower: selectedBorrowerId!` → `borrowerId: selectedBorrowerId!` (aligné avec `CreateLoanDto` modifié en CINV-F001) | CINV-F012  | Seuls les contacts acceptés sont sélectionnables, `borrowerId` UUID envoyé, code inline borrower supprimé | 1h30  |
+| **CINV-F015** | Gérer le cas "aucun contact accepté" dans `LoanWizard` : message + lien vers `SearchBorrowerScreen`                                                                                                                                                                                                                                                                              | CINV-F014  | Message clair si liste vide                                                                               | 30min |
 
 ### Phase 4.6.5 : Tests RNTL + Buffer (Jour 5)
 
 | ID             | Titre                                                                                                                                   | Dépendance      | Critère de Fin                  | Temps |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------------------------------- | ----- |
+|----------------|-----------------------------------------------------------------------------------------------------------------------------------------|-----------------|---------------------------------|-------|
 | **CINV-F016**  | Test RNTL : `SearchBorrowerScreen` — recherche, affichage résultats, badge statut                                                       | CINV-F006       | Test passe                      | 1h    |
 | **CINV-F017**  | Test RNTL : `SearchBorrowerScreen` — bouton "Inviter" met à jour le badge en "En attente" ; bouton "Annuler" avec `pendingInvitationId` | CINV-F007       | Test passe                      | 45min |
 | **CINV-F018**  | Test RNTL : `BorrowerInvitationsScreen` — affichage liste, acceptation, refus                                                           | CINV-F009       | Test passe                      | 1h    |
@@ -554,58 +565,84 @@ que les contacts avec invitation ACCEPTED comme emprunteur.
 | **CINV-F021**  | Buffer review + fix bugs + vérification que les 150+ tests existants passent toujours                                                   | CINV-F016..F020 | `npx jest --verbose` : 0 échecs | 1h30  |
 
 📦 **Livrable Sprint 4.6** : **Contact Invitation System** (store Zustand + MSW handlers + `SearchBorrowerScreen` +
-`BorrowerInvitationsScreen` + `SentInvitationsScreen` + navigation intégrée + `LoanWizard` adapté `borrowerId` UUID only),
+`BorrowerInvitationsScreen` + `SentInvitationsScreen` + navigation intégrée + `LoanWizard` adapté `borrowerId` UUID
+only),
 couvert par 10+ tests RNTL.
 
 ---
 
-## Sprint 5 : Module Notifications (5 jours)
+## Sprint 5 : Conteneurisation + Validation J+2 + Notifications (5 jours)
 
 ### Objectif
 
-Recevoir et gérer les notifications push. Les rappels sont 100% automatiques cote backend (pas de rappels manuels en
-V1). Ce sprint concerne uniquement : recevoir les push, afficher la liste des notifications, marquer comme lu.
+1. **Conteneuriser l'environnement de développement frontend** : un `docker compose up` lance tout (postgres + redis + backend + frontend Expo Web). Environnement identique pour tous les développeurs.
+2. **Valider la contrainte de date retour minimum J+2** côté frontend (calendrier bloqué).
+3. **Recevoir et gérer les notifications push**. Les rappels sont 100% automatiques côté backend (pas de rappels manuels en V1). Ce sprint concerne uniquement : recevoir les push, afficher la liste des notifications, marquer comme lu.
 
-### Phase 5.1 : Setup Notifications (Jour 1)
+> **Note** : Le frontend est servi en **Expo Web uniquement** dans le conteneur Docker. Les tests sur device physique (iOS/Android) ne sont pas couverts par la conteneurisation — le navigateur en mode responsive suffit pour le développement.
+
+### Phase 5.0 : Conteneurisation Dev (Jour 1)
+
+| ID            | Titre                                                                                                                                                                                      | Dépendance | Critère de Fin                                                             | Temps |
+|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|----------------------------------------------------------------------------|-------|
+| **DOCK-001**  | Créer `frontend/Dockerfile.dev` (base `node:22-slim`, `npm ci`, expose port 8081, CMD `npx expo start --web`, volume pour hot reload)                                                      | SETUP-001  | `docker build` frontend réussit                                            | 45min |
+| **DOCK-002**  | Créer `backend/Dockerfile.dev` (base `node:22-slim`, `npm ci`, `prisma generate`, CMD `npx nest start --watch`, volume pour hot reload)                                                    | SETUP-001  | `docker build` backend dev réussit                                         | 45min |
+| **DOCK-003**  | Mettre à jour `docker-compose.yml` : ajouter services `backend` et `frontend` avec volumes source montés, `depends_on` postgres/redis, variables d'environnement (`DATABASE_URL`, etc.)    | DOCK-001, DOCK-002 | `docker compose up` démarre les 4 services sans erreur             | 1h    |
+| **DOCK-004**  | Créer `frontend/.dockerignore` et `backend/.dockerignore` (exclure `node_modules/`, `.expo/`, `dist/`, `.env`)                                                                             | -          | Build context léger (< 5 MB sans node_modules)                             | 15min |
+| **DOCK-005**  | Valider le hot reload : modifier un fichier `.tsx` → Expo Web se rafraîchit ; modifier un fichier `.ts` backend → NestJS redémarre                                                         | DOCK-003   | Hot reload fonctionnel dans les 2 conteneurs                               | 30min |
+| **DOCK-006**  | Valider la communication frontend ↔ backend : le frontend peut appeler `http://backend:3000/v1` depuis le conteneur                                                                        | DOCK-003   | Requête API réussie depuis le frontend conteneurisé                        | 30min |
+
+> **Note** : Les `node_modules` sont installés **dans le conteneur** (`npm ci`), pas montés en volume. Cela évite les conflits de binaires natifs entre OS (ex: `bcrypt`). Seuls les répertoires source (`src/`, `assets/`) sont montés.
+
+### Phase 5.0b : Validation Date Retour J+2 (Jour 1)
+
+| ID            | Titre                                                                                                                                                         | Dépendance | Critère de Fin                                              | Temps |
+|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|-------------------------------------------------------------|-------|
+| **VALID-001** | `LoanWizard` step 4 : ajouter `minDate = today + 2 jours` sur le composant `Calendar`. Les dates avant J+2 sont grisées/non sélectionnables                 | LOAN-005   | Calendrier bloqué avant J+2                                 | 30min |
+| **VALID-002** | `LoanDetailScreen` (dialog édition) : même contrainte `minDate = createdAt + 2 jours` sur le Calendar                                                        | LOAN-010   | Calendrier édition bloqué avant J+2                         | 30min |
+| **VALID-003** | Ajouter clés i18n `loans.returnDateTooSoon` : FR "La date de retour doit être au minimum 2 jours après le prêt" / EN "Return date must be at least 2 days after the loan" | VALID-001  | Clés disponibles FR + EN                                    | 15min |
+| **VALID-004** | Mapper le type d'erreur backend `return-date-too-soon` dans `error.ts` + affichage via `getErrorMessage()`                                                    | VALID-003  | Erreur 400 backend affichée correctement                    | 15min |
+| **VALID-005** | Test RNTL : vérifier que les dates avant J+2 ne sont pas sélectionnables dans `LoanWizard`                                                                   | VALID-001  | Test RNTL passe                                             | 45min |
+
+### Phase 5.1 : Setup Notifications (Jour 2)
 
 | ID            | Titre                                                                 | Dépendance | Critère de Fin                            | Temps |
-| ------------- | --------------------------------------------------------------------- | ---------- | ----------------------------------------- | ----- |
+|---------------|-----------------------------------------------------------------------|------------|-------------------------------------------|-------|
 | **NOTIF-001** | Installer Firebasé Cloud Messaging (FCM) SDK via Expo                 | SETUP-001  | FCM initialise, token device récupéré     | 2h    |
 | **NOTIF-002** | Configurer gestion des notifications foreground/background            | NOTIF-001  | Notification affichée même si app ouverte | 1h30  |
 | **NOTIF-003** | Créer service `notificationService.ts` (subscribe/unsubscribe topics) | NOTIF-001  | Service créé                              | 1h    |
 
-### Phase 5.2 : Gestion d'État (Zustand Store)
+### Phase 5.2 : Gestion d'État (Zustand Store) (Jour 2)
 
 | ID            | Titre                                                                   | Dépendance | Critère de Fin             | Temps |
-| ------------- | ----------------------------------------------------------------------- | ---------- | -------------------------- | ----- |
+|---------------|-------------------------------------------------------------------------|------------|----------------------------|-------|
 | **NOTIF-004** | Créer `useNotificationStore` (state: notifications[], unreadCount)      | SETUP-006  | Store créé                 | 1h    |
 | **NOTIF-005** | Créer actions `fetchNotifications()`, `markAsRead()`, `markAllAsRead()` | NOTIF-004  | Actions appellent API mock | 1h30  |
 
-### Phase 5.3 : Composants UI (Dumb) (Jour 2)
+### Phase 5.3 : Composants UI (Dumb) (Jour 3)
 
 | ID            | Titre                                                                    | Dépendance | Critère de Fin            | Temps |
-| ------------- | ------------------------------------------------------------------------ | ---------- | ------------------------- | ----- |
+|---------------|--------------------------------------------------------------------------|------------|---------------------------|-------|
 | **NOTIF-006** | Créer composant `NotificationCard` (affichage notif avec badge "non lu") | SETUP-007  | Card affichée dans liste  | 1h    |
 | **NOTIF-007** | Créer composant `NotificationBadge` (badge rouge avec count sur icone)   | SETUP-007  | Badge affiché dans header | 45min |
 
 ### Phase 5.4 : Écrans (Smart Components) (Jour 3)
 
 | ID            | Titre                                                                                      | Dépendance           | Critère de Fin                                    | Temps |
-| ------------- | ------------------------------------------------------------------------------------------ | -------------------- | ------------------------------------------------- | ----- |
+|---------------|--------------------------------------------------------------------------------------------|----------------------|---------------------------------------------------|-------|
 | **NOTIF-008** | Créer écran `NotificationListScreen` (FlatList de NotificationCard avec filtre unreadOnly) | NOTIF-005, NOTIF-006 | Liste paginée avec bouton "Tout marquer comme lu" | 1h30  |
 | **NOTIF-009** | Ajouter NotificationBadge dans header                                                      | NOTIF-005, NOTIF-007 | Badge mis à jour en temps réel                    | 1h    |
 
-### Phase 5.5 : Intégration + Tests (Jours 4-5)
+### Phase 5.5 : Intégration + Tests (Jour 4-5)
 
 | ID            | Titre                                                     | Dépendance          | Critère de Fin                       | Temps |
-| ------------- | --------------------------------------------------------- | ------------------- | ------------------------------------ | ----- |
+|---------------|-----------------------------------------------------------|---------------------|--------------------------------------|-------|
 | **NOTIF-010** | Simuler reception notification push (via Postman → FCM)   | NOTIF-002           | Notification reçue et affichée       | 1h    |
 | **NOTIF-011** | Navigation depuis notification push vers LoanDetailScreen | NOTIF-002, LOAN-010 | Tap sur notif ouvre le prêt concerne | 1h30  |
 | **NOTIF-012** | Écrire test RNTL : NotificationCard mark as read          | NOTIF-006           | Test RNTL passe                      | 1h    |
 | **NOTIF-013** | Écrire test RNTL : NotificationBadge affichage count      | NOTIF-007           | Test RNTL passe                      | 45min |
 
-📦 **Livrable Sprint 5** : **Notifications push** (reception, liste, lecture, navigation vers prêt concerne), couvertes
-par tests RNTL.
+📦 **Livrable Sprint 5** : **Environnement Docker unifié** (`docker compose up` → 4 services, Expo Web uniquement) + **Validation date retour J+2** (calendrier bloqué, erreur i18n) + **Notifications push** (reception, liste, lecture, navigation vers prêt concerne), couverts par tests RNTL.
 
 ---
 
@@ -618,14 +655,14 @@ Statistiques + Historique archivé + Écran Dashboard avec overview.
 ### Phase 6.1 : Gestion d'État (Zustand Store)
 
 | ID           | Titre                                                            | Dépendance | Critère de Fin             | Temps |
-| ------------ | ---------------------------------------------------------------- | ---------- | -------------------------- | ----- |
+|--------------|------------------------------------------------------------------|------------|----------------------------|-------|
 | **HIST-001** | Créer `useHistoryStore` (state: archivedLoans[], statistics)     | SETUP-006  | Store créé                 | 1h    |
 | **HIST-002** | Créer actions `fetchArchivedLoans(filters)`, `fetchStatistics()` | HIST-001   | Actions appellent API mock | 1h30  |
 
 ### Phase 6.2 : Composants UI (Dumb)
 
 | ID           | Titre                                                                     | Dépendance | Critère de Fin               | Temps |
-| ------------ | ------------------------------------------------------------------------- | ---------- | ---------------------------- | ----- |
+|--------------|---------------------------------------------------------------------------|------------|------------------------------|-------|
 | **HIST-003** | Créer composant `StatCard` (KPI : nb prêts actifs, taux de retour, etc.)  | SETUP-007  | Card avec chiffre + icone    | 1h    |
 | **HIST-004** | Créer composant `PieChart` (repartition par categorie via Victory Native) | SETUP-001  | Graphique circulaire affiché | 2h    |
 | **HIST-005** | Créer composant `TopBorrowersList` (top 5 emprunteurs les plus frequents) | SETUP-007  | Liste avec trustScore badge  | 1h    |
@@ -633,7 +670,7 @@ Statistiques + Historique archivé + Écran Dashboard avec overview.
 ### Phase 6.3 : Écrans (Smart Components)
 
 | ID           | Titre                                                                        | Dépendance                             | Critère de Fin                   | Temps |
-| ------------ | ---------------------------------------------------------------------------- | -------------------------------------- | -------------------------------- | ----- |
+|--------------|------------------------------------------------------------------------------|----------------------------------------|----------------------------------|-------|
 | **HIST-006** | Créer écran `DashboardScreen` (4 StatCard + PieChart + boutons rapides)      | HIST-002, HIST-003, HIST-004           | Dashboard complet affiché        | 2h    |
 | **HIST-007** | Créer écran `HistoryScreen` (liste archivedLoans avec filtres date + status) | HIST-002                               | Liste paginée avec filtres       | 1h30  |
 | **HIST-008** | Créer écran `StatisticsScreen` (StatCards + PieChart + TopBorrowersList)     | HIST-002, HIST-003, HIST-004, HIST-005 | Statistiques complètes affichées | 2h    |
@@ -641,7 +678,7 @@ Statistiques + Historique archivé + Écran Dashboard avec overview.
 ### Phase 6.4 : Navigation + Tests
 
 | ID           | Titre                                                      | Dépendance          | Critère de Fin                | Temps |
-| ------------ | ---------------------------------------------------------- | ------------------- | ----------------------------- | ----- |
+|--------------|------------------------------------------------------------|---------------------|-------------------------------|-------|
 | **HIST-009** | Ajouter onglet "Historique" dans Tab Navigator             | SETUP-003, HIST-007 | Onglet accessible             | 30min |
 | **HIST-010** | Definir DashboardScreen comme écran par defaut après login | AUTH-019, HIST-006  | Dashboard affiché après login | 30min |
 | **HIST-011** | Écrire test RNTL : StatCard affichage KPIs                 | HIST-003            | Test RNTL passe               | 1h    |
@@ -657,7 +694,7 @@ Statistiques + Historique archivé + Écran Dashboard avec overview.
 **Principe** : Ne pas tout basculer d'un coup. Activer module par module.
 
 | Sprint Backend Termine   | Module à Basculer         | Action Frontend                                                     | Temps                          |
-| ------------------------ | ------------------------- | ------------------------------------------------------------------- | ------------------------------ |
+|--------------------------|---------------------------|---------------------------------------------------------------------|--------------------------------|
 | **Sprint 1 (Auth)**      | Auth + Users              | `USE_MOCK=false` pour endpoints `/auth/*` et `/users/*`             | 1h                             |
 | **Sprint 2 (Borrowers)** | Borrowers                 | `USE_MOCK=false` pour endpoints `/borrowers/*`                      | 30min                          |
 | **Sprint 3 (Items)**     | Items (Photos + R2)       | `USE_MOCK=false` pour endpoints `/items/*`                          | 1h (tester upload réel)        |
@@ -672,25 +709,25 @@ Statistiques + Historique archivé + Écran Dashboard avec overview.
 
 ```typescript
 const MOCK_MODULES: Record<string, boolean> = {
-  auth: false, // Backend réel active
-  borrowers: false, // Backend réel active
-  items: true, // Mock encore actif
-  loans: true, // Mock encore actif
-  reminders: true, // Mock encore actif
-  notifications: true, // Mock encore actif
-  history: true, // Mock encore actif
+    auth: false, // Backend réel active
+    borrowers: false, // Backend réel active
+    items: true, // Mock encore actif
+    loans: true, // Mock encore actif
+    reminders: true, // Mock encore actif
+    notifications: true, // Mock encore actif
+    history: true, // Mock encore actif
 };
 
 export const API_BASE_URL = (endpoint: string): string => {
-  const module = endpoint.split('/')[1]; // Ex: /auth/login → 'auth'
+    const module = endpoint.split('/')[1]; // Ex: /auth/login → 'auth'
 
-  if (MOCK_MODULES[module]) {
-    return 'http://localhost:3000/v1'; // Prism Mock Server (dev uniquement)
-  } else {
-    return __DEV__
-      ? 'http://localhost:3001/v1' // Backend local
-      : 'https://api.return.app/v1'; // Production
-  }
+    if (MOCK_MODULES[module]) {
+        return 'http://localhost:3000/v1'; // Prism Mock Server (dev uniquement)
+    } else {
+        return __DEV__
+            ? 'http://localhost:3001/v1' // Backend local
+            : 'https://api.return.app/v1'; // Production
+    }
 };
 ```
 
@@ -714,7 +751,7 @@ export const API_BASE_URL = (endpoint: string): string => {
 ## Résumé des Sprints Frontend
 
 | Sprint         | Durée        | Modules                      | Écrans livres                                                                                                                        | Tests RNTL    |
-| -------------- | ------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
+|----------------|--------------|------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|---------------|
 | **Sprint 0**   | 3-4 jours    | Setup infrastructuré         | 0                                                                                                                                    | CI/CD setup   |
 | **Sprint 1**   | 5 jours      | Auth + Profil + Settings     | 7 (Login, Register, Profile, EditProfile, ChangePassword, DeleteAccount, Settings)                                                   | 6 tests       |
 | **Sprint 2**   | 4 jours      | Borrowers                    | 4 (List, Create, Detail, Edit)                                                                                                       | 2 tests       |
@@ -722,7 +759,7 @@ export const API_BASE_URL = (endpoint: string): string => {
 | **Sprint 4**   | 8 jours      | Avatar + Loans               | 5 (List, Create, Detail, Confirm, Return) + avatar profil                                                                            | 4+3+3 tests   |
 | **Sprint 4.5** | 3 jours      | Corrections intégration + UX | 0 (refactoring LoanListScreen + LoanDetailScreen adaptatif + LoanCard perspective + BorrowerStats + renommage onglet + MSW handlers) | 8 tests       |
 | **Sprint 4.6** | 5 jours      | Contact Invitation System    | 2 (SearchBorrowerScreen + BorrowerInvitationsScreen) + navigation adaptée                                                            | 8+ tests      |
-| **Sprint 5**   | 5 jours      | Notifications                | 1 (NotificationList) + header badge                                                                                                  | 2 tests       |
+| **Sprint 5**   | 5 jours      | Docker Dev + Validation J+2 + Notifications | 1 (NotificationList) + header badge + Dockerfiles dev + validation calendrier J+2                                      | 3 tests       |
 | **Sprint 6**   | 4 jours      | Dashboard + History          | 3 (Dashboard, History, Statistics)                                                                                                   | 1 test        |
 | **TOTAL**      | **41-45 j.** | **7 modules + 1 correctif**  | **24 écrans**                                                                                                                        | **22+ tests** |
 
@@ -731,7 +768,7 @@ export const API_BASE_URL = (endpoint: string): string => {
 ## Points de Synchronisation Frontend/Backend
 
 | Moment                     | Frontend basculé vers                | Backend disponible                                              |
-| -------------------------- | ------------------------------------ | --------------------------------------------------------------- |
+|----------------------------|--------------------------------------|-----------------------------------------------------------------|
 | **Fin Sprint 1 Backend**   | Auth + Users + Settings réel         | `/auth/*` + `/users/me` + `/users/me/settings`                  |
 | **Fin Sprint 2 Backend**   | Borrowers réel                       | `/borrowers/*`                                                  |
 | **Fin Sprint 3 Backend**   | Items réel (Photos + R2)             | `/items/*`                                                      |
@@ -759,4 +796,5 @@ A valider avant de passer au sprint suivant :
 
 **Co-validé par** : Esdras GBEDOZIN & Ismael AIHOU
 **Date de dernière mise à jour** : 7 mars 2026
-**Version** : 1.4 — Alignement Sprint 4.6 avec OpenAPI (CINV-F001 CreateLoanDto, CINV-F002 status param, CINV-F007 pendingInvitationId optionnel, CINV-F014 handleSubmit)
+**Version** : 1.4 — Alignement Sprint 4.6 avec OpenAPI (CINV-F001 CreateLoanDto, CINV-F002 status param, CINV-F007
+pendingInvitationId optionnel, CINV-F014 handleSubmit)
