@@ -16,7 +16,27 @@ interface LoanTimelineProps {
   loan: Loan;
 }
 
+function formatDateRange(
+  from: string | null | undefined,
+  to: string | null | undefined,
+): string | null {
+  if (!from) return null;
+  const f = new Date(from).toLocaleDateString();
+  if (!to) return f;
+  const t = new Date(to).toLocaleDateString();
+  return f === t ? f : `${f} — ${t}`;
+}
+
 function getTimelineSteps(loan: Loan, t: (key: string) => string): TimelineStep[] {
+  const activeLabel =
+    loan.status === 'ACTIVE_BY_DEFAULT'
+      ? t('loans.statusActiveByDefault')
+      : t('loans.statusActive');
+
+  // Active period: from confirmationDate to either returnDate, returnedDate, or updatedAt
+  const activePeriodEnd = loan.returnedDate ?? loan.returnDate ?? loan.updatedAt;
+  const activeDate = formatDateRange(loan.confirmationDate, activePeriodEnd);
+
   switch (loan.status) {
     case 'PENDING_CONFIRMATION':
       return [
@@ -27,17 +47,10 @@ function getTimelineSteps(loan: Loan, t: (key: string) => string): TimelineStep[
       ];
 
     case 'ACTIVE':
-      return [
-        { label: t('loans.statusPendingConfirmation'), reached: true },
-        { label: t('loans.statusActive'), date: loan.confirmationDate, reached: true },
-        { label: t('loans.statusAwaitingReturn'), date: loan.returnDate, reached: false },
-        { label: t('loans.statusReturned'), reached: false },
-      ];
-
     case 'ACTIVE_BY_DEFAULT':
       return [
-        { label: t('loans.statusPendingConfirmation'), reached: true },
-        { label: t('loans.statusActiveByDefault'), date: loan.confirmationDate, reached: true },
+        { label: t('loans.statusPendingConfirmation'), date: loan.createdAt, reached: true },
+        { label: activeLabel, date: loan.confirmationDate, reached: true },
         { label: t('loans.statusAwaitingReturn'), date: loan.returnDate, reached: false },
         { label: t('loans.statusReturned'), reached: false },
       ];
@@ -45,38 +58,53 @@ function getTimelineSteps(loan: Loan, t: (key: string) => string): TimelineStep[
     case 'CONTESTED':
       return [
         { label: t('loans.statusPendingConfirmation'), date: loan.createdAt, reached: true },
-        { label: t('loans.statusContested'), reached: true, variant: 'danger' },
+        {
+          label: t('loans.statusContested'),
+          date: loan.updatedAt,
+          reached: true,
+          variant: 'danger',
+        },
       ];
 
     case 'AWAITING_RETURN':
       return [
-        { label: t('loans.statusPendingConfirmation'), reached: true },
-        { label: t('loans.statusActive'), reached: true },
+        { label: t('loans.statusPendingConfirmation'), date: loan.createdAt, reached: true },
+        { label: activeLabel, date: activeDate, reached: true },
         { label: t('loans.statusAwaitingReturn'), date: loan.returnDate, reached: true },
         { label: t('loans.statusReturned'), reached: false },
       ];
 
     case 'RETURNED':
       return [
-        { label: t('loans.statusPendingConfirmation'), reached: true },
-        { label: t('loans.statusActive'), reached: true },
-        { label: t('loans.statusAwaitingReturn'), reached: true },
+        { label: t('loans.statusPendingConfirmation'), date: loan.createdAt, reached: true },
+        { label: activeLabel, date: activeDate, reached: true },
+        { label: t('loans.statusAwaitingReturn'), date: loan.returnDate, reached: true },
         { label: t('loans.statusReturned'), date: loan.returnedDate, reached: true },
       ];
 
     case 'ABANDONED':
       return [
-        { label: t('loans.statusPendingConfirmation'), reached: true },
-        { label: t('loans.statusActive'), reached: true },
-        { label: t('loans.statusAbandoned'), reached: true, variant: 'muted' },
+        { label: t('loans.statusPendingConfirmation'), date: loan.createdAt, reached: true },
+        { label: activeLabel, date: activeDate, reached: true },
+        {
+          label: t('loans.statusAbandoned'),
+          date: loan.updatedAt,
+          reached: true,
+          variant: 'muted',
+        },
       ];
 
     case 'NOT_RETURNED':
       return [
-        { label: t('loans.statusPendingConfirmation'), reached: true },
-        { label: t('loans.statusActive'), reached: true },
-        { label: t('loans.statusAwaitingReturn'), reached: true },
-        { label: t('loans.statusNotReturned'), reached: true, variant: 'danger' },
+        { label: t('loans.statusPendingConfirmation'), date: loan.createdAt, reached: true },
+        { label: activeLabel, date: activeDate, reached: true },
+        { label: t('loans.statusAwaitingReturn'), date: loan.returnDate, reached: true },
+        {
+          label: t('loans.statusNotReturned'),
+          date: loan.updatedAt,
+          reached: true,
+          variant: 'danger',
+        },
       ];
 
     default:
