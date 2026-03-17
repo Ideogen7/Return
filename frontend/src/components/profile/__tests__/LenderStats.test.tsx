@@ -68,7 +68,14 @@ describe('LenderStats (unified)', () => {
                 updatedAt: '2026-03-12T10:00:00Z',
               },
             ],
-            pagination: { currentPage: 1, itemsPerPage: 100, totalItems: 2, totalPages: 1, hasNextPage: false, hasPreviousPage: false },
+            pagination: {
+              currentPage: 1,
+              itemsPerPage: 100,
+              totalItems: 2,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
           });
         }
 
@@ -90,7 +97,14 @@ describe('LenderStats (unified)', () => {
               updatedAt: '2026-03-01T10:00:00Z',
             },
           ],
-          pagination: { currentPage: 1, itemsPerPage: 100, totalItems: 1, totalPages: 1, hasNextPage: false, hasPreviousPage: false },
+          pagination: {
+            currentPage: 1,
+            itemsPerPage: 100,
+            totalItems: 1,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
         });
       }),
     );
