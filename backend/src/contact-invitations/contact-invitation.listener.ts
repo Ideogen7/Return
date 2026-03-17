@@ -26,7 +26,7 @@ export class ContactInvitationListener {
    * Prepared for Sprint 5+ external invitations.
    */
   @OnEvent(USER_EVENTS.REGISTERED)
-  async handleUserRegistered(event: UserRegisteredEvent): Promise<void> {
+  handleUserRegistered(event: UserRegisteredEvent): void {
     const { userId, email } = event;
 
     // Sprint 4.6: intentional no-op.

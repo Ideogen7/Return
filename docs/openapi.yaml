@@ -523,17 +523,15 @@ paths:
               type: object
               properties:
                 returnDate:
-                  type: string
+                  type: [string, 'null']
                   format: date
-                  nullable: true
                   example: '2026-03-20'
                   description: |
                     Nouvelle date de retour prévue (null = indéfinie).
                     **Contrainte** : doit être au minimum 2 jours après la date de création du prêt (J+2).
                     Si des rappels sont déjà planifiés, ils seront recalculés automatiquement.
                 notes:
-                  type: string
-                  nullable: true
+                  type: [string, 'null']
                   maxLength: 500
                   example: 'Retour décalé car travaux en cours'
       responses:
@@ -920,15 +918,13 @@ paths:
                   minLength: 3
                   maxLength: 100
                 description:
-                  type: string
-                  nullable: true
+                  type: [string, 'null']
                   maxLength: 500
                 category:
                   $ref: '#/components/schemas/ItemCategory'
                 estimatedValue:
-                  type: number
+                  type: [number, 'null']
                   format: float
-                  nullable: true
                   minimum: 0
       responses:
         '200':
@@ -1231,8 +1227,7 @@ paths:
                   type: string
                   format: email
                 phoneNumber:
-                  type: string
-                  nullable: true
+                  type: [string, 'null']
       responses:
         '200':
           description: Contact mis à jour
@@ -2233,9 +2228,8 @@ paths:
                           type: integer
                           example: 12
                         totalValue:
-                          type: number
+                          type: [number, 'null']
                           format: float
-                          nullable: true
                           example: 450.00
                   topBorrowers:
                     type: array
@@ -2404,9 +2398,8 @@ components:
         borrower:
           $ref: '#/components/schemas/Borrower'
         returnDate:
-          type: string
+          type: [string, 'null']
           format: date
-          nullable: true
           example: '2026-03-15'
           description: |
             Date de retour prévue (null = indéfinie).
@@ -2414,26 +2407,22 @@ components:
         status:
           $ref: '#/components/schemas/LoanStatus'
         confirmationDate:
-          type: string
+          type: [string, 'null']
           format: date-time
-          nullable: true
           example: '2026-02-08T14:30:00Z'
           description: Date de confirmation par l'emprunteur (null si non confirmé)
         returnedDate:
-          type: string
+          type: [string, 'null']
           format: date-time
-          nullable: true
           example: '2026-03-14T10:00:00Z'
           description: Date effective du retour (null si non rendu)
         notes:
-          type: string
-          nullable: true
+          type: [string, 'null']
           maxLength: 500
           example: 'Perceuse avec 2 batteries et chargeur'
           description: Notes optionnelles du prêteur
         contestReason:
-          type: string
-          nullable: true
+          type: [string, 'null']
           minLength: 10
           maxLength: 500
           example: "Je n'ai jamais emprunté cet objet. Il doit y avoir une erreur."
@@ -2491,16 +2480,14 @@ components:
           example: Perceuse Bosch PSB 1800
           description: Nom de l'objet (saisie manuelle)
         description:
-          type: string
-          nullable: true
+          type: [string, 'null']
           maxLength: 500
           example: Perceuse-visseuse sans fil 18V avec 2 batteries Li-Ion
         category:
           $ref: '#/components/schemas/ItemCategory'
         estimatedValue:
-          type: number
+          type: [number, 'null']
           format: float
-          nullable: true
           minimum: 0
           example: 129.99
           description: |
@@ -2552,9 +2539,8 @@ components:
           example: https://photos.return.app/loans/loan-123/photo-1.jpg
           description: URL publique de la photo (signée, expire après 7 jours)
         thumbnailUrl:
-          type: string
+          type: [string, 'null']
           format: uri
-          nullable: true
           example: https://photos.return.app/loans/loan-123/photo-1-thumb.jpg
           description: URL de la vignette optimisée (150x150px)
         uploadedAt:
@@ -2595,14 +2581,12 @@ components:
           example: marie.dupont@example.com
           description: Email de l'emprunteur (obligatoire, sert d'identifiant pour le lien de compte)
         phoneNumber:
-          type: string
-          nullable: true
+          type: [string, 'null']
           example: '+33612345678'
           description: Numéro de téléphone (chiffré en base)
         userId:
-          type: string
+          type: [string, 'null']
           format: uuid
-          nullable: true
           example: 9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d
           description: ID utilisateur Return (null si invitation en attente)
         statistics:
@@ -2629,8 +2613,7 @@ components:
           example: 1
           description: Nombre de prêts non rendus (abandonné)
         averageReturnDelay:
-          type: integer
-          nullable: true
+          type: [integer, 'null']
           example: 2
           description: Délai moyen de retour en jours (+ = retard, - = avance, null si aucun prêt rendu)
         trustScore:
@@ -2674,9 +2657,8 @@ components:
           example: '2026-03-12T09:00:00Z'
           description: Date/heure programmée d'envoi
         sentAt:
-          type: string
+          type: [string, 'null']
           format: date-time
-          nullable: true
           example: '2026-03-12T09:00:15Z'
           description: Date/heure d'envoi effectif (null si non envoyé)
         message:
@@ -2771,9 +2753,8 @@ components:
         role:
           $ref: '#/components/schemas/UserRole'
         profilePicture:
-          type: string
+          type: [string, 'null']
           format: uri
-          nullable: true
           example: https://photos.return.app/users/user-123/avatar.jpg
         settings:
           $ref: '#/components/schemas/UserSettings'
@@ -2782,9 +2763,8 @@ components:
           format: date-time
           example: '2026-01-15T10:00:00Z'
         lastLoginAt:
-          type: string
+          type: [string, 'null']
           format: date-time
-          nullable: true
           example: '2026-02-08T14:00:00Z'
 
     UserRole:
@@ -2858,9 +2838,8 @@ components:
           type: boolean
           example: false
         relatedLoanId:
-          type: string
+          type: [string, 'null']
           format: uuid
-          nullable: true
           example: 7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
           description: ID du prêt associé (null si notification système)
         createdAt:
@@ -2922,9 +2901,8 @@ components:
           type: string
           example: Doe
         profilePicture:
-          type: string
+          type: [string, 'null']
           format: uri
-          nullable: true
           example: https://photos.return.app/users/user-456/avatar.jpg
 
     # =========================================================================
@@ -3047,9 +3025,8 @@ components:
             La création inline de Borrower n'est plus supportée — utiliser le
             système d'invitation (`POST /contact-invitations`) pour établir un contact.
         returnDate:
-          type: string
+          type: [string, 'null']
           format: date
-          nullable: true
           example: '2026-03-15'
           description: |
             Date de retour prévue (null = indéfinie).
@@ -3057,8 +3034,7 @@ components:
             Exemple : si le prêt est créé le 16/03, la date de retour minimum est le 18/03.
             Retourne une erreur 400 si la contrainte n'est pas respectée.
         notes:
-          type: string
-          nullable: true
+          type: [string, 'null']
           maxLength: 500
           example: 'Avec 2 batteries et chargeur'
 
@@ -3074,16 +3050,14 @@ components:
           maxLength: 100
           example: Perceuse Bosch PSB 1800
         description:
-          type: string
-          nullable: true
+          type: [string, 'null']
           maxLength: 500
           example: Perceuse-visseuse sans fil 18V
         category:
           $ref: '#/components/schemas/ItemCategory'
         estimatedValue:
-          type: number
+          type: [number, 'null']
           format: float
-          nullable: true
           minimum: 0
           example: 129.99
 
@@ -3165,14 +3139,12 @@ components:
           format: date-time
           example: '2026-04-04T10:00:00Z'
         acceptedAt:
-          type: string
+          type: [string, 'null']
           format: date-time
-          nullable: true
           example: null
         rejectedAt:
-          type: string
+          type: [string, 'null']
           format: date-time
-          nullable: true
           example: null
 
     UserSearchResult:
@@ -3207,9 +3179,8 @@ components:
           description: Vrai si une invitation PENDING existe déjà pour cet utilisateur
           example: false
         pendingInvitationId:
-          type: string
+          type: [string, 'null']
           format: uuid
-          nullable: true
           description: ID de l'invitation PENDING existante (null si aucune invitation en cours). Permet d'annuler l'invitation via DELETE.
           example: null
 
@@ -3262,8 +3233,7 @@ components:
           example: marie.dupont@example.com
           description: Email obligatoire (identifiant de compte Return)
         phoneNumber:
-          type: string
-          nullable: true
+          type: [string, 'null']
           example: '+33612345678'
 
     UpdateLoanStatusDto:
@@ -3274,8 +3244,7 @@ components:
         status:
           $ref: '#/components/schemas/LoanStatus'
         notes:
-          type: string
-          nullable: true
+          type: [string, 'null']
           maxLength: 500
           description: Raison du changement de statut (optionnel)
 

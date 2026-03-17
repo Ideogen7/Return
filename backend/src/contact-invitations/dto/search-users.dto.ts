@@ -3,7 +3,7 @@ import { Transform, Type } from 'class-transformer';
 
 export class SearchUsersDto {
   @IsString()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
   @MinLength(2)
   query!: string;
 
