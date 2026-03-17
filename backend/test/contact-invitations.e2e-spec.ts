@@ -438,11 +438,13 @@ describe('ContactInvitations (e2e)', () => {
     it('should return 404 when invitation not found', async () => {
       const unknownId = '990e8400-e29b-41d4-a716-446655440000';
       service.acceptInvitation.mockRejectedValue(
-        new ProblemDetailsException(HttpStatus.NOT_FOUND, {
-          type: 'https://api.return.app/errors/invitation-not-found',
-          title: 'Invitation Not Found',
-          detail: `Invitation ${unknownId} not found.`,
-        }),
+        new ProblemDetailsException(
+          HttpStatus.NOT_FOUND,
+          'invitation-not-found',
+          'Invitation Not Found',
+          `Invitation ${unknownId} not found.`,
+          `/contact-invitations/${unknownId}/accept`,
+        ),
       );
 
       await request(app.getHttpServer())
@@ -634,8 +636,19 @@ describe('ContactInvitations ↔ Loans inter-module (e2e)', () => {
       status: 'PENDING_CONFIRMATION',
       borrower: {
         id: RECIPIENT_USER_ID,
-        displayName: 'Marie Dupont',
+        firstName: 'Marie',
+        lastName: 'Dupont',
         email: 'marie.dupont@example.com',
+        phoneNumber: null,
+        userId: RECIPIENT_USER_ID,
+        statistics: {
+          trustScore: 0,
+          totalLoans: 0,
+          returnedOnTime: 0,
+          returnedLate: 0,
+          notReturned: 0,
+          averageReturnDelay: null,
+        },
       },
     };
     loansService.create.mockResolvedValue(mockLoanResponse);

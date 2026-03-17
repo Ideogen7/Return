@@ -50,7 +50,7 @@ function getTimelineSteps(loan: Loan, t: (key: string) => string): TimelineStep[
     case 'ACTIVE_BY_DEFAULT':
       return [
         { label: t('loans.statusPendingConfirmation'), date: loan.createdAt, reached: true },
-        { label: activeLabel, date: loan.confirmationDate, reached: true },
+        { label: activeLabel, date: activeDate, reached: true },
         { label: t('loans.statusAwaitingReturn'), date: loan.returnDate, reached: false },
         { label: t('loans.statusReturned'), reached: false },
       ];

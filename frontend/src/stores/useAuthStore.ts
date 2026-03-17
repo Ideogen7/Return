@@ -149,6 +149,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       const currentUser = useAuthStore.getState().user;
       if (currentUser) {
         set({ user: { ...currentUser, profilePicture: data.profilePicture }, isLoading: false });
+      } else {
+        set({ isLoading: false });
       }
     } catch (err) {
       set({ isLoading: false, error: extractProblemDetails(err) });
@@ -162,7 +164,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       await apiClient.delete('/users/me/avatar');
       const currentUser = useAuthStore.getState().user;
       if (currentUser) {
-        set({ user: { ...currentUser, profilePicture: undefined }, isLoading: false });
+        set({ user: { ...currentUser, profilePicture: null }, isLoading: false });
+      } else {
+        set({ isLoading: false });
       }
     } catch (err) {
       set({ isLoading: false, error: extractProblemDetails(err) });

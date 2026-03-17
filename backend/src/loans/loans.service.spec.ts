@@ -48,6 +48,7 @@ const MOCK_ITEM: Item = {
   category: ItemCategory.TOOLS,
   estimatedValue: 150,
   userId: LENDER_USER_ID,
+  deletedAt: null,
   createdAt: new Date('2025-01-01T00:00:00Z'),
   updatedAt: new Date('2025-01-01T00:00:00Z'),
 };
@@ -543,11 +544,7 @@ describe('LoansService', () => {
     // =========================================================================
     it('should throw 403 when third party (neither lender nor borrower) accesses loan (INTEG-008)', async () => {
       // OTHER_USER_ID is neither lenderId nor borrower.userId
-      prisma.loan.findUnique.mockResolvedValue({
-        ...MOCK_LOAN,
-        lenderId: LENDER_USER_ID,
-        borrower: { ...MOCK_BORROWER, userId: BORROWER_USER_ID },
-      });
+      prisma.loan.findUnique.mockResolvedValue(MOCK_LOAN);
 
       try {
         await service.findById(LOAN_ID, OTHER_USER_ID);
