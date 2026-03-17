@@ -405,6 +405,8 @@ paths:
                     status: 400
                     detail: The submitted data is invalid.
                     instance: /v1/loans
+                    timestamp: '2026-01-15T10:30:00Z'
+                    requestId: req_example123
                 invalidReturnDate:
                   summary: Date de retour dans le passé
                   value:
@@ -413,6 +415,8 @@ paths:
                     status: 400
                     detail: Return date must be in the future.
                     instance: /v1/loans
+                    timestamp: '2026-01-15T10:30:00Z'
+                    requestId: req_example123
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -430,6 +434,8 @@ paths:
                     status: 403
                     detail: This item belongs to another user.
                     instance: /v1/loans
+                    timestamp: '2026-01-15T10:30:00Z'
+                    requestId: req_example123
                 contactNotAccepted:
                   summary: Contact sans invitation acceptée
                   value:
@@ -438,6 +444,8 @@ paths:
                     status: 403
                     detail: You can only create a loan for a contact with an ACCEPTED invitation.
                     instance: /v1/loans
+                    timestamp: '2026-01-15T10:30:00Z'
+                    requestId: req_example123
         '404':
           description: L'objet ou l'emprunteur référencé par UUID n'existe pas
           content:
@@ -450,6 +458,8 @@ paths:
                 status: 404
                 detail: Item with the provided ID does not exist.
                 instance: /v1/loans
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
         '429':
           description: Limite de création dépassée (15 prêts/jour)
           content:
@@ -1448,6 +1458,8 @@ paths:
                 status: 400
                 detail: You cannot send an invitation to yourself.
                 instance: /v1/contact-invitations
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
         '404':
           description: Utilisateur introuvable
           content:
@@ -1460,6 +1472,8 @@ paths:
                 status: 404
                 detail: No registered user found with this email address.
                 instance: /v1/contact-invitations
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
         '409':
           description: Invitation déjà envoyée et en attente
           content:
@@ -1472,6 +1486,8 @@ paths:
                 status: 409
                 detail: A pending invitation already exists for this email.
                 instance: /v1/contact-invitations
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
     get:
       tags:
         - ContactInvitations
@@ -1556,6 +1572,8 @@ paths:
                 status: 404
                 detail: The invitation does not exist or does not belong to you.
                 instance: /v1/contact-invitations/inv-123/accept
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
         '409':
           description: Invitation déjà traitée (non PENDING)
           content:
@@ -1568,6 +1586,8 @@ paths:
                 status: 409
                 detail: This invitation has already been accepted, rejected, or expired.
                 instance: /v1/contact-invitations/inv-123/accept
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
 
   /contact-invitations/{invitationId}/reject:
     post:
@@ -1602,6 +1622,8 @@ paths:
                 status: 404
                 detail: The invitation does not exist or does not belong to you.
                 instance: /v1/contact-invitations/inv-123/reject
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
         '409':
           description: Invitation déjà traitée (non PENDING)
           content:
@@ -1614,6 +1636,8 @@ paths:
                 status: 409
                 detail: This invitation has already been accepted, rejected, or expired.
                 instance: /v1/contact-invitations/inv-123/reject
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
 
   /contact-invitations/{invitationId}:
     delete:
@@ -1648,6 +1672,8 @@ paths:
                 status: 404
                 detail: The invitation does not exist or does not belong to you.
                 instance: /v1/contact-invitations/inv-123
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
         '409':
           description: Impossible d'annuler une invitation déjà acceptée
           content:
@@ -1660,6 +1686,8 @@ paths:
                 status: 409
                 detail: Cannot cancel an invitation that has already been accepted.
                 instance: /v1/contact-invitations/inv-123
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
 
   # =============================================================================
   # REMINDERS ENDPOINTS

@@ -28,8 +28,8 @@ describe('ContactInvitationListener', () => {
     it('should be a no-op in Sprint 4.6 (recipientUserId is non-nullable)', async () => {
       const event: UserRegisteredEvent = { userId: USER_ID, email: EMAIL };
 
-      // Should complete without error or side effects
-      await expect(listener.handleUserRegistered(event)).resolves.toBeUndefined();
+      // Should complete without error or side effects (sync no-op)
+      expect(listener.handleUserRegistered(event)).toBeUndefined();
     });
   });
 });
