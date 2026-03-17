@@ -23,6 +23,7 @@ interface AuthState {
   refreshToken: () => Promise<void>;
   hydrate: () => Promise<void>;
   updateAvatar: (formData: FormData) => Promise<void>;
+  deleteAvatar: () => Promise<void>;
   reset: () => void;
 }
 
@@ -138,8 +139,35 @@ export const useAuthStore = create<AuthState>((set) => ({
   updateAvatar: async (formData) => {
     set({ isLoading: true, error: null });
     try {
-      const { data: updatedUser } = await apiClient.put<User>('/users/me/avatar', formData);
-      set({ user: updatedUser, isLoading: false });
+      const { data } = await apiClient.put<{ profilePicture: string }>(
+        '/users/me/avatar',
+        formData,
+        {
+          headers: { 'Content-Type': undefined },
+        },
+      );
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser) {
+        set({ user: { ...currentUser, profilePicture: data.profilePicture }, isLoading: false });
+      } else {
+        set({ isLoading: false });
+      }
+    } catch (err) {
+      set({ isLoading: false, error: extractProblemDetails(err) });
+      throw err;
+    }
+  },
+
+  deleteAvatar: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      await apiClient.delete('/users/me/avatar');
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser) {
+        set({ user: { ...currentUser, profilePicture: null }, isLoading: false });
+      } else {
+        set({ isLoading: false });
+      }
     } catch (err) {
       set({ isLoading: false, error: extractProblemDetails(err) });
       throw err;

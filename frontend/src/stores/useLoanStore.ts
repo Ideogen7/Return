@@ -13,10 +13,10 @@ import type {
 } from '../types/api.types';
 
 interface FetchLoansParams {
+  role?: 'lender' | 'borrower';
   page?: number;
   status?: LoanStatus[];
   borrowerId?: string;
-  includeArchived?: boolean;
 }
 
 interface LoanState {
@@ -51,11 +51,11 @@ export const useLoanStore = create<LoanState>((set) => ({
     try {
       const { data } = await apiClient.get<PaginatedResponse<Loan>>('/loans', {
         params: {
+          role: params?.role ?? 'lender',
           page: params?.page ?? 1,
           limit: 20,
           ...(params?.status && { status: params.status.join(',') }),
           ...(params?.borrowerId && { borrowerId: params.borrowerId }),
-          ...(params?.includeArchived && { includeArchived: params.includeArchived }),
         },
       });
       set({ loans: data.data, isLoading: false });

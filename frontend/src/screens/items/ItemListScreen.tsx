@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { FlatList, StyleSheet, View, ScrollView } from 'react-native';
 import { ActivityIndicator, FAB, Icon, Text, Chip, Switch } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +16,6 @@ const CATEGORIES: ItemCategory[] = [
   'SPORTS',
   'KITCHEN',
   'GARDEN',
-  'MONEY',
   'OTHER',
 ];
 
@@ -24,22 +24,30 @@ type Props = NativeStackScreenProps<ItemStackParamList, 'ItemList'>;
 export function ItemListScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { items, isLoading, error, fetchItems } = useItemStore();
-  const [selectedCategory, setSelectedCategory] = useState<ItemCategory | undefined>();
+  const [selectedCategories, setSelectedCategories] = useState<ItemCategory[]>([]);
   const [availableOnly, setAvailableOnly] = useState(false);
 
-  useEffect(() => {
-    fetchItems({ category: selectedCategory, available: availableOnly || undefined }).catch(
-      () => {},
-    );
-  }, [fetchItems, selectedCategory, availableOnly]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchItems({ available: availableOnly || undefined }).catch(() => {});
+    }, [fetchItems, availableOnly]),
+  );
 
   const handlePress = (id: string) => {
     navigation.navigate('ItemDetail', { id });
   };
 
   const handleCategoryPress = (cat: ItemCategory) => {
-    setSelectedCategory((prev) => (prev === cat ? undefined : cat));
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
+    );
   };
+
+  const filteredItems = items.filter((item) => {
+    if (item.category === 'MONEY') return false;
+    if (selectedCategories.length > 0 && !selectedCategories.includes(item.category)) return false;
+    return true;
+  });
 
   if (isLoading && items.length === 0) {
     return (
@@ -68,10 +76,10 @@ export function ItemListScreen({ navigation }: Props) {
             {CATEGORIES.map((cat) => (
               <Chip
                 key={cat}
-                selected={selectedCategory === cat}
+                selected={selectedCategories.includes(cat)}
                 onPress={() => handleCategoryPress(cat)}
-                style={[styles.chip, selectedCategory === cat && styles.chipSelected]}
-                textStyle={selectedCategory === cat ? styles.chipTextSelected : undefined}
+                style={[styles.chip, selectedCategories.includes(cat) && styles.chipSelected]}
+                textStyle={selectedCategories.includes(cat) ? styles.chipTextSelected : undefined}
                 testID={`filter-chip-${cat}`}
               >
                 {t(CATEGORY_I18N[cat])}
@@ -93,10 +101,12 @@ export function ItemListScreen({ navigation }: Props) {
       </View>
 
       <FlatList<Item>
-        data={items}
+        data={filteredItems}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <ItemCard item={item} onPress={handlePress} />}
-        contentContainerStyle={items.length === 0 ? styles.emptyContainer : styles.listContent}
+        contentContainerStyle={
+          filteredItems.length === 0 ? styles.emptyContainer : styles.listContent
+        }
         ListEmptyComponent={
           <View style={styles.emptyState} testID="item-empty">
             <Icon source="package-variant-closed" size={64} color="#C9C4BB" />

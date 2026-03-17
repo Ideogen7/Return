@@ -285,6 +285,28 @@ export class UsersService {
     return { profilePicture: uploadResult.url };
   }
 
+  /**
+   * DELETE /users/me/avatar — Supprime la photo de profil.
+   *
+   * @throws NotFoundException (404) si l'utilisateur n'existe plus
+   */
+  async deleteAvatar(userId: string): Promise<void> {
+    const user = await this.findUserOrThrow(userId);
+
+    if (!user.profilePicture) return;
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { profilePicture: null },
+    });
+
+    try {
+      await this.photoStorage.delete(user.profilePicture);
+    } catch {
+      // Best-effort : l'échec de suppression du fichier ne doit pas invalider la mise à jour
+    }
+  }
+
   // ===========================================================================
   // PRIVATE — Helpers
   // ===========================================================================

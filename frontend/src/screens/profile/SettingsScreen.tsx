@@ -6,7 +6,6 @@ import {
   Button,
   ActivityIndicator,
   SegmentedButtons,
-  TextInput,
   Icon,
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
@@ -114,25 +113,6 @@ export function SettingsScreen() {
             { value: 'en', label: 'English' },
           ]}
           style={styles.segmented}
-        />
-      </View>
-
-      <View style={[styles.settingsCard, ui.card]}>
-        <View style={styles.sectionHeader}>
-          <Icon source="earth" size={20} color="#4A6355" />
-          <Text variant="bodyLarge" style={styles.sectionLabel}>
-            {t('settings.timezone')}
-          </Text>
-        </View>
-        <TextInput
-          mode="outlined"
-          value={settings.timezone}
-          onChangeText={(value) => setSettings({ ...settings, timezone: value })}
-          placeholder="Europe/Paris"
-          left={<TextInput.Icon icon="map-clock-outline" color="#A8B5BF" />}
-          testID="timezone-input"
-          style={ui.input}
-          outlineStyle={styles.outline}
         />
       </View>
 

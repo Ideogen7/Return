@@ -4,6 +4,7 @@ import { Button, ActivityIndicator, Snackbar } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ProfileCard } from '../../components/profile/ProfileCard';
+import { LenderStats } from '../../components/profile/LenderStats';
 import { PhotoPicker } from '../../components/items/PhotoPicker';
 import { buildPhotoFormData } from '../../utils/photo';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -26,8 +27,17 @@ export function ProfileScreen({ navigation }: Props) {
 
   const handleAvatarPicked = async (uri: string) => {
     try {
-      const formData = await buildPhotoFormData(uri);
+      const formData = await buildPhotoFormData(uri, 'avatar');
       await useAuthStore.getState().updateAvatar(formData);
+      setSnackbar({ message: t('profile.profileUpdated'), type: 'success' });
+    } catch {
+      setSnackbar({ message: t('errors.unknownError'), type: 'error' });
+    }
+  };
+
+  const handleDeleteAvatar = async () => {
+    try {
+      await useAuthStore.getState().deleteAvatar();
       setSnackbar({ message: t('profile.profileUpdated'), type: 'success' });
     } catch {
       setSnackbar({ message: t('errors.unknownError'), type: 'error' });
@@ -46,8 +56,25 @@ export function ProfileScreen({ navigation }: Props) {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.avatarSection}>
         <ProfileCard user={user} />
-        <PhotoPicker onPhotoPicked={handleAvatarPicked} currentPhotoCount={0} />
+        <View style={styles.photoPickerWrapper}>
+          <PhotoPicker onPhotoPicked={handleAvatarPicked} currentPhotoCount={0} />
+          {user.profilePicture && (
+            <Button
+              mode="text"
+              icon="delete-outline"
+              onPress={handleDeleteAvatar}
+              textColor="#D97A6B"
+              compact
+              testID="delete-avatar-btn"
+              style={styles.deleteAvatarBtn}
+            >
+              {t('profile.deletePhoto')}
+            </Button>
+          )}
+        </View>
       </View>
+
+      <LenderStats />
 
       <View style={styles.actions}>
         <Button
@@ -137,5 +164,7 @@ const styles = StyleSheet.create({
   logoutButton: { marginTop: 8 },
   logoutLabel: { fontSize: 14 },
   avatarSection: { position: 'relative' },
+  photoPickerWrapper: { alignSelf: 'center', alignItems: 'center', marginVertical: 8 },
+  deleteAvatarBtn: { marginTop: 4 },
   snackbarError: { backgroundColor: '#D97A6B' },
 });

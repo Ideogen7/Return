@@ -35,6 +35,7 @@ const MOCK_USER = {
   lastName: 'Doe',
   role: UserRole.LENDER,
   profilePicture: null,
+  phone: null,
   pushNotificationsEnabled: true,
   reminderEnabled: true,
   language: 'fr',
@@ -515,6 +516,44 @@ describe('UsersService', () => {
       await expect(
         service.updateAvatar(MOCK_USER.id, Buffer.from('img'), 'pic.jpg'),
       ).rejects.toMatchObject({
+        response: expect.objectContaining({ status: HttpStatus.NOT_FOUND }),
+      });
+    });
+  });
+
+  describe('deleteAvatar', () => {
+    it('should delete avatar from storage and set profilePicture to null', async () => {
+      const userWithAvatar = {
+        ...MOCK_USER,
+        profilePicture: 'http://localhost:3000/uploads/users/avatar.jpg',
+      };
+      prisma.user.findUnique.mockResolvedValue(userWithAvatar);
+      prisma.user.update.mockResolvedValue({ ...MOCK_USER, profilePicture: null });
+
+      await service.deleteAvatar(MOCK_USER.id);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: MOCK_USER.id },
+        data: { profilePicture: null },
+      });
+      expect(photoStorage.delete).toHaveBeenCalledWith(
+        'http://localhost:3000/uploads/users/avatar.jpg',
+      );
+    });
+
+    it('should do nothing if user has no avatar', async () => {
+      prisma.user.findUnique.mockResolvedValue(MOCK_USER); // profilePicture = null
+
+      await service.deleteAvatar(MOCK_USER.id);
+
+      expect(prisma.user.update).not.toHaveBeenCalled();
+      expect(photoStorage.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when user does not exist', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.deleteAvatar(MOCK_USER.id)).rejects.toMatchObject({
         response: expect.objectContaining({ status: HttpStatus.NOT_FOUND }),
       });
     });

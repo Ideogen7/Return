@@ -157,20 +157,28 @@ protégeant les biens de l'utilisateur.
 
 **Emprunteur (Borrower)**
 
-- Définition : Utilisateur à qui l'Objet est prêté
-- Compte obligatoire : L'emprunteur doit disposer d'un compte Return pour recevoir les notifications et interagir avec
-  le prêt
+- Définition : Utilisateur à qui l'Objet est prêté ; doit être un utilisateur inscrit. La relation Contact est établie
+  via une invitation mutuellement acceptée avant tout prêt.
 - Identification : Nom, Profil utilisateur
+
+**Invitation de Contact**
+
+- Définition : Demande envoyée par un prêteur à un utilisateur inscrit pour l'ajouter à son carnet de contacts. Doit
+  être acceptée par le destinataire avant de pouvoir créer un prêt.
+- Statuts : `PENDING` → `ACCEPTED` | `REJECTED` | `EXPIRED`
 
 **Rappel (Reminder)**
 
 - Définition : Notification automatique envoyée à l'Emprunteur selon la politique de rappel fixe
 - Politique de rappel (5 paliers) :
-    - **J-3** : Rappel préventif (3 jours avant l'échéance)
+    - **PREVENTIVE** : Rappel préventif **adaptatif** — planifié à **J-3** si la durée du prêt ≥ 3 jours, sinon à **J-1
+      ** (la veille)
     - **J** : Rappel à l'échéance (jour de la date de retour prévue)
     - **J+7** : 1ère relance (7 jours après l'échéance)
     - **J+14** : 2ème relance
     - **J+21** : 3ème et dernière relance
+- **Contrainte de durée minimale** : La date de retour doit être au minimum **J+2** (2 jours après la date de création
+  du prêt). Cela garantit qu'il y a toujours au moins un rappel préventif (J-1) avant l'échéance.
 - Canal V1 : Push notification uniquement. V2+ : SMS, Email.
 - Messages : Templates prédéfinis par palier, sélection aléatoire dans un pool pour éviter la répétition
 
@@ -188,8 +196,10 @@ protégeant les biens de l'utilisateur.
 - **Contesté (DISPUTED)** : Prêt refusé par l'Emprunteur, rappels désactivés
 - **En attente de retour (AWAITING_RETURN)** : Date de retour dépassée, relance(s) envoyée(s)
 - **Rendu (RETURNED)** : Objet restitué, Prêt clos avec succès
-- **Non rendu (NOT_RETURNED)** : Objet non restitué après épuisement des 5 rappels automatiques (J-3, J, J+7, J+14, J+21), Prêt clos automatiquement en échec
-- **Abandonné (ABANDONED)** : Le Prêteur renonce volontairement à récupérer son bien avant la fin du cycle de rappels. Prêt clos manuellement
+- **Non rendu (NOT_RETURNED)** : Objet non restitué après épuisement des 5 rappels automatiques (PREVENTIVE,
+  ON_DUE_DATE, FIRST_OVERDUE, SECOND_OVERDUE, FINAL_OVERDUE), Prêt clos automatiquement en échec
+- **Abandonné (ABANDONED)** : Le Prêteur renonce volontairement à récupérer son bien avant la fin du cycle de rappels.
+  Prêt clos manuellement
 
 ### Vocabulaire Exclu (Anti-Patterns)
 
@@ -211,8 +221,9 @@ protégeant les biens de l'utilisateur.
 - Sélection du type de prêt : Objet physique ou Argent
 - **Objet physique** : Capture photo, saisie du nom et de la catégorie
 - **Argent** : Saisie du montant (obligatoire)
-- Ajout d'Emprunteur (sélection parmi les contacts Return ou invitation à créer un compte)
-- Définition de date de retour ou "indéfinie"
+- Gestion des Contacts : recherche d'utilisateurs inscrits (email / prénom / nom), envoi d'une invitation,
+  acceptation/refus par le destinataire. Un prêt ne peut être créé que pour un contact dont l'invitation est acceptée.
+- Définition de date de retour (minimum J+2, soit 2 jours après la date du prêt) ou "indéfinie"
 - Confirmation et création du Prêt
 
 #### Epic 2 : Tableau de Bord
@@ -224,7 +235,7 @@ protégeant les biens de l'utilisateur.
 
 #### Epic 3 : Système de Rappels
 
-- Politique de rappel fixe appliquée à tous les prêts : J-3, J, J+7, J+14, J+21
+- Politique de rappel fixe appliquée à tous les prêts : PREVENTIVE (J-3 ou J-1 adaptatif), J, J+7, J+14, J+21
 - Envoi automatique de notification push à l'Emprunteur
 - Templates de messages diplomatiques prédéfinis avec pool aléatoire par palier
 - Messages envoyés dans la langue préférée de l'emprunteur
@@ -332,7 +343,8 @@ Les questions ouvertes ont été clarifiées avec les réponses suivantes :
 
 **Implémentation :**
 
-- Un pool de templates de messages diplomatiques prédéfinis par palier de rappel (J-3, J, J+7, J+14, J+21)
+- Un pool de templates de messages diplomatiques prédéfinis par palier de rappel (PREVENTIVE, ON_DUE_DATE,
+  FIRST_OVERDUE, SECOND_OVERDUE, FINAL_OVERDUE)
 - Le système sélectionne aléatoirement un template du pool correspondant au palier
 - Templates disponibles en français et en anglais
 - Le message est envoyé dans la langue préférée de l'emprunteur
@@ -352,8 +364,11 @@ Les questions ouvertes ont été clarifiées avec les réponses suivantes :
 **Règles :**
 
 - Politique fixe appliquée à tous les prêts (non configurable par prêt)
+- **Contrainte** : La date de retour doit être au minimum **J+2** (2 jours après la création du prêt). Validation
+  appliquée côté frontend (calendrier) et backend (API).
 - Séquence de 5 rappels :
-    - **J-3** : Rappel préventif avant l'échéance
+    - **PREVENTIVE** : Rappel préventif **adaptatif** — planifié à **J-3** si le délai avant retour (Δ) ≥ 3 jours, sinon
+      à **J-1** (la veille de l'échéance). Grâce à la contrainte J+2, Δ ≥ 2 est garanti, donc le cas Δ < 1 n'existe pas.
     - **J** : Rappel le jour de l'échéance
     - **J+7** : 1ère relance post-échéance
     - **J+14** : 2ème relance post-échéance
@@ -363,17 +378,32 @@ Les questions ouvertes ont été clarifiées avec les réponses suivantes :
 - Le Prêteur peut toujours voir ces objets dans l'onglet "Non rendus" et "Abandonnés"
 - Possibilité de réactiver manuellement le Prêt si l'objet est finalement rendu
 
-**Timeline :**
+**Timeline (cas standard, Δ ≥ 3 jours) :**
 
-| Jour | Action                          | Statut du prêt        |
-|------|---------------------------------|-----------------------|
-| J-3  | 1er rappel (préventif)           | Actif                 |
-| J    | 2ème rappel (échéance)            | Actif                 |
-| J+1  | Date dépassée                    | En attente de retour  |
-| J+7  | 3ème rappel (1ère relance)        | En attente de retour  |
-| J+14 | 4ème rappel (2ème relance)        | En attente de retour  |
-| J+21 | 5ème rappel (dernière relance) | En attente de retour  |
-| J+22 | Clôture automatique            | Non rendu (NOT_RETURNED) |
+| Jour | Action                       | Statut du prêt           |
+|------|------------------------------|--------------------------|
+| J-3  | 1er rappel (PREVENTIVE)      | Actif                    |
+| J    | 2ème rappel (ON_DUE_DATE)    | Actif                    |
+| J+1  | Date dépassée                | En attente de retour     |
+| J+7  | 3ème rappel (FIRST_OVERDUE)  | En attente de retour     |
+| J+14 | 4ème rappel (SECOND_OVERDUE) | En attente de retour     |
+| J+21 | 5ème rappel (FINAL_OVERDUE)  | En attente de retour     |
+| J+22 | Clôture automatique          | Non rendu (NOT_RETURNED) |
+
+**Timeline (cas prêt court, Δ = 2 jours) :**
+
+| Jour | Action                       | Statut du prêt           |
+|------|------------------------------|--------------------------|
+| J-1  | 1er rappel (PREVENTIVE)      | Actif                    |
+| J    | 2ème rappel (ON_DUE_DATE)    | Actif                    |
+| J+1  | Date dépassée                | En attente de retour     |
+| J+7  | 3ème rappel (FIRST_OVERDUE)  | En attente de retour     |
+| J+14 | 4ème rappel (SECOND_OVERDUE) | En attente de retour     |
+| J+21 | 5ème rappel (FINAL_OVERDUE)  | En attente de retour     |
+| J+22 | Clôture automatique          | Non rendu (NOT_RETURNED) |
+
+> **Note** : La seule différence est le timing du rappel PREVENTIVE (J-3 vs J-1). La contrainte de date minimum J+2
+> garantit qu'il y a toujours un rappel préventif avant l'échéance.
 
 ### Q5 : Monétisation ✅
 
@@ -396,8 +426,14 @@ Les questions ouvertes ont été clarifiées avec les réponses suivantes :
 - Prévoir dès V1 un champ `subscription_tier` dans le modèle Utilisateur
 - Implémenter des quotas désactivés mais présents en base de code
 
+### Q6 — Consentement pour la relation de contact ✅
+
+**Décision** : Les contacts doivent être des utilisateurs inscrits. La relation Contact est établie via invitation
+acceptée. Si la personne n'est pas inscrite, une notification externe (email/SMS) peut lui être envoyée pour l'inviter
+à s'inscrire (Sprint 5+). Cette décision garantit le consentement explicite de l'emprunteur.
+
 ---
 
 **Document validé par :** Esdras GBEDOZIN & Ismael AÏHOU
-**Date de dernière mise à jour :** 12 février 2026
-**Version :** 1.1 — MVP Baseline (post contre-expertise)
+**Date de dernière mise à jour :** 16 mars 2026
+**Version :** 1.2 — Ajout contrainte date retour minimum J+2 et rappel PREVENTIVE adaptatif

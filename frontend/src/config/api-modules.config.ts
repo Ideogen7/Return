@@ -3,11 +3,12 @@ const MOCK_MODULES: Record<string, boolean> = {
   auth: false,
   borrowers: false,
   items: false,
-  loans: true,
+  loans: false,
   reminders: true,
   notifications: true,
   users: false,
   history: true,
+  'contact-invitations': false,
 };
 
 export function getBaseUrl(endpoint: string): string {

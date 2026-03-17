@@ -5,12 +5,14 @@ import { LoanNavigator } from './LoanNavigator';
 import { BorrowerNavigator } from './BorrowerNavigator';
 import { ItemNavigator } from './ItemNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
+import { useContactInvitationStore } from '../stores/useContactInvitationStore';
 import type { AppTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
 export function AppNavigator() {
   const { t } = useTranslation();
+  const pendingCount = useContactInvitationStore((s) => s.pendingCount);
 
   return (
     <Tab.Navigator
@@ -38,7 +40,7 @@ export function AppNavigator() {
         name="LoanTab"
         component={LoanNavigator}
         options={{
-          title: t('navigation.loans'),
+          title: t('navigation.tracking'),
           tabBarIcon: ({ color, size }) => (
             <Icon source="handshake-outline" color={color} size={size} />
           ),
@@ -52,6 +54,7 @@ export function AppNavigator() {
           tabBarIcon: ({ color, size }) => (
             <Icon source="account-group-outline" color={color} size={size} />
           ),
+          tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
         }}
       />
       <Tab.Screen

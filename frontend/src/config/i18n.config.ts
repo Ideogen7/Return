@@ -1,8 +1,12 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { getLocales } from 'expo-localization';
+import { registerTranslation, fr as frDates, en as enDates } from 'react-native-paper-dates';
 import fr from '../i18n/locales/fr.json';
 import en from '../i18n/locales/en.json';
+
+registerTranslation('fr', frDates);
+registerTranslation('en', enDates);
 
 const deviceLanguage = getLocales()[0]?.languageCode ?? 'fr';
 

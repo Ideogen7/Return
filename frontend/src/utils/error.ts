@@ -55,6 +55,14 @@ const ERROR_TYPE_MAP: Record<string, string> = {
   'https://api.return.app/errors/loan-already-returned': 'errors.loanAlreadyReturned',
   'https://api.return.app/errors/forbidden-status-transition': 'errors.forbiddenStatusTransition',
   'https://api.return.app/errors/invalid-status-transition': 'errors.invalidStatusTransition',
+  'https://api.return.app/errors/invalid-return-date': 'errors.invalidReturnDate',
+  'https://api.return.app/errors/self-invitation': 'errors.selfInvitation',
+  'https://api.return.app/errors/user-not-found': 'errors.userNotFound',
+  'https://api.return.app/errors/invitation-already-sent': 'errors.invitationAlreadySent',
+  'https://api.return.app/errors/invitation-not-found': 'errors.invitationNotFound',
+  'https://api.return.app/errors/invitation-not-pending': 'errors.invitationNotPending',
+  'https://api.return.app/errors/invitation-already-accepted': 'errors.invitationAlreadyAccepted',
+  'https://api.return.app/errors/contact-not-accepted': 'errors.contactNotAccepted',
 };
 
 // Traduit un ProblemDetails en message lisible

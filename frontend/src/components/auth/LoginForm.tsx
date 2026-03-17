@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, HelperText } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
@@ -13,6 +14,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onSubmit, isLoading, error }: LoginFormProps) {
   const { t } = useTranslation();
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const {
     control,
     handleSubmit,
@@ -67,8 +69,14 @@ export function LoginForm({ onSubmit, isLoading, error }: LoginFormProps) {
           <TextInput
             label={t('auth.password')}
             mode="outlined"
-            secureTextEntry
+            secureTextEntry={!passwordVisible}
             left={<TextInput.Icon icon="lock-outline" color="#A8B5BF" />}
+            right={
+              <TextInput.Icon
+                icon={passwordVisible ? 'eye-off' : 'eye'}
+                onPress={() => setPasswordVisible((v) => !v)}
+              />
+            }
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}

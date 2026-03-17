@@ -42,6 +42,7 @@ export interface SafeUser {
   lastName: string;
   role: UserRole;
   profilePicture: string | null;
+  phone?: string | null;
   settings: UserSettings;
   createdAt: string;
   lastLoginAt: string | null;

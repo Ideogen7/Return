@@ -6,7 +6,7 @@ import { getMimeType } from '../components/items/PhotoPicker';
  * On web, converts the URI (data-url or blob-url) into a real File so Multer
  * can parse the multipart body. On native, uses the RN { uri, type, name } convention.
  */
-export async function buildPhotoFormData(uri: string): Promise<FormData> {
+export async function buildPhotoFormData(uri: string, fieldName = 'photo'): Promise<FormData> {
   const mimeType = getMimeType(uri);
   const ext = mimeType === 'image/png' ? 'png' : 'jpg';
   const fileName = `photo.${ext}`;
@@ -17,9 +17,9 @@ export async function buildPhotoFormData(uri: string): Promise<FormData> {
     const response = await fetch(uri);
     const blob = await response.blob();
     const file = new File([blob], fileName, { type: mimeType });
-    formData.append('photo', file);
+    formData.append(fieldName, file);
   } else {
-    formData.append('photo', {
+    formData.append(fieldName, {
       uri,
       type: mimeType,
       name: fileName,

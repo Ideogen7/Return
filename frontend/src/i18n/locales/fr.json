@@ -55,7 +55,20 @@
     "memberSince": "Membre depuis",
     "lastLogin": "Dernière connexion",
     "role": "Rôle",
-    "lender": "Prêteur"
+    "lender": "Prêteur",
+    "statistics": "Statistiques",
+    "totalLoans": "Total des prêts",
+    "activeLoans": "Prêts en cours",
+    "returnedLoans": "Rendus",
+    "overdueLoans": "En retard",
+    "borrowerStatistics": "Mes emprunts",
+    "loansReceived": "Reçus",
+    "returnedOnTime": "À temps",
+    "returnedLate": "En retard",
+    "trustScore": "Confiance",
+    "phone": "Téléphone",
+    "phoneInvalidFormat": "Format invalide (ex: +33612345678)",
+    "deletePhoto": "Supprimer la photo"
   },
   "settings": {
     "title": "Paramètres",
@@ -112,7 +125,15 @@
     "dailyLoanLimitExceeded": "Limite quotidienne de prêts atteinte",
     "loanAlreadyReturned": "Ce prêt a déjà été rendu",
     "forbiddenStatusTransition": "Vous n'êtes pas autorisé à effectuer cette transition de statut",
-    "invalidStatusTransition": "Transition de statut invalide"
+    "invalidStatusTransition": "Transition de statut invalide",
+    "invalidReturnDate": "La date de retour doit être dans le futur",
+    "selfInvitation": "Vous ne pouvez pas vous inviter vous-même",
+    "userNotFound": "Utilisateur introuvable",
+    "invitationAlreadySent": "Une invitation a déjà été envoyée à cet utilisateur",
+    "invitationNotFound": "Invitation introuvable",
+    "invitationNotPending": "Cette invitation n'est plus en attente",
+    "invitationAlreadyAccepted": "Cette invitation a déjà été acceptée",
+    "contactNotAccepted": "Ce contact n'a pas encore accepté votre invitation"
   },
   "items": {
     "title": "Objets",
@@ -156,7 +177,8 @@
     "categoryOther": "Autre",
     "deletePhoto": "Supprimer la photo",
     "confirmDeletePhoto": "Êtes-vous sûr de vouloir supprimer cette photo ?",
-    "photoDeleteFailed": "La suppression de la photo a échoué. Veuillez réessayer."
+    "photoDeleteFailed": "La suppression de la photo a échoué. Veuillez réessayer.",
+    "deletedItem": "Objet supprimé"
   },
   "loans": {
     "title": "Prêts",
@@ -172,7 +194,9 @@
     "objectLoan": "Objet",
     "moneyLoan": "Argent",
     "confirmLoan": "Confirmer le prêt",
+    "confirmLoanWarning": "Confirmez-vous avoir reçu cet objet en prêt ?",
     "contestLoan": "Refuser le prêt",
+    "contestWarning": "Veuillez expliquer pourquoi vous refusez ce prêt.",
     "returnLoan": "Marquer comme rendu",
     "abandonLoan": "Abandonner le prêt",
     "deleteLoan": "Supprimer le prêt",
@@ -204,10 +228,36 @@
     "statusAwaitingReturn": "Retour attendu",
     "statusReturned": "Rendu",
     "statusNotReturned": "Non rendu",
-    "statusAbandoned": "Abandonné"
+    "statusAbandoned": "Abandonné",
+    "myLoans": "Mes prêts",
+    "myBorrowings": "Mes emprunts",
+    "emptyBorrowings": "Aucun emprunt",
+    "emptyBorrowingsSubtitle": "Les prêts qui vous sont adressés apparaîtront ici",
+    "filterLoans": "Filtrer les prêts"
+  },
+  "invitations": {
+    "searchPlaceholder": "Rechercher un utilisateur par nom ou email...",
+    "searchMinLength": "Saisissez au moins 2 caractères pour rechercher",
+    "noResults": "Aucun utilisateur trouvé",
+    "invite": "Inviter",
+    "pending": "En attente",
+    "contact": "Contact",
+    "cancel": "Annuler",
+    "accept": "Accepter",
+    "reject": "Refuser",
+    "emptyReceived": "Aucune invitation reçue",
+    "emptySent": "Aucune invitation envoyée",
+    "receivedTitle": "Invitations reçues",
+    "sentTitle": "Invitations envoyées",
+    "noBorrowers": "Aucun contact. Invitez des utilisateurs pour leur prêter des objets.",
+    "statusPending": "En attente",
+    "statusAccepted": "Acceptée",
+    "statusRejected": "Refusée",
+    "statusExpired": "Expirée"
   },
   "navigation": {
     "loans": "Prêts",
+    "tracking": "Suivi",
     "contacts": "Contacts",
     "items": "Objets",
     "history": "Historique",

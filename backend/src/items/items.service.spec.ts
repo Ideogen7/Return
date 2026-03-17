@@ -51,6 +51,7 @@ describe('ItemsService', () => {
     category: ItemCategory.TOOLS,
     estimatedValue: 129.99,
     userId: USER_ID,
+    deletedAt: null,
     createdAt: new Date('2026-02-08T14:00:00Z'),
     updatedAt: new Date('2026-02-08T14:00:00Z'),
   };
@@ -336,18 +337,17 @@ describe('ItemsService', () => {
   // ===========================================================================
 
   describe('delete', () => {
-    it('should delete an item and its photos from storage', async () => {
+    it('should soft-delete an item (set deletedAt)', async () => {
       prisma.item.findUnique.mockResolvedValue(mockItemWithPhotos);
       prisma.loan.count.mockResolvedValue(0);
-      prisma.item.delete.mockResolvedValue(mockItemWithPhotos);
+      prisma.item.update.mockResolvedValue({ ...mockItemWithPhotos, deletedAt: new Date() });
 
       await service.delete(ITEM_ID, USER_ID);
 
-      expect(prisma.item.delete).toHaveBeenCalledWith({
+      expect(prisma.item.update).toHaveBeenCalledWith({
         where: { id: ITEM_ID },
+        data: { deletedAt: expect.any(Date) },
       });
-      // PhotoStorage.delete devrait être appelé pour chaque photo
-      expect(photoStorage.delete).toHaveBeenCalledTimes(1);
     });
 
     it('should throw NotFoundException when deleting non-existent item', async () => {

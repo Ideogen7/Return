@@ -73,6 +73,7 @@ export function ConfirmationDialog({
                 numberOfLines={3}
                 maxLength={MAX_REASON_LENGTH}
                 testID="contest-reason-input"
+                contentStyle={{ textAlignVertical: 'top' }}
               />
               <HelperText type={reason.length > 0 && !isReasonValid ? 'error' : 'info'}>
                 {reason.length}/{MAX_REASON_LENGTH} (min {MIN_REASON_LENGTH})

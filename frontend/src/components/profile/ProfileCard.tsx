@@ -43,18 +43,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
 
       <View style={styles.row}>
         <View style={styles.rowLeft}>
-          <Icon source="shield-account-outline" size={16} color="#A8B5BF" />
-          <Text variant="bodySmall" style={styles.label}>
-            {t('profile.role')}
-          </Text>
-        </View>
-        <Text variant="bodyMedium" style={styles.value}>
-          {t('profile.lender')}
-        </Text>
-      </View>
-
-      <View style={styles.row}>
-        <View style={styles.rowLeft}>
           <Icon source="calendar-outline" size={16} color="#A8B5BF" />
           <Text variant="bodySmall" style={styles.label}>
             {t('profile.memberSince')}

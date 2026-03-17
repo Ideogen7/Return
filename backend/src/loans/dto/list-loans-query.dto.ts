@@ -1,6 +1,11 @@
-import { IsArray, IsBoolean, IsEnum, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { LoanStatus } from '@prisma/client';
+
+export enum LoanQueryRole {
+  LENDER = 'lender',
+  BORROWER = 'borrower',
+}
 
 export enum LoanSortBy {
   CREATED_AT = 'createdAt',
@@ -30,15 +35,6 @@ export class ListLoansQueryDto {
   borrowerId?: string;
 
   @IsOptional()
-  @Transform(({ value }: { value: unknown }) => {
-    if (value === 'true' || value === '1') return true;
-    if (value === 'false' || value === '0') return false;
-    return value as boolean;
-  })
-  @IsBoolean()
-  includeArchived?: boolean;
-
-  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -58,4 +54,8 @@ export class ListLoansQueryDto {
   @IsOptional()
   @IsEnum(SortOrder)
   sortOrder?: SortOrder = SortOrder.DESC;
+
+  @IsOptional()
+  @IsEnum(LoanQueryRole)
+  role?: LoanQueryRole = LoanQueryRole.LENDER;
 }

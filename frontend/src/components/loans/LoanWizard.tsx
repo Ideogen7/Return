@@ -1,9 +1,24 @@
 import { useState } from 'react';
-import { View, FlatList, Pressable, StyleSheet } from 'react-native';
-import { Text, Button, TextInput, RadioButton, HelperText, Icon } from 'react-native-paper';
+import { View, FlatList, Pressable, StyleSheet, ScrollView } from 'react-native';
+import {
+  Text,
+  Button,
+  TextInput,
+  RadioButton,
+  HelperText,
+  Icon,
+  Portal,
+  Dialog,
+} from 'react-native-paper';
+import { Calendar } from 'react-native-paper-dates';
 import { useTranslation } from 'react-i18next';
+import { useNavigation } from '@react-navigation/native';
+import i18n from '../../config/i18n.config';
 import { ui } from '../../config/theme.config';
-import type { Item, Borrower, CreateLoanDto } from '../../types/api.types';
+import { useItemStore } from '../../stores/useItemStore';
+import { useBorrowerStore } from '../../stores/useBorrowerStore';
+import { ItemForm } from '../items/ItemForm';
+import type { CreateLoanDto, CreateItemDto } from '../../types/api.types';
 
 type LoanType = 'OBJECT' | 'MONEY';
 
@@ -11,20 +26,27 @@ interface LoanWizardProps {
   onSubmit: (data: CreateLoanDto) => void;
   isLoading: boolean;
   error?: string;
-  items: Item[];
-  borrowers: Borrower[];
 }
 
-export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: LoanWizardProps) {
+export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
   const { t } = useTranslation();
+  const navigation = useNavigation();
+  const { items } = useItemStore();
+  const { borrowers } = useBorrowerStore();
+
   const [step, setStep] = useState(1);
   const [loanType, setLoanType] = useState<LoanType>('OBJECT');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [selectedBorrowerId, setSelectedBorrowerId] = useState<string | null>(null);
   const [returnDate, setReturnDate] = useState('');
+  const [returnDateObj, setReturnDateObj] = useState<Date | undefined>();
+  const [calendarExpanded, setCalendarExpanded] = useState(false);
   const [notes, setNotes] = useState('');
 
+  const [showItemDialog, setShowItemDialog] = useState(false);
+  const [itemDialogLoading, setItemDialogLoading] = useState(false);
+  const [itemDialogError, setItemDialogError] = useState<string | undefined>();
   const STEP_TITLES = [
     t('loans.wizardStep1'),
     t('loans.wizardStep2'),
@@ -63,10 +85,24 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
 
     onSubmit({
       item: itemValue,
-      borrower: selectedBorrowerId!,
+      borrowerId: selectedBorrowerId!,
       returnDate: returnDate || null,
       notes: notes || null,
     });
+  };
+
+  const handleInlineItemCreate = async (data: CreateItemDto) => {
+    setItemDialogLoading(true);
+    setItemDialogError(undefined);
+    try {
+      const newItem = await useItemStore.getState().createItem(data);
+      setSelectedItemId(newItem.id);
+      setShowItemDialog(false);
+    } catch {
+      setItemDialogError(t('errors.unknownError'));
+    } finally {
+      setItemDialogLoading(false);
+    }
   };
 
   const renderStep1 = () => (
@@ -76,20 +112,26 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
       </Text>
 
       <RadioButton.Group onValueChange={(v) => setLoanType(v as LoanType)} value={loanType}>
-        <View style={[styles.typeCard, ui.card, loanType === 'OBJECT' && styles.typeCardSelected]}>
-          <RadioButton.Android value="OBJECT" color="#6B8E7B" testID="type-object" />
-          <Icon source="package-variant-closed" size={24} color="#4A6355" />
-          <Text variant="bodyLarge" style={styles.typeLabel}>
-            {t('loans.objectLoan')}
-          </Text>
-        </View>
-        <View style={[styles.typeCard, ui.card, loanType === 'MONEY' && styles.typeCardSelected]}>
-          <RadioButton.Android value="MONEY" color="#6B8E7B" testID="type-money" />
-          <Icon source="cash-multiple" size={24} color="#4A6355" />
-          <Text variant="bodyLarge" style={styles.typeLabel}>
-            {t('loans.moneyLoan')}
-          </Text>
-        </View>
+        <Pressable onPress={() => setLoanType('OBJECT')} testID="type-object-card">
+          <View
+            style={[styles.typeCard, ui.card, loanType === 'OBJECT' && styles.typeCardSelected]}
+          >
+            <RadioButton.Android value="OBJECT" color="#6B8E7B" testID="type-object" />
+            <Icon source="package-variant-closed" size={24} color="#4A6355" />
+            <Text variant="bodyLarge" style={styles.typeLabel}>
+              {t('loans.objectLoan')}
+            </Text>
+          </View>
+        </Pressable>
+        <Pressable onPress={() => setLoanType('MONEY')} testID="type-money-card">
+          <View style={[styles.typeCard, ui.card, loanType === 'MONEY' && styles.typeCardSelected]}>
+            <RadioButton.Android value="MONEY" color="#6B8E7B" testID="type-money" />
+            <Icon source="cash-multiple" size={24} color="#4A6355" />
+            <Text variant="bodyLarge" style={styles.typeLabel}>
+              {t('loans.moneyLoan')}
+            </Text>
+          </View>
+        </Pressable>
       </RadioButton.Group>
     </View>
   );
@@ -101,37 +143,51 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
       </Text>
 
       {loanType === 'OBJECT' ? (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <Pressable onPress={() => setSelectedItemId(item.id)} testID={`select-item-${item.id}`}>
-              <View
-                style={[
-                  styles.listItem,
-                  ui.card,
-                  selectedItemId === item.id && styles.listItemSelected,
-                ]}
+        <>
+          <FlatList
+            data={items.filter((i) => i.category !== 'MONEY')}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => setSelectedItemId(item.id)}
+                testID={`select-item-${item.id}`}
               >
-                <RadioButton.Android
-                  value={item.id}
-                  status={selectedItemId === item.id ? 'checked' : 'unchecked'}
-                  onPress={() => setSelectedItemId(item.id)}
-                  color="#6B8E7B"
-                />
-                <Text variant="bodyMedium" style={styles.listItemText}>
-                  {item.name}
-                </Text>
-              </View>
-            </Pressable>
-          )}
-          ListEmptyComponent={
-            <Text variant="bodyMedium" style={styles.emptyText}>
-              {t('items.emptyList')}
-            </Text>
-          }
-          style={styles.list}
-        />
+                <View
+                  style={[
+                    styles.listItem,
+                    ui.card,
+                    selectedItemId === item.id && styles.listItemSelected,
+                  ]}
+                >
+                  <RadioButton.Android
+                    value={item.id}
+                    status={selectedItemId === item.id ? 'checked' : 'unchecked'}
+                    onPress={() => setSelectedItemId(item.id)}
+                    color="#6B8E7B"
+                  />
+                  <Text variant="bodyMedium" style={styles.listItemText}>
+                    {item.name}
+                  </Text>
+                </View>
+              </Pressable>
+            )}
+            ListEmptyComponent={
+              <Text variant="bodyMedium" style={styles.emptyText}>
+                {t('items.emptyList')}
+              </Text>
+            }
+            style={styles.list}
+          />
+          <Button
+            mode="outlined"
+            icon="plus"
+            onPress={() => setShowItemDialog(true)}
+            style={styles.inlineCreateBtn}
+            testID="inline-create-item-btn"
+          >
+            {t('items.addItem')}
+          </Button>
+        </>
       ) : (
         <TextInput
           label={t('loans.selectAmount')}
@@ -177,9 +233,26 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
           </Pressable>
         )}
         ListEmptyComponent={
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            {t('borrowers.emptyList')}
-          </Text>
+          <View style={styles.emptyBorrowerState} testID="no-borrowers-empty">
+            <Text variant="bodyMedium" style={styles.emptyText}>
+              {t('invitations.noBorrowers')}
+            </Text>
+            <Button
+              mode="outlined"
+              icon="account-search"
+              onPress={() => {
+                // Cross-stack navigation requires type bypass
+                (navigation as { navigate: (screen: string, params?: object) => void }).navigate(
+                  'BorrowerTab',
+                  { screen: 'SearchBorrower' },
+                );
+              }}
+              style={styles.inlineCreateBtn}
+              testID="search-contact-btn"
+            >
+              {t('invitations.invite')}
+            </Button>
+          </View>
         }
         style={styles.list}
       />
@@ -225,14 +298,31 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
           </View>
         </View>
 
-        <TextInput
-          label={t('loans.returnDate')}
-          value={returnDate}
-          onChangeText={setReturnDate}
-          placeholder="YYYY-MM-DD"
-          style={[styles.input, ui.input]}
+        <Button
+          mode="outlined"
+          icon="calendar"
+          onPress={() => setCalendarExpanded((v) => !v)}
+          style={styles.input}
           testID="return-date-input"
-        />
+        >
+          {returnDateObj ? returnDateObj.toLocaleDateString(i18n.language) : t('loans.returnDate')}
+        </Button>
+        {calendarExpanded && (
+          <Calendar
+            locale={i18n.language}
+            mode="single"
+            date={returnDateObj}
+            onChange={({ date }) => {
+              if (date) {
+                setReturnDateObj(date);
+                setReturnDate(
+                  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+                );
+              }
+              setCalendarExpanded(false);
+            }}
+          />
+        )}
 
         <TextInput
           label={t('loans.notes')}
@@ -317,6 +407,27 @@ export function LoanWizard({ onSubmit, isLoading, error, items, borrowers }: Loa
           </Button>
         )}
       </View>
+
+      <Portal>
+        <Dialog
+          visible={showItemDialog}
+          onDismiss={() => setShowItemDialog(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title>{t('items.addItem')}</Dialog.Title>
+          <Dialog.ScrollArea>
+            <ScrollView>
+              <ItemForm
+                mode="create"
+                onSubmit={handleInlineItemCreate}
+                isLoading={itemDialogLoading}
+                error={itemDialogError}
+                submitLabel={t('common.save')}
+              />
+            </ScrollView>
+          </Dialog.ScrollArea>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -347,6 +458,7 @@ const styles = StyleSheet.create({
   listItemSelected: { borderColor: '#6B8E7B', borderWidth: 2 },
   listItemText: { color: '#2D3748', flex: 1 },
   emptyText: { color: '#6B7A8D', textAlign: 'center', padding: 32 },
+  emptyBorrowerState: { alignItems: 'center', paddingVertical: 16 },
   input: { marginBottom: 12 },
   summary: { padding: 16, marginBottom: 16 },
   summaryRow: { marginBottom: 10 },
@@ -355,4 +467,6 @@ const styles = StyleSheet.create({
   buttons: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 16, gap: 12 },
   backButton: { flex: 1, borderRadius: 12, borderColor: '#C9C4BB' },
   nextButton: { flex: 1, borderRadius: 12 },
+  inlineCreateBtn: { marginTop: 8, borderRadius: 12, borderColor: '#C9C4BB' },
+  dialog: { maxHeight: '80%' },
 });

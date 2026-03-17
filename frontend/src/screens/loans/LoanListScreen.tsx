@@ -1,20 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, FAB, Icon, Text, Chip, SegmentedButtons } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LoanCard } from '../../components/loans/LoanCard';
 import { useLoanStore } from '../../stores/useLoanStore';
 import type { LoanStackParamList } from '../../navigation/types';
 import type { Loan, LoanStatus } from '../../types/api.types';
-
-const ACTIVE_STATUSES: LoanStatus[] = [
-  'PENDING_CONFIRMATION',
-  'ACTIVE',
-  'ACTIVE_BY_DEFAULT',
-  'CONTESTED',
-  'AWAITING_RETURN',
-];
 
 const FILTER_STATUSES: { status: LoanStatus; label: string }[] = [
   { status: 'PENDING_CONFIRMATION', label: 'loans.statusPendingConfirmation' },
@@ -30,12 +23,14 @@ type Props = NativeStackScreenProps<LoanStackParamList, 'LoanList'>;
 export function LoanListScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { loans, isLoading, error, fetchLoans } = useLoanStore();
-  const [tab, setTab] = useState<'active' | 'archived'>('active');
+  const [perspective, setPerspective] = useState<'lender' | 'borrower'>('lender');
   const [statusFilter, setStatusFilter] = useState<LoanStatus | undefined>();
 
-  useEffect(() => {
-    fetchLoans({ includeArchived: tab === 'archived' }).catch(() => {});
-  }, [fetchLoans, tab]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchLoans({ role: perspective }).catch(() => {});
+    }, [fetchLoans, perspective]),
+  );
 
   const handlePress = (id: string) => {
     navigation.navigate('LoanDetail', { id });
@@ -46,8 +41,6 @@ export function LoanListScreen({ navigation }: Props) {
   };
 
   const filteredLoans = loans.filter((loan) => {
-    if (tab === 'active' && !ACTIVE_STATUSES.includes(loan.status)) return false;
-    if (tab === 'archived' && ACTIVE_STATUSES.includes(loan.status)) return false;
     if (statusFilter && loan.status !== statusFilter) return false;
     return true;
   });
@@ -75,13 +68,16 @@ export function LoanListScreen({ navigation }: Props) {
     <View style={styles.container} testID="loan-list">
       <View style={styles.tabs}>
         <SegmentedButtons
-          value={tab}
-          onValueChange={(v) => setTab(v as 'active' | 'archived')}
+          value={perspective}
+          onValueChange={(v) => {
+            setPerspective(v as 'lender' | 'borrower');
+            setStatusFilter(undefined);
+          }}
           buttons={[
-            { value: 'active', label: t('loans.activeTab') },
-            { value: 'archived', label: t('loans.archivedTab') },
+            { value: 'lender', label: t('loans.myLoans') },
+            { value: 'borrower', label: t('loans.myBorrowings') },
           ]}
-          style={styles.segmented}
+          style={styles.segmentedButtons}
         />
       </View>
 
@@ -117,21 +113,25 @@ export function LoanListScreen({ navigation }: Props) {
           <View style={styles.emptyState} testID="loan-empty">
             <Icon source="handshake-outline" size={64} color="#C9C4BB" />
             <Text variant="titleMedium" style={styles.emptyTitle}>
-              {t('loans.emptyList')}
+              {perspective === 'borrower' ? t('loans.emptyBorrowings') : t('loans.emptyList')}
             </Text>
             <Text variant="bodyMedium" style={styles.emptySubtitle}>
-              {t('loans.emptyListSubtitle')}
+              {perspective === 'borrower'
+                ? t('loans.emptyBorrowingsSubtitle')
+                : t('loans.emptyListSubtitle')}
             </Text>
           </View>
         }
       />
-      <FAB
-        icon="plus"
-        style={styles.fab}
-        onPress={() => navigation.navigate('CreateLoan')}
-        testID="add-loan-fab"
-        color="#FFFFFF"
-      />
+      {perspective === 'lender' && (
+        <FAB
+          icon="plus"
+          style={styles.fab}
+          onPress={() => navigation.navigate('CreateLoan')}
+          testID="add-loan-fab"
+          color="#FFFFFF"
+        />
+      )}
     </View>
   );
 }
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7F4EF' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   tabs: { paddingHorizontal: 16, paddingTop: 12 },
-  segmented: { marginBottom: 8 },
+  segmentedButtons: { marginBottom: 8 },
   filters: { paddingBottom: 4 },
   chipRow: { paddingHorizontal: 16, gap: 8 },
   chip: { backgroundColor: '#EDE9E2' },

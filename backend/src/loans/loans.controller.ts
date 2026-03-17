@@ -72,9 +72,9 @@ export class LoansController {
     @Request() req: ExpressRequest & { user: AuthenticatedUser },
   ): Promise<PaginatedLoansResponse> {
     return this.loansService.findAll(req.user.userId, {
+      role: query.role ?? 'lender',
       status: query.status,
       borrowerId: query.borrowerId,
-      includeArchived: query.includeArchived ?? false,
       page: query.page ?? 1,
       limit: query.limit ?? 20,
       sortBy: query.sortBy ?? 'createdAt',

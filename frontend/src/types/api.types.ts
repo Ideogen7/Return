@@ -18,6 +18,7 @@ export interface User {
   lastName: string;
   role: UserRole;
   profilePicture?: string | null;
+  phone?: string | null;
   settings?: UserSettings;
   createdAt: string;
   lastLoginAt?: string | null;
@@ -55,6 +56,7 @@ export interface UpdateProfileDto {
   firstName?: string;
   lastName?: string;
   email?: string;
+  phone?: string;
 }
 
 export interface ChangePasswordDto {
@@ -181,7 +183,7 @@ export interface Loan {
 
 export interface CreateLoanDto {
   item: CreateItemDto | string;
-  borrower: CreateBorrowerDto | string;
+  borrowerId: string;
   returnDate?: string | null;
   notes?: string | null;
 }
@@ -198,6 +200,48 @@ export interface UpdateLoanStatusDto {
 
 export interface ContestLoanDto {
   reason: string;
+}
+
+// --- Invitations de Contact ---
+
+export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
+
+export interface InvitationUserSummary {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface ContactInvitation {
+  id: string;
+  status: InvitationStatus;
+  senderUser: InvitationUserSummary;
+  recipientEmail: string;
+  recipientUser: InvitationUserSummary;
+  createdAt: string;
+  expiresAt: string;
+  acceptedAt?: string | null;
+  rejectedAt?: string | null;
+}
+
+export interface UserSearchResult {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  alreadyContact: boolean;
+  pendingInvitation?: boolean;
+  pendingInvitationId?: string | null;
+}
+
+export interface SearchUsersDto {
+  query: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface SendInvitationDto {
+  recipientEmail: string;
 }
 
 // --- Pagination ---

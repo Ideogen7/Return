@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../__mocks__/server';
 import { useLoanStore } from '../useLoanStore';
 
-const API_BASE = 'http://localhost:4010';
+const API_BASE = 'http://localhost:3000/v1';
 
 beforeAll(() => server.listen());
 afterEach(() => {
@@ -22,6 +22,34 @@ describe('useLoanStore', () => {
       expect(state.loans[0]!.borrower.firstName).toBe('Marie');
       expect(state.isLoading).toBe(false);
       expect(state.error).toBeNull();
+    });
+
+    it('should pass role=borrower query param', async () => {
+      let capturedUrl = '';
+      server.use(
+        http.get(`${API_BASE}/loans`, ({ request }) => {
+          capturedUrl = request.url;
+          return HttpResponse.json(
+            {
+              data: [],
+              pagination: {
+                currentPage: 1,
+                itemsPerPage: 20,
+                totalItems: 0,
+                totalPages: 0,
+                hasNextPage: false,
+                hasPreviousPage: false,
+              },
+            },
+            { status: 200 },
+          );
+        }),
+      );
+
+      await useLoanStore.getState().fetchLoans({ role: 'borrower' });
+
+      expect(capturedUrl).toContain('role=borrower');
+      expect(useLoanStore.getState().isLoading).toBe(false);
     });
 
     it('should set error on fetch failure', async () => {
@@ -75,7 +103,7 @@ describe('useLoanStore', () => {
     it('should create and add loan to list', async () => {
       const newLoan = await useLoanStore.getState().createLoan({
         item: '9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d',
-        borrower: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
+        borrowerId: '5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f',
         returnDate: '2026-05-01',
         notes: 'Test loan',
       });

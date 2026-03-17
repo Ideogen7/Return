@@ -24,8 +24,8 @@ est le choix optimal. Voici pourquoi :
 
 **✅ Modularité Préservée :**
 
-- Organisation en modules métier (Loans, Items, Reminders, Users, Notifications) permettant une future extraction en
-  microservices si nécessaire.
+- Organisation en modules métier (Loans, Items, Reminders, Users, Notifications, ContactInvitations) permettant une
+  future extraction en microservices si nécessaire.
 - Isolation des dépendances : chaque module a ses propres interfaces et contrats.
 
 **❌ Microservices rejetés :**
@@ -50,7 +50,7 @@ C4Context
 
     System_Boundary(return_system, "Return Application") {
         Container(mobile_app, "Application Mobile", "React Native", "Interface principale pour gérer les prêts. Cache local pour mode hors ligne (lecture seule).")
-        Container(backend, "Backend API", "NestJS (Monolithe Modulaire)", "API REST unique. Modules internes : Loans, Items, Reminders, Users, Notifications")
+        Container(backend, "Backend API", "NestJS (Monolithe Modulaire)", "API REST unique. Modules internes : Loans, Items, Reminders, Users, Notifications, ContactInvitations")
         ContainerDb(postgres, "Base de Données", "PostgreSQL", "Stockage relationnel des entités")
         ContainerDb(redis, "Cache & Queue", "Redis", "Cache de sessions, file de jobs BullMQ, blacklist JWT pour révocation")
         ContainerDb(r2, "Object Storage", "Cloudflare R2", "Stockage des photos d'objets")
@@ -74,7 +74,7 @@ C4Context
 ### 2.1 Frontend
 
 | Composant          | Technologie                    | Version | Justification                                                                                             |
-|--------------------|--------------------------------|---------|-----------------------------------------------------------------------------------------------------------|
+| ------------------ | ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------- |
 | **Framework**      | **React Native**               | 0.78+   | Cross-platform (iOS/Android) avec une seule codebase. New Architecture (Fabric, TurboModules) par défaut. |
 | **Gestion d'état** | **Zustand**                    | 5.x     | Plus léger que Redux, API simple. Suffisant pour un MVP sans logique métier complexe côté client.         |
 | **Navigation**     | **React Navigation**           | 7.x     | Standard de facto pour React Native. Support du deep linking et meilleur support TypeScript.              |
@@ -90,7 +90,7 @@ C4Context
 ### 2.2 Backend
 
 | Composant            | Technologie                             | Version | Justification                                                                                                |
-|----------------------|-----------------------------------------|---------|--------------------------------------------------------------------------------------------------------------|
+| -------------------- | --------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------ |
 | **Langage**          | **TypeScript**                          | 5.8+    | Type safety, refactoring sécurisé. Partage des types avec le frontend.                                       |
 | **Runtime**          | **Node.js**                             | 22 LTS  | Écosystème mature, excellentes performances I/O. Cohérent avec React Native (même langage full-stack).       |
 | **Framework**        | **NestJS**                              | 11.x    | Architecture modulaire native (alignée avec notre monolithe modulaire). DDD-friendly. Dependency injection.  |
@@ -107,7 +107,7 @@ probabilité de changement d'ORM à court terme.
 ### 2.3 Base de Données
 
 | Composant                  | Technologie             | Version | Justification                                                                                                                                        |
-|----------------------------|-------------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -------------------------- | ----------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Base Principale**        | **PostgreSQL**          | 17+     | Relations complexes (Prêts-Objets-Emprunteurs). Support des transactions ACID crucial pour le statut des prêts. Extension pgcrypto pour chiffrement. |
 | **Cache**                  | **Redis**               | 8.x     | Cache de sessions, file de jobs (BullMQ), rate limiting, blacklist JWT pour révocation de tokens.                                                    |
 | **Object Storage**         | **Cloudflare R2**       | -       | Stockage des photos d'objets. Zéro frais d'egress (optimisation coûts). S3-compatible.                                                               |
@@ -116,7 +116,7 @@ probabilité de changement d'ORM à court terme.
 ### 2.4 Infrastructure
 
 | Composant               | Technologie                                       | Justification                                                                       |
-|-------------------------|---------------------------------------------------|-------------------------------------------------------------------------------------|
+| ----------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | **Hébergement Backend** | **Fly.io**                                        | Déploiement simple, pricing MVP-friendly. PostgreSQL managed inclus.                |
 | **Hébergement Storage** | **Cloudflare R2**                                 | Zéro frais d'egress. S3-compatible. 10 GB gratuits.                                 |
 | **CI/CD**               | **GitHub Actions**                                | Intégration native GitHub. Workflows YAML simples. Coût gratuit pour repos publics. |
@@ -127,7 +127,7 @@ probabilité de changement d'ORM à court terme.
 ### 2.5 Services Tiers
 
 | Service                | Provider                           | Usage                                                    |
-|------------------------|------------------------------------|----------------------------------------------------------|
+| ---------------------- | ---------------------------------- | -------------------------------------------------------- |
 | **Notifications Push** | **Firebase Cloud Messaging (FCM)** | Notifications iOS + Android. Gratuit, illimité.          |
 | **Emails (V2+)**       | **Resend** / **SendGrid**          | Rappels par email. Resend = 3000 emails/mois gratuits.   |
 | **SMS (V2+)**          | **Twilio**                         | Rappels SMS. Pay-as-you-go.                              |
@@ -312,7 +312,7 @@ Héberger le backend sur **Fly.io** plutôt que AWS EC2 / Google Cloud Run.
 **Estimation des coûts MVP (février 2026) :**
 
 | Composant            | Configuration                 | Coût/mois |
-|----------------------|-------------------------------|-----------|
+| -------------------- | ----------------------------- | --------- |
 | 2x Backend NestJS    | `shared-cpu-2x` (512 MB) x2   | ~8 €      |
 | PostgreSQL (managed) | Plan Basic (1 GB RAM) + 10 GB | ~40 €     |
 | Redis (Upstash)      | Pay-as-you-go (~500k req)     | ~2 €      |
@@ -331,12 +331,38 @@ Préparer une stratégie de migration vers AWS/GCP si le trafic dépasse 100k ut
 
 ---
 
+### ADR-006 : Système d'invitation mutuelle pour les contacts
+
+**Contexte :**
+Un prêt nécessite un lien de confiance entre prêteur et emprunteur. Le workflow initial permettait d'ajouter n'importe
+qui comme contact sans vérification. La relation Contact doit être consentie par les deux parties pour garantir que
+l'emprunteur accepte le fait d'être référencé comme tel dans l'application.
+
+**Décision :**
+Créer un module `ContactInvitations` distinct avec table `contact_invitations`. Les invitations ne sont possibles
+qu'entre utilisateurs inscrits. Les invitations expirent automatiquement après 30 jours.
+
+**Alternatives rejetées :**
+
+- _Ajout libre sans consentement_ : Viole le droit à l'oubli (RGPD) — un utilisateur peut se retrouver listé comme
+  emprunteur sans le savoir.
+- _Invitation par lien magique_ : Complexité email + gestion de tokens d'invitation hors JWT = over-engineering pour
+  le MVP.
+
+**Conséquences :**
+
+✅ Consentement explicite de l'emprunteur garanti, conformité RGPD améliorée, qualité des données de confiance.
+❌ Légère friction à l'onboarding : la personne doit être inscrite avant d'être invitée (atténué par Sprint 5+
+avec invitation email externe).
+
+---
+
 ## 4. Matrice de Sécurité & RBAC (Role-Based Access Control)
 
 ### Rôles Définis
 
 | Rôle           | Description                                     | Accès à l'application  |
-|----------------|-------------------------------------------------|------------------------|
+| -------------- | ----------------------------------------------- | ---------------------- |
 | **Prêteur**    | Utilisateur authentifié propriétaire de prêts   | App mobile + API       |
 | **Emprunteur** | Utilisateur authentifié qui emprunte des objets | App mobile + API       |
 | **Système**    | Workers automatiques (rappels, cleanup)         | API interne uniquement |
@@ -352,11 +378,12 @@ Préparer une stratégie de migration vers AWS/GCP si le trafic dépasse 100k ut
 - **Photos** : Images d'objets stockées
 - **Historique** : Archive des prêts terminés
 - **Compte Utilisateur** : Données personnelles
+- **Invitations de Contact** : Demandes d'ajout en contact
 
 ### Matrice CRUD (Create / Read / Update / Delete)
 
 | Ressource                       | Prêteur (propriétaire) | Prêteur (autre) | Emprunteur (concerné) | Système |
-|---------------------------------|------------------------|-----------------|-----------------------|---------|
+| ------------------------------- | ---------------------- | --------------- | --------------------- | ------- |
 | **Prêts - Ses propres prêts**   | C R U D                | -               | R U (statut)          | R U     |
 | **Prêts - Prêts d'autres**      | -                      | -               | -                     | R U     |
 | **Objets - Ses objets**         | C R U D                | -               | R (via prêt)          | R       |
@@ -367,6 +394,17 @@ Préparer une stratégie de migration vers AWS/GCP si le trafic dépasse 100k ut
 | **Compte Utilisateur - Soi**    | R U D                  | -               | R U D                 | -       |
 | **Compte Utilisateur - Autres** | -                      | -               | -                     | -       |
 | **Logs / Métriques**            | -                      | -               | -                     | C       |
+
+### Matrice RBAC — Invitations de Contact
+
+| Action                            | Prêteur (émetteur) | Emprunteur (destinataire) | Système |
+| --------------------------------- | ------------------ | ------------------------- | ------- |
+| Envoyer une invitation            | ✅ CREATE          | ❌                        | ❌      |
+| Lister ses invitations envoyées   | ✅ READ            | ❌                        | ❌      |
+| Lister ses invitations reçues     | ❌                 | ✅ READ                   | ❌      |
+| Accepter / Rejeter une invitation | ❌                 | ✅ UPDATE                 | ❌      |
+| Annuler une invitation envoyée    | ✅ DELETE          | ❌                        | ❌      |
+| Expirer les invitations (CRON)    | ❌                 | ❌                        | ✅      |
 
 ### Règles de Sécurité Détaillées
 
@@ -382,12 +420,12 @@ de la relation (ex: emprunteur d'un prêt).
 ```typescript
 // Exemple : Un prêteur ne voit que ses propres prêts
 const loans = await this.prisma.loan.findMany({
-    where: {lenderId: currentUser.id},
+  where: { lenderId: currentUser.id },
 });
 
 // Exemple : Un emprunteur ne voit que les prêts le concernant
 const borrowedLoans = await this.prisma.loan.findMany({
-    where: {borrowerId: currentUser.id},
+  where: { borrowerId: currentUser.id },
 });
 ```
 
@@ -395,8 +433,8 @@ const borrowedLoans = await this.prisma.loan.findMany({
 
 **Un Emprunteur ne peut modifier que le statut de confirmation, pas supprimer un prêt :**
 
-| Transition                | Prêteur         | Emprunteur      | Règle métier                    |
-|---------------------------|-----------------|-----------------|---------------------------------|
+| Transition                | Prêteur          | Emprunteur       | Règle métier                    |
+| ------------------------- | ---------------- | ---------------- | ------------------------------- |
 | `En attente` → `Actif`    | ✅ (si timeout)  | ✅ (acceptation) | Validation mutuelle             |
 | `En attente` → `Contesté` | ❌               | ✅ (refus)       | Emprunteur décide               |
 | `Actif` → `Rendu`         | ✅               | ❌               | Seul le Prêteur confirme retour |
@@ -404,8 +442,8 @@ const borrowedLoans = await this.prisma.loan.findMany({
 
 #### 3. Rate Limiting par Rôle
 
-| Action                 | Prêteur      | Emprunteur            | Limite                 |
-|------------------------|--------------|-----------------------|------------------------|
+| Action                 | Prêteur       | Emprunteur             | Limite                 |
+| ---------------------- | ------------- | ---------------------- | ---------------------- |
 | Création de prêts      | ✅            | ❌                     | 15 prêts / jour        |
 | Upload de photo        | ✅            | ❌                     | 30 photos / jour       |
 | Modification de statut | ✅ (son prêt) | ✅ (confirmer/refuser) | 100 requêtes / jour    |
@@ -414,7 +452,7 @@ const borrowedLoans = await this.prisma.loan.findMany({
 #### 4. Chiffrement des Données Sensibles
 
 | Donnée                   | État                 | Méthode                                     |
-|--------------------------|----------------------|---------------------------------------------|
+| ------------------------ | -------------------- | ------------------------------------------- |
 | Mot de passe             | At rest + in transit | bcrypt (12 rounds) + HTTPS                  |
 | Tokens JWT               | In transit           | HTTPS uniquement                            |
 | Montants d'argent prêtés | At rest              | Texte clair (pour calculs), accès restreint |
@@ -425,7 +463,7 @@ const borrowedLoans = await this.prisma.loan.findMany({
 **Toutes les actions sensibles sont loguées dans une table `audit_logs` immuable :**
 
 | Événement            | Données loguées                       | Rétention |
-|----------------------|---------------------------------------|-----------|
+| -------------------- | ------------------------------------- | --------- |
 | Création de prêt     | Prêteur, Emprunteur, Objet, Timestamp | 5 ans     |
 | Changement de statut | Ancien statut, Nouveau statut, Acteur | 5 ans     |
 | Suppression de prêt  | Raison, Timestamp                     | Illimité  |
@@ -496,7 +534,7 @@ style L fill: #FFD700
 ### Seuils de Migration
 
 | Métrique                 | MVP      | Seuil Alerte | Action                                                   |
-|--------------------------|----------|--------------|----------------------------------------------------------|
+| ------------------------ | -------- | ------------ | -------------------------------------------------------- |
 | Utilisateurs actifs/mois | < 10k    | 50k          | Passer à Redis Cluster                                   |
 | Prêts actifs             | < 100k   | 500k         | Activer Postgres partitioning                            |
 | Photos stockées          | < 100 GB | 1 TB         | Migrer vers Cloudflare Images (optimisation automatique) |

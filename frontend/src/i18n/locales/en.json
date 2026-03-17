@@ -55,7 +55,20 @@
     "memberSince": "Member since",
     "lastLogin": "Last login",
     "role": "Role",
-    "lender": "Lender"
+    "lender": "Lender",
+    "statistics": "Statistics",
+    "totalLoans": "Total loans",
+    "activeLoans": "Active loans",
+    "returnedLoans": "Returned",
+    "overdueLoans": "Overdue",
+    "borrowerStatistics": "My borrowings",
+    "loansReceived": "Received",
+    "returnedOnTime": "On time",
+    "returnedLate": "Late",
+    "trustScore": "Trust",
+    "phone": "Phone",
+    "phoneInvalidFormat": "Invalid format (e.g. +33612345678)",
+    "deletePhoto": "Delete photo"
   },
   "settings": {
     "title": "Settings",
@@ -112,7 +125,15 @@
     "dailyLoanLimitExceeded": "Daily loan limit exceeded",
     "loanAlreadyReturned": "This loan has already been returned",
     "forbiddenStatusTransition": "You are not authorized to perform this status transition",
-    "invalidStatusTransition": "Invalid status transition"
+    "invalidStatusTransition": "Invalid status transition",
+    "invalidReturnDate": "Return date must be in the future",
+    "selfInvitation": "You cannot invite yourself",
+    "userNotFound": "User not found",
+    "invitationAlreadySent": "An invitation has already been sent to this user",
+    "invitationNotFound": "Invitation not found",
+    "invitationNotPending": "This invitation is no longer pending",
+    "invitationAlreadyAccepted": "This invitation has already been accepted",
+    "contactNotAccepted": "This contact has not yet accepted your invitation"
   },
   "items": {
     "title": "Items",
@@ -156,7 +177,8 @@
     "categoryOther": "Other",
     "deletePhoto": "Delete photo",
     "confirmDeletePhoto": "Are you sure you want to delete this photo?",
-    "photoDeleteFailed": "Failed to delete photo. Please try again."
+    "photoDeleteFailed": "Failed to delete photo. Please try again.",
+    "deletedItem": "Deleted item"
   },
   "loans": {
     "title": "Loans",
@@ -172,7 +194,9 @@
     "objectLoan": "Object",
     "moneyLoan": "Money",
     "confirmLoan": "Confirm loan",
+    "confirmLoanWarning": "Do you confirm that you received this item as a loan?",
     "contestLoan": "Contest loan",
+    "contestWarning": "Please explain why you are contesting this loan.",
     "returnLoan": "Mark as returned",
     "abandonLoan": "Abandon loan",
     "deleteLoan": "Delete loan",
@@ -204,10 +228,36 @@
     "statusAwaitingReturn": "Awaiting return",
     "statusReturned": "Returned",
     "statusNotReturned": "Not returned",
-    "statusAbandoned": "Abandoned"
+    "statusAbandoned": "Abandoned",
+    "myLoans": "My loans",
+    "myBorrowings": "My borrowings",
+    "emptyBorrowings": "No borrowings",
+    "emptyBorrowingsSubtitle": "Loans addressed to you will appear here",
+    "filterLoans": "Filter loans"
+  },
+  "invitations": {
+    "searchPlaceholder": "Search for a user by name or email...",
+    "searchMinLength": "Type at least 2 characters to search",
+    "noResults": "No users found",
+    "invite": "Invite",
+    "pending": "Pending",
+    "contact": "Contact",
+    "cancel": "Cancel",
+    "accept": "Accept",
+    "reject": "Reject",
+    "emptyReceived": "No invitations received",
+    "emptySent": "No invitations sent",
+    "receivedTitle": "Received invitations",
+    "sentTitle": "Sent invitations",
+    "noBorrowers": "No contacts. Invite users to lend them items.",
+    "statusPending": "Pending",
+    "statusAccepted": "Accepted",
+    "statusRejected": "Rejected",
+    "statusExpired": "Expired"
   },
   "navigation": {
     "loans": "Loans",
+    "tracking": "Tracking",
     "contacts": "Contacts",
     "items": "Items",
     "history": "History",

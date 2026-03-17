@@ -16,7 +16,7 @@ import { CreateLoanDto } from './dto/create-loan.dto.js';
 import type { UpdateLoanDto } from './dto/update-loan.dto.js';
 import type { ContestLoanDto } from './dto/contest-loan.dto.js';
 import type { CreateItemDto } from '../items/dto/create-item.dto.js';
-import type { CreateBorrowerDto } from '../borrowers/dto/create-borrower.dto.js';
+import { ContactInvitationsService } from '../contact-invitations/contact-invitations.service.js';
 import type {
   LoanResponse,
   LoanItemResponse,
@@ -45,14 +45,6 @@ const MAX_LOANS_PER_DAY = 15;
 /** Transaction client type for Prisma interactive transactions */
 type TxClient = Prisma.TransactionClient;
 
-/** Archived statuses that are excluded from default listing */
-const ARCHIVED_STATUSES: LoanStatus[] = [
-  LoanStatus.RETURNED,
-  LoanStatus.NOT_RETURNED,
-  LoanStatus.ABANDONED,
-  LoanStatus.CONTESTED,
-];
-
 type LoanWithRelations = Loan & {
   item: Item & { photos: Photo[] };
   lender: User;
@@ -65,6 +57,7 @@ export class LoansService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly contactInvitationsService: ContactInvitationsService,
   ) {}
 
   // =========================================================================
@@ -90,11 +83,40 @@ export class LoansService {
       }
     }
 
-    // Atomic transaction: resolve/create item + borrower + loan in one go
+    // Atomic transaction: resolve/create item + resolve borrower + loan in one go
     // Prevents orphaned records if any step fails
     const loan = await this.prisma.$transaction(async (tx) => {
       const itemId = await this.resolveItem(tx, dto.item, lenderId);
-      const borrowerId = await this.resolveBorrower(tx, dto.borrower, lenderId);
+      const borrowerId = await this.resolveBorrower(tx, dto.borrowerId, lenderId);
+
+      // CINV-019: Verify ACCEPTED contact invitation exists for this borrower.
+      // All borrowers MUST have a userId (linked via invitation acceptance).
+      // Borrowers without userId are not valid for loan creation.
+      const borrower = await tx.borrower.findUnique({
+        where: { id: borrowerId },
+        select: { userId: true },
+      });
+      if (!borrower?.userId) {
+        throw new ForbiddenException(
+          'contact-not-accepted',
+          'Contact Not Accepted',
+          'You can only create a loan for a contact with an ACCEPTED invitation.',
+          '/v1/loans',
+        );
+      }
+
+      const hasAccepted = await this.contactInvitationsService.hasAcceptedContact(
+        lenderId,
+        borrower.userId,
+      );
+      if (!hasAccepted) {
+        throw new ForbiddenException(
+          'contact-not-accepted',
+          'Contact Not Accepted',
+          'You can only create a loan for a contact with an ACCEPTED invitation.',
+          '/v1/loans',
+        );
+      }
 
       return tx.loan.create({
         data: {
@@ -132,35 +154,40 @@ export class LoansService {
   // =========================================================================
 
   async findAll(
-    lenderId: string,
+    userId: string,
     query: {
+      role?: 'lender' | 'borrower';
       status?: LoanStatus[];
       borrowerId?: string;
-      includeArchived?: boolean;
       page: number;
       limit: number;
       sortBy: string;
       sortOrder: string;
     },
   ): Promise<PaginatedLoansResponse> {
-    const { page, limit, sortBy, sortOrder, borrowerId, includeArchived } = query;
+    const { page, limit, sortBy, sortOrder, borrowerId } = query;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {
-      lenderId,
       deletedAt: null,
     };
+
+    if (query.role === 'borrower') {
+      where.borrower = { userId };
+      // Per the OpenAPI contract, borrowerId is ignored when role=borrower:
+      // the current user is already the borrower, so no additional borrower filter is applied.
+    } else {
+      where.lenderId = userId;
+
+      // borrowerId filter is only honored in the lender perspective (role=lender).
+      if (borrowerId) {
+        where.borrowerId = borrowerId;
+      }
+    }
 
     // Status filter
     if (query.status && query.status.length > 0) {
       where.status = { in: query.status };
-    } else if (!includeArchived) {
-      // By default, exclude archived statuses
-      where.status = { notIn: ARCHIVED_STATUSES };
-    }
-
-    if (borrowerId) {
-      where.borrowerId = borrowerId;
     }
 
     const [loans, totalItems] = await Promise.all([
@@ -193,9 +220,9 @@ export class LoansService {
     };
   }
 
-  async findById(loanId: string, lenderId: string): Promise<LoanResponse> {
+  async findById(loanId: string, userId: string): Promise<LoanResponse> {
     const loan = await this.findLoanOrFail(loanId);
-    this.assertOwnership(loan, lenderId, `/v1/loans/${loanId}`);
+    this.resolveUserRole(loan, userId, `/v1/loans/${loanId}`);
     return this.toLoanResponse(loan);
   }
 
@@ -492,55 +519,23 @@ export class LoansService {
 
   private async resolveBorrower(
     tx: TxClient,
-    borrowerInput: string | CreateBorrowerDto,
+    borrowerId: string,
     lenderId: string,
   ): Promise<string> {
-    // UUID string → reference existing borrower
-    if (typeof borrowerInput === 'string') {
-      const borrower = await tx.borrower.findUnique({
-        where: { id: borrowerInput },
-      });
-      if (!borrower) {
-        throw new NotFoundException('Borrower', borrowerInput, '/v1/loans');
-      }
-      if (borrower.lenderUserId !== lenderId) {
-        throw new ForbiddenException(
-          'forbidden',
-          'Forbidden',
-          'You do not have permission to use this borrower.',
-          '/v1/loans',
-        );
-      }
-      return borrower.id;
-    }
-
-    // Object → create inline
-    const dto = borrowerInput;
-
-    // Check uniqueness (lenderUserId + email)
-    const existing = await tx.borrower.findUnique({
-      where: {
-        lenderUserId_email: {
-          lenderUserId: lenderId,
-          email: dto.email,
-        },
-      },
+    const borrower = await tx.borrower.findUnique({
+      where: { id: borrowerId },
     });
-
-    if (existing) {
-      // Reuse existing borrower with same email for this lender
-      return existing.id;
+    if (!borrower) {
+      throw new NotFoundException('Borrower', borrowerId, '/v1/loans');
     }
-
-    const borrower = await tx.borrower.create({
-      data: {
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        email: dto.email,
-        phoneNumber: dto.phoneNumber ?? null,
-        lenderUserId: lenderId,
-      },
-    });
+    if (borrower.lenderUserId !== lenderId) {
+      throw new ForbiddenException(
+        'forbidden',
+        'Forbidden',
+        'You do not have permission to use this borrower.',
+        '/v1/loans',
+      );
+    }
     return borrower.id;
   }
 

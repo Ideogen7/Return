@@ -45,4 +45,7 @@ export type BorrowerStackParamList = {
   CreateBorrower: undefined;
   BorrowerDetail: { id: string };
   EditBorrower: { id: string };
+  SearchBorrower: undefined;
+  BorrowerInvitations: undefined;
+  SentInvitations: undefined;
 };

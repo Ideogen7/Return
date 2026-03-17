@@ -9,7 +9,7 @@ info:
     Cette API permet de :
     - Gérer des prêts d'objets (photo, retour physique) et d'argent (montant, remboursement)
     - Suivre le cycle de vie complet d'un prêt (création, confirmation, rappels, retour)
-    - Planifier et envoyer des rappels automatiques diplomatiques (J-3, J, J+7, J+14, J+21)
+    - Planifier et envoyer des rappels automatiques diplomatiques (PREVENTIVE adaptatif J-3/J-1, J, J+7, J+14, J+21)
     - Consulter l'historique et les statistiques de prêts
 
     **Architecture** : Monolithe Modulaire (NestJS 11.x + PostgreSQL 17+)
@@ -48,11 +48,13 @@ tags:
     description: Profil utilisateur et paramètres
   - name: History
     description: Historique et statistiques des prêts
+  - name: ContactInvitations
+    description: Gestion des invitations entre utilisateurs (recherche, envoi, acceptation, rejet, expiration)
   - name: Health
     description: Endpoints de santé pour monitoring et load balancer
 
 security:
-  - BearerAuth: []
+  - BearerAuth: [ ]
 
 paths:
   # =============================================================================
@@ -68,7 +70,7 @@ paths:
         Inscription d'un nouvel utilisateur. Retourne un JWT valide après création.
         Le compte est créé avec le rôle `LENDER` par défaut.
       operationId: registerUser
-      security: [] # Public endpoint
+      security: [ ] # Public endpoint
       requestBody:
         required: true
         content:
@@ -132,7 +134,7 @@ paths:
         Authentification par email + mot de passe. Retourne un access token (15 min)
         et un refresh token (30 jours).
       operationId: loginUser
-      security: [] # Public endpoint
+      security: [ ] # Public endpoint
       requestBody:
         required: true
         content:
@@ -182,7 +184,7 @@ paths:
         Le refresh token est à usage unique (rotation) : un nouveau refresh token
         est retourné à chaque appel. L'ancien token est immédiatement invalidé.
       operationId: refreshToken
-      security: [] # Public endpoint (le refresh token est dans le body)
+      security: [ ] # Public endpoint (le refresh token est dans le body)
       requestBody:
         required: true
         content:
@@ -234,7 +236,9 @@ paths:
         - Loans
       summary: Lister tous les prêts de l'utilisateur connecté
       description: |
-        Récupère la liste des prêts créés par l'utilisateur avec filtres et pagination.
+        Récupère la liste des prêts de l'utilisateur connecté selon la perspective choisie.
+        En mode 'lender' (défaut), retourne les prêts créés par l'utilisateur.
+        En mode 'borrower', retourne les prêts où l'utilisateur est emprunteur.
         Par défaut, retourne uniquement les prêts actifs (non archivés).
       operationId: listLoans
       parameters:
@@ -247,10 +251,13 @@ paths:
               $ref: '#/components/schemas/LoanStatus'
           style: form
           explode: false
-          example: [ACTIVE, AWAITING_RETURN]
+          example: [ ACTIVE, AWAITING_RETURN ]
         - name: borrowerId
           in: query
-          description: Filtrer par emprunteur
+          description: |
+            Filtrer par emprunteur (identifiant du contact emprunteur).
+            Ce paramètre n'est pertinent qu'en mode `role=lender`. En mode `role=borrower`,
+            il est ignoré car l'utilisateur connecté EST l'emprunteur.
           schema:
             type: string
             format: uuid
@@ -284,7 +291,7 @@ paths:
           description: Champ de tri
           schema:
             type: string
-            enum: [createdAt, returnDate, status]
+            enum: [ createdAt, returnDate, status ]
             default: createdAt
           example: returnDate
         - name: sortOrder
@@ -292,9 +299,20 @@ paths:
           description: Ordre de tri
           schema:
             type: string
-            enum: [asc, desc]
+            enum: [ asc, desc ]
             default: desc
           example: asc
+        - name: role
+          in: query
+          description: |
+            Perspective de l'utilisateur. 'lender' retourne les prêts créés par l'utilisateur.
+            'borrower' retourne les prêts où l'utilisateur est emprunteur.
+            Par défaut 'lender'.
+          schema:
+            type: string
+            enum: [ lender, borrower ]
+            default: lender
+          example: lender
       responses:
         '200':
           description: Liste des prêts récupérée avec succès
@@ -319,7 +337,8 @@ paths:
         - Loans
       summary: Créer un nouveau prêt
       description: |
-        Créer un prêt avec un objet (existant ou nouveau) et un emprunteur.
+        Créer un prêt avec un objet (existant ou nouveau) et un emprunteur existant (UUID).
+        L'emprunteur doit être un contact avec invitation ACCEPTED (sinon 403).
         Le statut initial est toujours PENDING_CONFIRMATION.
         Une notification de confirmation est automatiquement envoyée à l'emprunteur.
       operationId: createLoan
@@ -330,29 +349,22 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateLoanDto'
             examples:
-              newItemAndBorrower:
-                summary: Nouvel objet + nouvel emprunteur
+              newItemExistingBorrower:
+                summary: Nouvel objet + contact existant (ACCEPTED)
                 value:
                   item:
                     name: Perceuse Bosch PSB 1800
                     description: Perceuse-visseuse sans fil 18V
                     category: TOOLS
                     estimatedValue: 129.99
-                  borrower:
-                    firstName: Marie
-                    lastName: Dupont
-                    email: marie.dupont@example.com
-                    phoneNumber: '+33612345678'
+                  borrowerId: 5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
                   returnDate: '2026-03-15'
                   notes: 'Avec 2 batteries et chargeur'
-              existingBorrower:
-                summary: Nouvel objet + emprunteur existant
+              existingItemExistingBorrower:
+                summary: Objet existant + contact existant
                 value:
-                  item:
-                    name: 'Livre : Clean Code'
-                    category: BOOKS
-                    estimatedValue: 35.00
-                  borrower: 5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
+                  item: 8a9b0c1d-2e3f-4a5b-6c7d-8e9f0a1b2c3d
+                  borrowerId: 5d6e7f8a-1b2c-4d3e-a5f6-7a8b9c0d1e2f
                   returnDate: '2026-03-01'
               moneyLoan:
                 summary: Prêt d'argent
@@ -361,10 +373,7 @@ paths:
                     name: Prêt personnel
                     category: MONEY
                     estimatedValue: 500.00
-                  borrower:
-                    firstName: Paul
-                    lastName: Martin
-                    email: paul.martin@example.com
+                  borrowerId: 7c8d9e0f-1a2b-3c4d-5e6f-7a8b9c0d1e2f
                   returnDate: '2026-04-15'
                   notes: 'Remboursement prévu fin avril'
       responses:
@@ -382,9 +391,75 @@ paths:
               schema:
                 $ref: '#/components/schemas/Loan'
         '400':
-          $ref: '#/components/responses/ValidationError'
+          description: Validation error ou date de retour invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                validationError:
+                  summary: Erreur de validation
+                  value:
+                    type: https://api.return.app/errors/validation-failed
+                    title: Validation Failed
+                    status: 400
+                    detail: The submitted data is invalid.
+                    instance: /v1/loans
+                    timestamp: '2026-01-15T10:30:00Z'
+                    requestId: req_example123
+                invalidReturnDate:
+                  summary: Date de retour dans le passé
+                  value:
+                    type: https://api.return.app/errors/invalid-return-date
+                    title: Invalid Return Date
+                    status: 400
+                    detail: Return date must be in the future.
+                    instance: /v1/loans
+                    timestamp: '2026-01-15T10:30:00Z'
+                    requestId: req_example123
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Accès interdit — ownership ou contact non accepté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                ownershipViolation:
+                  summary: L'objet ou l'emprunteur appartient à un autre utilisateur
+                  value:
+                    type: https://api.return.app/errors/forbidden
+                    title: Forbidden
+                    status: 403
+                    detail: This item belongs to another user.
+                    instance: /v1/loans
+                    timestamp: '2026-01-15T10:30:00Z'
+                    requestId: req_example123
+                contactNotAccepted:
+                  summary: Contact sans invitation acceptée
+                  value:
+                    type: https://api.return.app/errors/contact-not-accepted
+                    title: Contact Not Accepted
+                    status: 403
+                    detail: You can only create a loan for a contact with an ACCEPTED invitation.
+                    instance: /v1/loans
+                    timestamp: '2026-01-15T10:30:00Z'
+                    requestId: req_example123
+        '404':
+          description: L'objet ou l'emprunteur référencé par UUID n'existe pas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/item-not-found
+                title: Item Not Found
+                status: 404
+                detail: Item with the provided ID does not exist.
+                instance: /v1/loans
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
         '429':
           description: Limite de création dépassée (15 prêts/jour)
           content:
@@ -420,6 +495,10 @@ paths:
       description: |
         Retourne toutes les informations d'un prêt, y compris les objets, emprunteur,
         rappels planifiés et historique des changements de statut.
+
+        **Accès** : Accessible par le prêteur (créateur du prêt) OU par l'emprunteur lié
+        (dont le `Borrower.userId` correspond à l'utilisateur connecté).
+        Un utilisateur tiers (ni prêteur, ni emprunteur) reçoit une erreur 403.
       operationId: getLoanById
       responses:
         '200':
@@ -442,6 +521,9 @@ paths:
       description: |
         Permet de modifier les notes ou certaines métadonnées du prêt.
         **Note** : Pour changer le statut, utiliser `/loans/{loanId}/status`.
+
+        **Accès** : Seul le prêteur (créateur du prêt) peut modifier un prêt.
+        L'emprunteur reçoit une erreur 403.
       operationId: updateLoan
       requestBody:
         required: true
@@ -451,13 +533,15 @@ paths:
               type: object
               properties:
                 returnDate:
-                  type: string
+                  type: [string, 'null']
                   format: date
-                  nullable: true
                   example: '2026-03-20'
+                  description: |
+                    Nouvelle date de retour prévue (null = indéfinie).
+                    **Contrainte** : doit être au minimum 2 jours après la date de création du prêt (J+2).
+                    Si des rappels sont déjà planifiés, ils seront recalculés automatiquement.
                 notes:
-                  type: string
-                  nullable: true
+                  type: [string, 'null']
                   maxLength: 500
                   example: 'Retour décalé car travaux en cours'
       responses:
@@ -483,6 +567,9 @@ paths:
       description: |
         Archive le prêt (soft delete). Le prêt reste en base mais est marqué comme supprimé.
         Les rappels planifiés sont automatiquement annulés.
+
+        **Accès** : Seul le prêteur (créateur du prêt) peut supprimer un prêt.
+        L'emprunteur reçoit une erreur 403.
 
         **Attention** : Cette action est irréversible (pas de restauration en V1).
       operationId: deleteLoan
@@ -527,7 +614,6 @@ paths:
         Permet les transitions de statut suivantes selon le rôle :
 
         **Prêteur (propriétaire du prêt)** :
-        - `PENDING_CONFIRMATION` → `ACTIVE` (si timeout 48h atteint)
         - `ACTIVE` → `RETURNED` (confirmer retour)
         - `ACTIVE_BY_DEFAULT` → `RETURNED` (confirmer retour après confirmation automatique)
         - `AWAITING_RETURN` → `RETURNED` (confirmer retour tardif)
@@ -536,6 +622,11 @@ paths:
         **Emprunteur** :
         - `PENDING_CONFIRMATION` → `ACTIVE` (accepter)
         - `PENDING_CONFIRMATION` → `CONTESTED` (refuser)
+
+        **Système (automatique)** :
+        - `PENDING_CONFIRMATION` → `ACTIVE_BY_DEFAULT` (timeout 48h sans réponse de l'emprunteur)
+        - `ACTIVE` / `ACTIVE_BY_DEFAULT` → `AWAITING_RETURN` (date de retour dépassée)
+        - `AWAITING_RETURN` → `NOT_RETURNED` (tous les rappels épuisés)
 
         Les transitions invalides retournent une erreur 409 Conflict.
       operationId: updateLoanStatus
@@ -837,15 +928,13 @@ paths:
                   minLength: 3
                   maxLength: 100
                 description:
-                  type: string
-                  nullable: true
+                  type: [string, 'null']
                   maxLength: 500
                 category:
                   $ref: '#/components/schemas/ItemCategory'
                 estimatedValue:
-                  type: number
+                  type: [number, 'null']
                   format: float
-                  nullable: true
                   minimum: 0
       responses:
         '200':
@@ -1009,14 +1098,14 @@ paths:
           description: Champ de tri
           schema:
             type: string
-            enum: [firstName, lastName, trustScore, totalLoans]
+            enum: [ firstName, lastName, trustScore, totalLoans ]
             default: firstName
           example: trustScore
         - name: sortOrder
           in: query
           schema:
             type: string
-            enum: [asc, desc]
+            enum: [ asc, desc ]
             default: asc
         - name: page
           in: query
@@ -1148,8 +1237,7 @@ paths:
                   type: string
                   format: email
                 phoneNumber:
-                  type: string
-                  nullable: true
+                  type: [string, 'null']
       responses:
         '200':
           description: Contact mis à jour
@@ -1281,6 +1369,325 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # CONTACT INVITATIONS ENDPOINTS
+  # =============================================================================
+
+  /contact-invitations/search:
+    post:
+      tags:
+        - ContactInvitations
+      summary: Rechercher des utilisateurs inscrits
+      description: |
+        Recherche des utilisateurs inscrits sur Return par email, prénom ou nom.
+        Exclut l'utilisateur courant et les contacts déjà acceptés.
+        Indique le statut de la relation (nouveau / invitation en attente / déjà contact).
+      operationId: searchUsersForInvitation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  minLength: 2
+                  description: Terme de recherche (email, prénom ou nom)
+                  example: marie
+                page:
+                  type: integer
+                  default: 1
+                limit:
+                  type: integer
+                  default: 20
+                  maximum: 50
+      responses:
+        '200':
+          description: Résultats de recherche
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserSearchResults'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /contact-invitations:
+    post:
+      tags:
+        - ContactInvitations
+      summary: Envoyer une invitation de contact
+      description: |
+        Envoie une invitation à un utilisateur inscrit pour l'ajouter à son carnet de contacts.
+        L'invitation expire automatiquement après 30 jours.
+        Erreurs possibles : 400 self-invitation, 404 utilisateur introuvable, 409 invitation déjà envoyée.
+      operationId: sendContactInvitation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - recipientEmail
+              properties:
+                recipientEmail:
+                  type: string
+                  format: email
+                  description: Email de l'utilisateur à inviter (doit être inscrit)
+                  example: marie.dupont@example.com
+      responses:
+        '201':
+          description: Invitation envoyée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactInvitation'
+        '400':
+          description: Auto-invitation (impossible de s'inviter soi-même)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/self-invitation
+                title: Self Invitation
+                status: 400
+                detail: You cannot send an invitation to yourself.
+                instance: /v1/contact-invitations
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
+        '404':
+          description: Utilisateur introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/user-not-found
+                title: User Not Found
+                status: 404
+                detail: No registered user found with this email address.
+                instance: /v1/contact-invitations
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
+        '409':
+          description: Invitation déjà envoyée et en attente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-already-sent
+                title: Invitation Already Sent
+                status: 409
+                detail: A pending invitation already exists for this email.
+                instance: /v1/contact-invitations
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
+    get:
+      tags:
+        - ContactInvitations
+      summary: Lister les invitations (reçues ou envoyées)
+      description: |
+        Retourne la liste des invitations de l'utilisateur connecté.
+        Utiliser `direction=received` (défaut) pour les invitations reçues (perspective emprunteur),
+        ou `direction=sent` pour les invitations envoyées (perspective prêteur).
+        Filtrable par statut.
+      operationId: listInvitations
+      parameters:
+        - name: direction
+          in: query
+          required: false
+          description: Direction des invitations à lister
+          schema:
+            type: string
+            enum:
+              - sent
+              - received
+            default: received
+        - name: status
+          in: query
+          required: false
+          description: Filtrer par statut d'invitation
+          schema:
+            $ref: '#/components/schemas/InvitationStatus'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Liste des invitations (reçues ou envoyées)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedContactInvitations'
+
+  /contact-invitations/{invitationId}/accept:
+    post:
+      tags:
+        - ContactInvitations
+      summary: Accepter une invitation de contact
+      description: |
+        L'emprunteur (destinataire) accepte l'invitation. Cette action crée automatiquement
+        un Borrower dans le carnet de contacts de l'émetteur et émet l'événement
+        `ContactInvitationAccepted`. Seul le destinataire peut accepter.
+      operationId: acceptContactInvitation
+      parameters:
+        - name: invitationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Invitation acceptée — contact créé chez l'émetteur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactInvitation'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Invitation introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-not-found
+                title: Invitation Not Found
+                status: 404
+                detail: The invitation does not exist or does not belong to you.
+                instance: /v1/contact-invitations/inv-123/accept
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
+        '409':
+          description: Invitation déjà traitée (non PENDING)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-not-pending
+                title: Invitation Not Pending
+                status: 409
+                detail: This invitation has already been accepted, rejected, or expired.
+                instance: /v1/contact-invitations/inv-123/accept
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
+
+  /contact-invitations/{invitationId}/reject:
+    post:
+      tags:
+        - ContactInvitations
+      summary: Refuser une invitation de contact
+      description: |
+        L'emprunteur (destinataire) refuse l'invitation. Aucun contact n'est créé.
+        Seul le destinataire peut refuser. Retourne 409 si l'invitation n'est plus PENDING.
+      operationId: rejectContactInvitation
+      parameters:
+        - name: invitationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Invitation refusée
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Invitation introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-not-found
+                title: Invitation Not Found
+                status: 404
+                detail: The invitation does not exist or does not belong to you.
+                instance: /v1/contact-invitations/inv-123/reject
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
+        '409':
+          description: Invitation déjà traitée (non PENDING)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-not-pending
+                title: Invitation Not Pending
+                status: 409
+                detail: This invitation has already been accepted, rejected, or expired.
+                instance: /v1/contact-invitations/inv-123/reject
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
+
+  /contact-invitations/{invitationId}:
+    delete:
+      tags:
+        - ContactInvitations
+      summary: Annuler une invitation envoyée
+      description: |
+        Le prêteur (émetteur) annule une invitation PENDING qu'il a envoyée.
+        Impossible d'annuler une invitation déjà acceptée.
+      operationId: cancelContactInvitation
+      parameters:
+        - name: invitationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Invitation annulée
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Invitation introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-not-found
+                title: Invitation Not Found
+                status: 404
+                detail: The invitation does not exist or does not belong to you.
+                instance: /v1/contact-invitations/inv-123
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
+        '409':
+          description: Impossible d'annuler une invitation déjà acceptée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/invitation-already-accepted
+                title: Invitation Already Accepted
+                status: 409
+                detail: Cannot cancel an invitation that has already been accepted.
+                instance: /v1/contact-invitations/inv-123
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
 
   # =============================================================================
   # REMINDERS ENDPOINTS
@@ -1563,7 +1970,7 @@ paths:
                   description: Mot de passe pour confirmer
                 confirmationText:
                   type: string
-                  enum: ['DELETE MY ACCOUNT']
+                  enum: [ 'DELETE MY ACCOUNT' ]
                   description: 'Doit être exactement "DELETE MY ACCOUNT"'
       responses:
         '204':
@@ -1740,7 +2147,7 @@ paths:
             type: array
             items:
               type: string
-              enum: [RETURNED, NOT_RETURNED, CONTESTED, ABANDONED]
+              enum: [ RETURNED, NOT_RETURNED, CONTESTED, ABANDONED ]
           style: form
           explode: false
         - name: borrowerId
@@ -1849,9 +2256,8 @@ paths:
                           type: integer
                           example: 12
                         totalValue:
-                          type: number
+                          type: [number, 'null']
                           format: float
-                          nullable: true
                           example: 450.00
                   topBorrowers:
                     type: array
@@ -1895,7 +2301,7 @@ paths:
         Retourne le statut du serveur. Utilisé par le load balancer Fly.io
         pour déterminer si l'instance est vivante.
       operationId: healthCheck
-      security: []
+      security: [ ]
       responses:
         '200':
           description: Serveur opérationnel
@@ -1924,7 +2330,7 @@ paths:
         Vérifie que toutes les dépendances sont opérationnelles
         (PostgreSQL, Redis, FCM). Utilisé pour le routing du load balancer.
       operationId: readinessCheck
-      security: []
+      security: [ ]
       responses:
         '200':
           description: Toutes les dépendances opérationnelles
@@ -1941,15 +2347,15 @@ paths:
                     properties:
                       database:
                         type: string
-                        enum: [ok, error]
+                        enum: [ ok, error ]
                         example: ok
                       redis:
                         type: string
-                        enum: [ok, error]
+                        enum: [ ok, error ]
                         example: ok
                       fcm:
                         type: string
-                        enum: [ok, error]
+                        enum: [ ok, error ]
                         example: ok
         '503':
           description: Une ou plusieurs dépendances indisponibles
@@ -2020,34 +2426,31 @@ components:
         borrower:
           $ref: '#/components/schemas/Borrower'
         returnDate:
-          type: string
+          type: [string, 'null']
           format: date
-          nullable: true
           example: '2026-03-15'
-          description: Date de retour prévue (null = indéfinie)
+          description: |
+            Date de retour prévue (null = indéfinie).
+            Contrainte : minimum J+2 (2 jours après createdAt).
         status:
           $ref: '#/components/schemas/LoanStatus'
         confirmationDate:
-          type: string
+          type: [string, 'null']
           format: date-time
-          nullable: true
           example: '2026-02-08T14:30:00Z'
           description: Date de confirmation par l'emprunteur (null si non confirmé)
         returnedDate:
-          type: string
+          type: [string, 'null']
           format: date-time
-          nullable: true
           example: '2026-03-14T10:00:00Z'
           description: Date effective du retour (null si non rendu)
         notes:
-          type: string
-          nullable: true
+          type: [string, 'null']
           maxLength: 500
           example: 'Perceuse avec 2 batteries et chargeur'
           description: Notes optionnelles du prêteur
         contestReason:
-          type: string
-          nullable: true
+          type: [string, 'null']
           minLength: 10
           maxLength: 500
           example: "Je n'ai jamais emprunté cet objet. Il doit y avoir une erreur."
@@ -2082,7 +2485,7 @@ components:
         - **CONTESTED** : Prêt refusé/contesté par l'emprunteur
         - **AWAITING_RETURN** : Date de retour dépassée, rappels automatiques en cours
         - **RETURNED** : Objet restitué / argent remboursé, prêt clos avec succès
-        - **NOT_RETURNED** : Objet non restitué après les 5 rappels automatiques (J-3, J, J+7, J+14, J+21)
+        - **NOT_RETURNED** : Objet non restitué après les 5 rappels automatiques (PREVENTIVE, ON_DUE_DATE, FIRST_OVERDUE, SECOND_OVERDUE, FINAL_OVERDUE)
         - **ABANDONED** : Prêt abandonné manuellement par le prêteur
       example: ACTIVE
 
@@ -2105,16 +2508,14 @@ components:
           example: Perceuse Bosch PSB 1800
           description: Nom de l'objet (saisie manuelle)
         description:
-          type: string
-          nullable: true
+          type: [string, 'null']
           maxLength: 500
           example: Perceuse-visseuse sans fil 18V avec 2 batteries Li-Ion
         category:
           $ref: '#/components/schemas/ItemCategory'
         estimatedValue:
-          type: number
+          type: [number, 'null']
           format: float
-          nullable: true
           minimum: 0
           example: 129.99
           description: |
@@ -2166,9 +2567,8 @@ components:
           example: https://photos.return.app/loans/loan-123/photo-1.jpg
           description: URL publique de la photo (signée, expire après 7 jours)
         thumbnailUrl:
-          type: string
+          type: [string, 'null']
           format: uri
-          nullable: true
           example: https://photos.return.app/loans/loan-123/photo-1-thumb.jpg
           description: URL de la vignette optimisée (150x150px)
         uploadedAt:
@@ -2180,9 +2580,9 @@ components:
       type: object
       description: |
         Personne physique à qui un objet ou de l'argent est prêté.
-        Doit posséder un compte Return (inscription obligatoire).
-        Si le compte n'existe pas encore lors de la création du prêt, une invitation
-        est envoyée par email. Le prêt reste en PENDING_CONFIRMATION jusqu'à inscription.
+        Doit être un utilisateur inscrit sur Return.
+        La relation Contact est établie via une invitation mutuellement acceptée (`POST /contact-invitations`).
+        Un prêt ne peut être créé que pour un contact dont l'invitation est en statut ACCEPTED.
       required:
         - id
         - firstName
@@ -2209,14 +2609,12 @@ components:
           example: marie.dupont@example.com
           description: Email de l'emprunteur (obligatoire, sert d'identifiant pour le lien de compte)
         phoneNumber:
-          type: string
-          nullable: true
+          type: [string, 'null']
           example: '+33612345678'
           description: Numéro de téléphone (chiffré en base)
         userId:
-          type: string
+          type: [string, 'null']
           format: uuid
-          nullable: true
           example: 9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d
           description: ID utilisateur Return (null si invitation en attente)
         statistics:
@@ -2243,8 +2641,7 @@ components:
           example: 1
           description: Nombre de prêts non rendus (abandonné)
         averageReturnDelay:
-          type: integer
-          nullable: true
+          type: [integer, 'null']
           example: 2
           description: Délai moyen de retour en jours (+ = retard, - = avance, null si aucun prêt rendu)
         trustScore:
@@ -2288,9 +2685,8 @@ components:
           example: '2026-03-12T09:00:00Z'
           description: Date/heure programmée d'envoi
         sentAt:
-          type: string
+          type: [string, 'null']
           format: date-time
-          nullable: true
           example: '2026-03-12T09:00:15Z'
           description: Date/heure d'envoi effectif (null si non envoyé)
         message:
@@ -2310,7 +2706,7 @@ components:
         - FINAL_OVERDUE
       description: |
         Type de rappel (politique fixe, 5 rappels automatiques) :
-        - **PREVENTIVE** : 3 jours avant la date de retour (J-3)
+        - **PREVENTIVE** : Rappel préventif **adaptatif** — planifié à **J-3** si le délai avant retour (Δ) ≥ 3 jours, sinon à **J-1** (la veille). La contrainte de date minimum J+2 garantit que Δ ≥ 2, donc le PREVENTIVE est toujours envoyé avant l'échéance.
         - **ON_DUE_DATE** : Le jour de la date de retour (J)
         - **FIRST_OVERDUE** : 7 jours après la date de retour (J+7)
         - **SECOND_OVERDUE** : 14 jours après (J+14)
@@ -2318,6 +2714,13 @@ components:
 
         Chaque rappel utilise un template prédéfini avec pool aléatoire de messages
         diplomatiques, sélectionné automatiquement par tier. Pas de rappel manuel.
+
+        **Règle de planification du PREVENTIVE** :
+        ```
+        Δ = returnDate - createdAt (en jours)
+        Si Δ ≥ 3 → PREVENTIVE planifié à returnDate - 3 jours (J-3)
+        Si Δ < 3 → PREVENTIVE planifié à returnDate - 1 jour  (J-1)
+        ```
       example: PREVENTIVE
 
     ReminderStatus:
@@ -2378,9 +2781,8 @@ components:
         role:
           $ref: '#/components/schemas/UserRole'
         profilePicture:
-          type: string
+          type: [string, 'null']
           format: uri
-          nullable: true
           example: https://photos.return.app/users/user-123/avatar.jpg
         settings:
           $ref: '#/components/schemas/UserSettings'
@@ -2389,9 +2791,8 @@ components:
           format: date-time
           example: '2026-01-15T10:00:00Z'
         lastLoginAt:
-          type: string
+          type: [string, 'null']
           format: date-time
-          nullable: true
           example: '2026-02-08T14:00:00Z'
 
     UserRole:
@@ -2420,7 +2821,7 @@ components:
           description: Activer/désactiver les rappels automatiques
         language:
           type: string
-          enum: [fr, en]
+          enum: [ fr, en ]
           example: fr
           description: Langue de l'interface et des notifications (V1 — FR et EN)
         timezone:
@@ -2465,9 +2866,8 @@ components:
           type: boolean
           example: false
         relatedLoanId:
-          type: string
+          type: [string, 'null']
           format: uuid
-          nullable: true
           example: 7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d
           description: ID du prêt associé (null si notification système)
         createdAt:
@@ -2529,9 +2929,8 @@ components:
           type: string
           example: Doe
         profilePicture:
-          type: string
+          type: [string, 'null']
           format: uri
-          nullable: true
           example: https://photos.return.app/users/user-456/avatar.jpg
 
     # =========================================================================
@@ -2638,7 +3037,7 @@ components:
       type: object
       required:
         - item
-        - borrower
+        - borrowerId
       properties:
         item:
           oneOf:
@@ -2646,21 +3045,24 @@ components:
             - type: string
               format: uuid
               description: ID d'un objet existant
-        borrower:
-          oneOf:
-            - $ref: '#/components/schemas/CreateBorrowerDto'
-            - type: string
-              format: uuid
-              description: ID d'un emprunteur existant
+        borrowerId:
+          type: string
+          format: uuid
+          description: |
+            ID d'un emprunteur existant (contact avec invitation ACCEPTED).
+            La création inline de Borrower n'est plus supportée — utiliser le
+            système d'invitation (`POST /contact-invitations`) pour établir un contact.
         returnDate:
-          type: string
+          type: [string, 'null']
           format: date
-          nullable: true
           example: '2026-03-15'
-          description: Date de retour prévue (null = indéfinie)
+          description: |
+            Date de retour prévue (null = indéfinie).
+            **Contrainte** : doit être au minimum 2 jours après la date de création du prêt (J+2).
+            Exemple : si le prêt est créé le 16/03, la date de retour minimum est le 18/03.
+            Retourne une erreur 400 si la contrainte n'est pas respectée.
         notes:
-          type: string
-          nullable: true
+          type: [string, 'null']
           maxLength: 500
           example: 'Avec 2 batteries et chargeur'
 
@@ -2676,25 +3078,168 @@ components:
           maxLength: 100
           example: Perceuse Bosch PSB 1800
         description:
-          type: string
-          nullable: true
+          type: [string, 'null']
           maxLength: 500
           example: Perceuse-visseuse sans fil 18V
         category:
           $ref: '#/components/schemas/ItemCategory'
         estimatedValue:
-          type: number
+          type: [number, 'null']
           format: float
-          nullable: true
           minimum: 0
           example: 129.99
 
+    # =========================================================================
+    # CONTACT INVITATIONS SCHEMAS
+    # =========================================================================
+
+    InvitationStatus:
+      type: string
+      enum:
+        - PENDING
+        - ACCEPTED
+        - REJECTED
+        - EXPIRED
+      description: |
+        Cycle de vie d'une invitation de contact.
+        `PENDING` → `ACCEPTED` | `REJECTED` | `EXPIRED` (après 30 jours sans réponse)
+
+    ContactInvitation:
+      type: object
+      required:
+        - id
+        - status
+        - senderUser
+        - recipientEmail
+        - recipientUser
+        - createdAt
+        - expiresAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d
+        status:
+          $ref: '#/components/schemas/InvitationStatus'
+        senderUser:
+          type: object
+          required:
+            - id
+            - firstName
+            - lastName
+          properties:
+            id:
+              type: string
+              format: uuid
+            firstName:
+              type: string
+              example: Jean
+            lastName:
+              type: string
+              example: Martin
+        recipientEmail:
+          type: string
+          format: email
+          example: marie.dupont@example.com
+        recipientUser:
+          type: object
+          description: Informations du destinataire (toujours renseigné car le destinataire doit être inscrit)
+          required:
+            - id
+            - firstName
+            - lastName
+          properties:
+            id:
+              type: string
+              format: uuid
+            firstName:
+              type: string
+              example: Marie
+            lastName:
+              type: string
+              example: Dupont
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-03-05T10:00:00Z'
+        expiresAt:
+          type: string
+          format: date-time
+          example: '2026-04-04T10:00:00Z'
+        acceptedAt:
+          type: [string, 'null']
+          format: date-time
+          example: null
+        rejectedAt:
+          type: [string, 'null']
+          format: date-time
+          example: null
+
+    UserSearchResult:
+      type: object
+      required:
+        - id
+        - firstName
+        - lastName
+        - email
+        - alreadyContact
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d
+        firstName:
+          type: string
+          example: Marie
+        lastName:
+          type: string
+          example: Dupont
+        email:
+          type: string
+          format: email
+          example: marie.dupont@example.com
+        alreadyContact:
+          type: boolean
+          description: Vrai si une invitation ACCEPTED existe déjà entre ces deux utilisateurs
+          example: false
+        pendingInvitation:
+          type: boolean
+          description: Vrai si une invitation PENDING existe déjà pour cet utilisateur
+          example: false
+        pendingInvitationId:
+          type: [string, 'null']
+          format: uuid
+          description: ID de l'invitation PENDING existante (null si aucune invitation en cours). Permet d'annuler l'invitation via DELETE.
+          example: null
+
+    PaginatedContactInvitations:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactInvitation'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+
+    PaginatedUserSearchResults:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSearchResult'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+
     CreateBorrowerDto:
       type: object
+      deprecated: true
       description: |
-        Ajouter un emprunteur à son carnet de contacts.
-        L'email est obligatoire car il sert d'identifiant pour le lien vers le compte Return.
-        Si l'emprunteur n'a pas encore de compte, une invitation lui sera envoyée.
+        **Déprécié** — Utiliser le système d'invitation (`POST /contact-invitations`) pour établir
+        une relation de contact avec consentement mutuel.
+        Ce DTO est conservé pour compatibilité interne. La création de Borrower se fait désormais
+        automatiquement lors de l'acceptation d'une invitation (`POST /contact-invitations/{id}/accept`).
       required:
         - firstName
         - lastName
@@ -2716,8 +3261,7 @@ components:
           example: marie.dupont@example.com
           description: Email obligatoire (identifiant de compte Return)
         phoneNumber:
-          type: string
-          nullable: true
+          type: [string, 'null']
           example: '+33612345678'
 
     UpdateLoanStatusDto:
@@ -2728,8 +3272,7 @@ components:
         status:
           $ref: '#/components/schemas/LoanStatus'
         notes:
-          type: string
-          nullable: true
+          type: [string, 'null']
           maxLength: 500
           description: Raison du changement de statut (optionnel)
 
