@@ -132,6 +132,26 @@ const mockSearchResult = {
   pendingInvitationId: null,
 };
 
+const mockNotificationUnread = {
+  id: 'notif-unread-1234',
+  type: 'LOAN_CREATED' as const,
+  title: 'Nouveau prêt',
+  body: 'Marie Dupont vous a envoyé un prêt',
+  isRead: false,
+  relatedLoanId: '7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d',
+  createdAt: '2026-03-18T10:00:00Z',
+};
+
+const mockNotificationRead = {
+  id: 'notif-read-5678',
+  type: 'LOAN_CONFIRMED' as const,
+  title: 'Prêt confirmé',
+  body: 'Votre prêt a été confirmé par Marie Dupont',
+  isRead: true,
+  relatedLoanId: '7f3c9a2b-4d1e-4a8f-9c7b-1e3f5a6b8c9d',
+  createdAt: '2026-03-17T08:00:00Z',
+};
+
 export const handlers = [
   // =========================================================================
   // AUTHENTICATION
@@ -642,6 +662,56 @@ export const handlers = [
 
   // DELETE /contact-invitations/:invitationId
   http.delete(`${API_REAL}/contact-invitations/:invitationId`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // =========================================================================
+  // NOTIFICATIONS
+  // =========================================================================
+
+  // GET /notifications
+  http.get(`${API_REAL}/notifications`, ({ request }) => {
+    const url = new URL(request.url);
+    const unreadOnly = url.searchParams.get('unreadOnly');
+
+    const notifications =
+      unreadOnly === 'true'
+        ? [{ ...mockNotificationUnread }]
+        : [{ ...mockNotificationUnread }, { ...mockNotificationRead }];
+
+    return HttpResponse.json(
+      {
+        data: notifications,
+        pagination: {
+          currentPage: 1,
+          itemsPerPage: 20,
+          totalItems: notifications.length,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+      { status: 200 },
+    );
+  }),
+
+  // PATCH /notifications/:id/read
+  http.patch(`${API_REAL}/notifications/:id/read`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // POST /notifications/read-all
+  http.post(`${API_REAL}/notifications/read-all`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // POST /notifications/device-token
+  http.post(`${API_REAL}/notifications/device-token`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // DELETE /notifications/device-token
+  http.delete(`${API_REAL}/notifications/device-token`, () => {
     return new HttpResponse(null, { status: 204 });
   }),
 ];
