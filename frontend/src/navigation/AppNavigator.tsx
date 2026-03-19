@@ -4,8 +4,10 @@ import { Icon } from 'react-native-paper';
 import { LoanNavigator } from './LoanNavigator';
 import { BorrowerNavigator } from './BorrowerNavigator';
 import { ItemNavigator } from './ItemNavigator';
+import { NotificationNavigator } from './NotificationNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
 import { useContactInvitationStore } from '../stores/useContactInvitationStore';
+import { useNotificationStore } from '../stores/useNotificationStore';
 import type { AppTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
@@ -13,6 +15,7 @@ const Tab = createBottomTabNavigator<AppTabParamList>();
 export function AppNavigator() {
   const { t } = useTranslation();
   const pendingCount = useContactInvitationStore((s) => s.pendingCount);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
 
   return (
     <Tab.Navigator
@@ -65,6 +68,15 @@ export function AppNavigator() {
           tabBarIcon: ({ color, size }) => (
             <Icon source="package-variant-closed" color={color} size={size} />
           ),
+        }}
+      />
+      <Tab.Screen
+        name="NotificationTab"
+        component={NotificationNavigator}
+        options={{
+          title: t('navigation.notifications'),
+          tabBarIcon: ({ color, size }) => <Icon source="bell-outline" color={color} size={size} />,
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
         }}
       />
       <Tab.Screen
