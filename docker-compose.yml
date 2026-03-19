@@ -1,6 +1,9 @@
 # =============================================================================
 # Return — Docker Compose (Development)
 # =============================================================================
+# Usage: docker compose up
+# All services start with hot reload enabled.
+# =============================================================================
 
 services:
   postgres:
@@ -35,6 +38,47 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: return-backend
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: development
+      PORT: '3000'
+      API_PREFIX: v1
+      DATABASE_URL: postgresql://return:return_dev@postgres:5432/return_dev?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: dev-access-secret-change-in-production
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production
+      JWT_ACCESS_EXPIRATION: 15m
+      JWT_REFRESH_EXPIRATION: 30d
+      LOG_LEVEL: debug
+      CORS_ORIGIN: http://localhost:8081
+      CHOKIDAR_USEPOLLING: 'true'
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+      - ./backend/prisma.config.ts:/app/prisma.config.ts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  prism:
+    image: stoplight/prism:4
+    container_name: return-prism
+    restart: unless-stopped
+    ports:
+      - '4010:4010'
+    volumes:
+      - ./docs/openapi.yaml:/tmp/openapi.yaml:ro
+    command: mock /tmp/openapi.yaml --host 0.0.0.0 --port 4010 --cors
+
   frontend:
     build:
       context: ./frontend
@@ -44,13 +88,16 @@ services:
     ports:
       - '8081:8081'
     environment:
-      - BROWSER=none
+      BROWSER: 'none'
+      CHOKIDAR_USEPOLLING: 'true'
+      WATCHPACK_POLLING: 'true'
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./frontend/src:/app/src
+      - ./frontend/assets:/app/assets
+      - ./frontend/__mocks__:/app/__mocks__
     depends_on:
-      - postgres
-      - redis
+      - backend
+      - prism
 
 volumes:
   postgres_data:

@@ -1,3 +1,7 @@
+# =============================================================================
+# Return Frontend — Dockerfile Development (hot reload)
+# =============================================================================
+
 FROM node:22-slim
 
 WORKDIR /app
@@ -9,4 +13,4 @@ COPY . .
 
 EXPOSE 8081
 
-CMD ["npx", "expo", "start", "--web"]
+CMD ["npx", "expo", "start", "--web", "--host", "lan"]
