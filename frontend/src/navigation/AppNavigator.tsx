@@ -7,7 +7,6 @@ import { BorrowerNavigator } from './BorrowerNavigator';
 import { ItemNavigator } from './ItemNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
 import { NotificationListScreen } from '../screens/notifications/NotificationListScreen';
-import { NotificationBell } from '../components/notifications/NotificationBell';
 import { useContactInvitationStore } from '../stores/useContactInvitationStore';
 import type { AppTabParamList, RootAppStackParamList } from './types';
 
@@ -97,11 +96,7 @@ export function AppNavigator() {
         headerShadowVisible: false,
       }}
     >
-      <Stack.Screen
-        name="Tabs"
-        component={TabNavigator}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
       <Stack.Screen
         name="NotificationList"
         component={NotificationListScreen}
