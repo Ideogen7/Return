@@ -1,22 +1,39 @@
 import { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Icon, Text, SegmentedButtons, Button } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Icon,
+  Text,
+  SegmentedButtons,
+  Button,
+  Snackbar,
+} from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { CommonActions, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NotificationCard } from '../../components/notifications/NotificationCard';
 import { useNotificationStore } from '../../stores/useNotificationStore';
 import type { Notification } from '../../types/api.types';
 
 export function NotificationListScreen() {
   const { t } = useTranslation();
-  const { notifications, unreadCount, isLoading, fetchNotifications, markAsRead, markAllAsRead } =
-    useNotificationStore();
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    error,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+  } = useNotificationStore();
   const navigation = useNavigation();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      fetchNotifications({ unreadOnly: filter === 'unread' }).catch(() => {});
+      fetchNotifications({ unreadOnly: filter === 'unread' }).catch(() => {
+        setSnackbarVisible(true);
+      });
     }, [fetchNotifications, filter]),
   );
 
@@ -25,19 +42,31 @@ export function NotificationListScreen() {
       markAsRead(notification.id).catch(() => {});
     }
     if (notification.relatedLoanId) {
-      (navigation as { navigate: (screen: string, params?: object) => void }).navigate('LoanTab', {
-        screen: 'LoanDetail',
-        params: { id: notification.relatedLoanId },
-      });
+      navigation.dispatch(
+        CommonActions.navigate({
+          name: 'Tabs',
+          params: {
+            screen: 'LoanTab',
+            params: {
+              screen: 'LoanDetail',
+              params: { id: notification.relatedLoanId },
+            },
+          },
+        }),
+      );
     }
   };
 
   const handleMarkRead = (id: string) => {
-    markAsRead(id).catch(() => {});
+    markAsRead(id).catch(() => {
+      setSnackbarVisible(true);
+    });
   };
 
   const handleMarkAllRead = () => {
-    markAllAsRead().catch(() => {});
+    markAllAsRead().catch(() => {
+      setSnackbarVisible(true);
+    });
   };
 
   if (isLoading && notifications.length === 0) {
@@ -83,7 +112,11 @@ export function NotificationListScreen() {
           notifications.length === 0 ? styles.emptyContainer : styles.listContent
         }
         refreshing={isLoading}
-        onRefresh={() => fetchNotifications({ unreadOnly: filter === 'unread' }).catch(() => {})}
+        onRefresh={() =>
+          fetchNotifications({ unreadOnly: filter === 'unread' }).catch(() => {
+            setSnackbarVisible(true);
+          })
+        }
         ListEmptyComponent={
           <View style={styles.emptyState} testID="notification-empty">
             <Icon source="bell-off-outline" size={64} color="#C9C4BB" />
@@ -96,6 +129,15 @@ export function NotificationListScreen() {
           </View>
         }
       />
+
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+        action={{ label: 'OK', onPress: () => setSnackbarVisible(false) }}
+      >
+        {error?.detail ?? t('common.error')}
+      </Snackbar>
     </View>
   );
 }

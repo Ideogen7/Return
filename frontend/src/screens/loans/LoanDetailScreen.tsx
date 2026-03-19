@@ -497,7 +497,9 @@ export function LoanDetailScreen({ route, navigation }: Props) {
                     validRange={{ startDate: getMinReturnDate() }}
                   />
                 )}
-                <HelperText type="info">{t('loans.returnDateTooSoon')}</HelperText>
+                {calendarExpanded && (
+                  <HelperText type="info">{t('loans.returnDateTooSoon')}</HelperText>
+                )}
                 <TextInput
                   label={t('loans.notes')}
                   value={editNotes}

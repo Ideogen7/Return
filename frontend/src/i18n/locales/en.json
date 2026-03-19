@@ -270,7 +270,11 @@
     "loanContested": "Loan contested",
     "loanReturned": "Loan returned",
     "reminderSent": "Reminder sent",
-    "reminderReceived": "Reminder received"
+    "reminderReceived": "Reminder received",
+    "timeNow": "now",
+    "timeMinutes": "{{count}}min",
+    "timeHours": "{{count}}h",
+    "timeDays": "{{count}}d"
   },
   "navigation": {
     "loans": "Loans",

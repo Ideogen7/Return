@@ -97,19 +97,23 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   },
 
   registerDeviceToken: async (token, platform) => {
+    set({ isLoading: true, error: null });
     try {
       await apiClient.post('/notifications/device-token', { token, platform });
+      set({ isLoading: false });
     } catch (err) {
-      set({ error: extractProblemDetails(err) });
+      set({ isLoading: false, error: extractProblemDetails(err) });
       throw err;
     }
   },
 
   unregisterDeviceToken: async (token) => {
+    set({ isLoading: true, error: null });
     try {
       await apiClient.delete('/notifications/device-token', { data: { token } });
+      set({ isLoading: false });
     } catch (err) {
-      set({ error: extractProblemDetails(err) });
+      set({ isLoading: false, error: extractProblemDetails(err) });
       throw err;
     }
   },

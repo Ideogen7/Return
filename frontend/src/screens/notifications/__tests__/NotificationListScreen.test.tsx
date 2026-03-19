@@ -15,8 +15,10 @@ import type { RootAppStackParamList } from '../../../navigation/types';
 
 const Stack = createNativeStackNavigator<RootAppStackParamList>();
 
+let unmountFn: () => void;
+
 function renderScreen() {
-  return render(
+  const result = render(
     <PaperProvider>
       <NavigationContainer>
         <Stack.Navigator>
@@ -25,10 +27,13 @@ function renderScreen() {
       </NavigationContainer>
     </PaperProvider>,
   );
+  unmountFn = result.unmount;
+  return result;
 }
 
 beforeAll(() => server.listen());
 afterEach(() => {
+  unmountFn?.();
   server.resetHandlers();
   useNotificationStore.getState().reset();
 });
@@ -44,9 +49,9 @@ describe('NotificationListScreen', () => {
         expect(screen.getByTestId('notification-card-notif-unread-1234')).toBeTruthy();
         expect(screen.getByTestId('notification-card-notif-read-5678')).toBeTruthy();
       },
-      { timeout: 10000 },
+      { timeout: 5000 },
     );
-  }, 15000);
+  }, 10000);
 
   it('should render empty state when no notifications', async () => {
     server.use(

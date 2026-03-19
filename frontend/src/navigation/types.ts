@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -5,13 +7,13 @@ export type AuthStackParamList = {
 
 // Stack racine (wraps tabs + écrans globaux)
 export type RootAppStackParamList = {
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<AppTabParamList> | undefined;
   NotificationList: undefined;
 };
 
 // Tabs principaux
 export type AppTabParamList = {
-  LoanTab: undefined;
+  LoanTab: NavigatorScreenParams<LoanStackParamList> | undefined;
   BorrowerTab: undefined;
   ItemTab: undefined;
   ProfileTab: undefined;

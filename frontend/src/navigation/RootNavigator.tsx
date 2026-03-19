@@ -2,6 +2,11 @@ import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import i18n from '../config/i18n.config';
 import { useAuthStore } from '../stores/useAuthStore';
+import { useNotificationStore } from '../stores/useNotificationStore';
+import {
+  registerForPushNotifications,
+  setupNotificationHandler,
+} from '../services/pushNotifications';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 
@@ -18,6 +23,18 @@ export function RootNavigator() {
       i18n.changeLanguage(user.settings.language);
     }
   }, [user?.settings?.language]);
+
+  // Init notifications when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    setupNotificationHandler();
+    registerForPushNotifications().catch(() => {});
+    useNotificationStore
+      .getState()
+      .fetchNotifications()
+      .catch(() => {});
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return (

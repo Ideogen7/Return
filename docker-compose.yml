@@ -13,13 +13,13 @@ services:
     ports:
       - '5432:5432'
     environment:
-      POSTGRES_USER: return
-      POSTGRES_PASSWORD: return_dev
-      POSTGRES_DB: return_dev
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U return -d return_dev']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -50,10 +50,10 @@ services:
       NODE_ENV: development
       PORT: '3000'
       API_PREFIX: v1
-      DATABASE_URL: postgresql://return:return_dev@postgres:5432/return_dev?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       REDIS_URL: redis://redis:6379
-      JWT_ACCESS_SECRET: dev-access-secret-change-in-production
-      JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_EXPIRATION: 15m
       JWT_REFRESH_EXPIRATION: 30d
       LOG_LEVEL: debug
@@ -63,6 +63,12 @@ services:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
       - ./backend/prisma.config.ts:/app/prisma.config.ts
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,8 +102,10 @@ services:
       - ./frontend/assets:/app/assets
       - ./frontend/__mocks__:/app/__mocks__
     depends_on:
-      - backend
-      - prism
+      backend:
+        condition: service_healthy
+      prism:
+        condition: service_started
 
 volumes:
   postgres_data:

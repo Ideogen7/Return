@@ -270,7 +270,11 @@
     "loanContested": "Prêt contesté",
     "loanReturned": "Prêt rendu",
     "reminderSent": "Rappel envoyé",
-    "reminderReceived": "Rappel reçu"
+    "reminderReceived": "Rappel reçu",
+    "timeNow": "à l'instant",
+    "timeMinutes": "{{count}}min",
+    "timeHours": "{{count}}h",
+    "timeDays": "{{count}}j"
   },
   "navigation": {
     "loans": "Prêts",

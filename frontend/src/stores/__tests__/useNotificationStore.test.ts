@@ -95,18 +95,38 @@ describe('useNotificationStore', () => {
   });
 
   describe('registerDeviceToken', () => {
-    it('should register device token without error', async () => {
-      await expect(
-        useNotificationStore.getState().registerDeviceToken('expo-token-123', 'android'),
-      ).resolves.not.toThrow();
+    it('should register device token and call correct endpoint', async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+      server.use(
+        http.post(`${API_BASE}/notifications/device-token`, async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+
+      await useNotificationStore.getState().registerDeviceToken('expo-token-123', 'android');
+
+      expect(capturedBody).toEqual({ token: 'expo-token-123', platform: 'android' });
+      expect(useNotificationStore.getState().isLoading).toBe(false);
+      expect(useNotificationStore.getState().error).toBeNull();
     });
   });
 
   describe('unregisterDeviceToken', () => {
-    it('should unregister device token without error', async () => {
-      await expect(
-        useNotificationStore.getState().unregisterDeviceToken('expo-token-123'),
-      ).resolves.not.toThrow();
+    it('should unregister device token and call correct endpoint', async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+      server.use(
+        http.delete(`${API_BASE}/notifications/device-token`, async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+
+      await useNotificationStore.getState().unregisterDeviceToken('expo-token-123');
+
+      expect(capturedBody).toEqual({ token: 'expo-token-123' });
+      expect(useNotificationStore.getState().isLoading).toBe(false);
+      expect(useNotificationStore.getState().error).toBeNull();
     });
   });
 
@@ -150,6 +170,7 @@ describe('useNotificationStore', () => {
       expect(state.notifications).toHaveLength(0);
       expect(state.error).not.toBeNull();
       expect(state.error?.status).toBe(500);
+      expect(state.error?.detail).toBe('An unexpected error occurred');
       expect(state.isLoading).toBe(false);
     });
   });

@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { IconButton, Badge } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import { useNotificationStore } from '../../stores/useNotificationStore';
 
 export function NotificationBell() {
@@ -12,14 +12,17 @@ export function NotificationBell() {
       <IconButton
         icon="bell-outline"
         size={22}
-        onPress={() =>
-          (navigation as { navigate: (screen: string) => void }).navigate('NotificationList')
-        }
+        onPress={() => navigation.dispatch(CommonActions.navigate('NotificationList'))}
         testID="notification-bell-btn"
         style={styles.button}
       />
       {unreadCount > 0 && (
-        <Badge size={16} style={styles.badge} testID="notification-badge">
+        <Badge
+          size={16}
+          style={styles.badge}
+          testID="notification-badge"
+          accessibilityLabel={`${unreadCount} unread notifications`}
+        >
           {unreadCount}
         </Badge>
       )}

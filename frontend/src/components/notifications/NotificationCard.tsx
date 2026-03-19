@@ -1,5 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { Text, TouchableRipple, Icon, IconButton } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { ui } from '../../config/theme.config';
 import type { Notification, NotificationType } from '../../types/api.types';
 
@@ -19,7 +20,10 @@ interface NotificationCardProps {
   onMarkRead?: (id: string) => void;
 }
 
-function formatRelativeDate(dateStr: string): string {
+function formatRelativeDate(
+  dateStr: string,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
   const now = new Date();
   const date = new Date(dateStr);
   const diffMs = now.getTime() - date.getTime();
@@ -27,14 +31,15 @@ function formatRelativeDate(dateStr: string): string {
   const diffHours = Math.floor(diffMs / 3_600_000);
   const diffDays = Math.floor(diffMs / 86_400_000);
 
-  if (diffMin < 1) return 'now';
-  if (diffMin < 60) return `${diffMin}m`;
-  if (diffHours < 24) return `${diffHours}h`;
-  if (diffDays < 7) return `${diffDays}d`;
+  if (diffMin < 1) return t('notifications.timeNow');
+  if (diffMin < 60) return t('notifications.timeMinutes', { count: diffMin });
+  if (diffHours < 24) return t('notifications.timeHours', { count: diffHours });
+  if (diffDays < 7) return t('notifications.timeDays', { count: diffDays });
   return date.toLocaleDateString();
 }
 
 export function NotificationCard({ notification, onPress, onMarkRead }: NotificationCardProps) {
+  const { t } = useTranslation();
   const icon = ICON_MAP[notification.type] ?? 'bell-outline';
 
   return (
@@ -60,7 +65,7 @@ export function NotificationCard({ notification, onPress, onMarkRead }: Notifica
             {notification.body}
           </Text>
           <Text variant="labelSmall" style={styles.date}>
-            {formatRelativeDate(notification.createdAt)}
+            {formatRelativeDate(notification.createdAt, t)}
           </Text>
         </View>
 

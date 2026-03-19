@@ -325,7 +325,7 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
             validRange={{ startDate: getMinReturnDate() }}
           />
         )}
-        <HelperText type="info">{t('loans.returnDateTooSoon')}</HelperText>
+        {calendarExpanded && <HelperText type="info">{t('loans.returnDateTooSoon')}</HelperText>}
 
         <TextInput
           label={t('loans.notes')}
