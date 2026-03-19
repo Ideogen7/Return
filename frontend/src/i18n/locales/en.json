@@ -233,7 +233,8 @@
     "myBorrowings": "My borrowings",
     "emptyBorrowings": "No borrowings",
     "emptyBorrowingsSubtitle": "Loans addressed to you will appear here",
-    "filterLoans": "Filter loans"
+    "filterLoans": "Filter loans",
+    "returnDateTooSoon": "Return date must be at least 2 days from now"
   },
   "invitations": {
     "searchPlaceholder": "Search for a user by name or email...",
