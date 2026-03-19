@@ -1,9 +1,11 @@
 import { View, StyleSheet } from 'react-native';
 import { IconButton, Badge } from 'react-native-paper';
 import { CommonActions, useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useNotificationStore } from '../../stores/useNotificationStore';
 
 export function NotificationBell() {
+  const { t } = useTranslation();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const navigation = useNavigation();
 
@@ -21,7 +23,7 @@ export function NotificationBell() {
           size={16}
           style={styles.badge}
           testID="notification-badge"
-          accessibilityLabel={`${unreadCount} unread notifications`}
+          accessibilityLabel={t('notifications.unreadBadge', { count: unreadCount })}
         >
           {unreadCount}
         </Badge>

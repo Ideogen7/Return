@@ -275,7 +275,8 @@
     "timeNow": "à l'instant",
     "timeMinutes": "{{count}}min",
     "timeHours": "{{count}}h",
-    "timeDays": "{{count}}j"
+    "timeDays": "{{count}}j",
+    "unreadBadge": "{{count}} notifications non lues"
   },
   "navigation": {
     "loans": "Prêts",

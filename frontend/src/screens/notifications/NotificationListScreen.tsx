@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { CommonActions, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NotificationCard } from '../../components/notifications/NotificationCard';
 import { useNotificationStore } from '../../stores/useNotificationStore';
+import { getErrorMessage } from '../../utils/error';
 import type { Notification } from '../../types/api.types';
 
 export function NotificationListScreen() {
@@ -136,7 +137,7 @@ export function NotificationListScreen() {
         duration={3000}
         action={{ label: 'OK', onPress: () => setSnackbarVisible(false) }}
       >
-        {error?.detail ?? t('common.error')}
+        {error ? getErrorMessage(error, t) : t('common.error')}
       </Snackbar>
     </View>
   );
