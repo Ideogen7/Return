@@ -11,9 +11,9 @@ import { http, HttpResponse } from 'msw';
 import { NotificationListScreen } from '../NotificationListScreen';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import type { NotificationStackParamList } from '../../../navigation/types';
+import type { RootAppStackParamList } from '../../../navigation/types';
 
-const Stack = createNativeStackNavigator<NotificationStackParamList>();
+const Stack = createNativeStackNavigator<RootAppStackParamList>();
 
 function renderScreen() {
   return render(

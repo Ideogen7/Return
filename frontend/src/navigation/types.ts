@@ -3,12 +3,17 @@ export type AuthStackParamList = {
   Register: undefined;
 };
 
+// Stack racine (wraps tabs + écrans globaux)
+export type RootAppStackParamList = {
+  Tabs: undefined;
+  NotificationList: undefined;
+};
+
 // Tabs principaux
 export type AppTabParamList = {
   LoanTab: undefined;
   BorrowerTab: undefined;
   ItemTab: undefined;
-  NotificationTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -38,11 +43,6 @@ export type LoanStackParamList = {
   CreateLoan: undefined;
   LoanDetail: { id: string };
   ConfirmLoan: { id: string };
-};
-
-// Stack Notifications
-export type NotificationStackParamList = {
-  NotificationList: undefined;
 };
 
 // Stack Borrowers

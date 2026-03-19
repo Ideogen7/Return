@@ -5,6 +5,7 @@ import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
 import { ChangePasswordScreen } from '../screens/profile/ChangePasswordScreen';
 import { DeleteAccountScreen } from '../screens/profile/DeleteAccountScreen';
 import { SettingsScreen } from '../screens/profile/SettingsScreen';
+import { NotificationBell } from '../components/notifications/NotificationBell';
 import type { ProfileStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -24,7 +25,7 @@ export function ProfileNavigator() {
       <Stack.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ title: t('profile.title') }}
+        options={{ title: t('profile.title'), headerRight: () => <NotificationBell /> }}
       />
       <Stack.Screen
         name="EditProfile"

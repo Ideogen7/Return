@@ -4,6 +4,7 @@ import { ItemListScreen } from '../screens/items/ItemListScreen';
 import { CreateItemScreen } from '../screens/items/CreateItemScreen';
 import { ItemDetailScreen } from '../screens/items/ItemDetailScreen';
 import { EditItemScreen } from '../screens/items/EditItemScreen';
+import { NotificationBell } from '../components/notifications/NotificationBell';
 import type { ItemStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<ItemStackParamList>();
@@ -23,7 +24,7 @@ export function ItemNavigator() {
       <Stack.Screen
         name="ItemList"
         component={ItemListScreen}
-        options={{ title: t('items.title') }}
+        options={{ title: t('items.title'), headerRight: () => <NotificationBell /> }}
       />
       <Stack.Screen
         name="CreateItem"
