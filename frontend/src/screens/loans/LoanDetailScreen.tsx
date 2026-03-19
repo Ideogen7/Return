@@ -19,6 +19,7 @@ import { CATEGORY_I18N } from '../../components/items/ItemCard';
 import { useLoanStore } from '../../stores/useLoanStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { parseProblemDetails, getErrorMessage } from '../../utils/error';
+import { getMinReturnDate } from '../../utils/date';
 import { ui } from '../../config/theme.config';
 import type { LoanStackParamList } from '../../navigation/types';
 import type { AxiosError } from 'axios';
@@ -493,8 +494,10 @@ export function LoanDetailScreen({ route, navigation }: Props) {
                       }
                       setCalendarExpanded(false);
                     }}
+                    validRange={{ startDate: getMinReturnDate() }}
                   />
                 )}
+                <HelperText type="info">{t('loans.returnDateTooSoon')}</HelperText>
                 <TextInput
                   label={t('loans.notes')}
                   value={editNotes}
