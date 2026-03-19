@@ -256,12 +256,29 @@
     "statusRejected": "Rejected",
     "statusExpired": "Expired"
   },
+  "notifications": {
+    "title": "Notifications",
+    "emptyList": "No notifications",
+    "emptyListSubtitle": "Your notifications will appear here",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "unread": "Unread",
+    "all": "All",
+    "loanCreated": "New loan created",
+    "loanConfirmed": "Loan confirmed",
+    "loanAutoConfirmed": "Loan auto-confirmed",
+    "loanContested": "Loan contested",
+    "loanReturned": "Loan returned",
+    "reminderSent": "Reminder sent",
+    "reminderReceived": "Reminder received"
+  },
   "navigation": {
     "loans": "Loans",
     "tracking": "Tracking",
     "contacts": "Contacts",
     "items": "Items",
     "history": "History",
-    "profile": "Profile"
+    "profile": "Profile",
+    "notifications": "Notifications"
   }
 }

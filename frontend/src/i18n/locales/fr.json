@@ -256,12 +256,29 @@
     "statusRejected": "Refusée",
     "statusExpired": "Expirée"
   },
+  "notifications": {
+    "title": "Notifications",
+    "emptyList": "Aucune notification",
+    "emptyListSubtitle": "Vos notifications apparaîtront ici",
+    "markAllRead": "Tout marquer comme lu",
+    "markRead": "Marquer comme lu",
+    "unread": "Non lues",
+    "all": "Toutes",
+    "loanCreated": "Nouveau prêt créé",
+    "loanConfirmed": "Prêt confirmé",
+    "loanAutoConfirmed": "Prêt confirmé automatiquement",
+    "loanContested": "Prêt contesté",
+    "loanReturned": "Prêt rendu",
+    "reminderSent": "Rappel envoyé",
+    "reminderReceived": "Rappel reçu"
+  },
   "navigation": {
     "loans": "Prêts",
     "tracking": "Suivi",
     "contacts": "Contacts",
     "items": "Objets",
     "history": "Historique",
-    "profile": "Profil"
+    "profile": "Profil",
+    "notifications": "Notifications"
   }
 }

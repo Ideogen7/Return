@@ -244,6 +244,36 @@ export interface SendInvitationDto {
   recipientEmail: string;
 }
 
+// --- Notifications ---
+
+export type NotificationType =
+  | 'LOAN_CREATED'
+  | 'LOAN_CONFIRMED'
+  | 'LOAN_AUTO_CONFIRMED'
+  | 'LOAN_CONTESTED'
+  | 'LOAN_RETURNED'
+  | 'REMINDER_SENT'
+  | 'REMINDER_RECEIVED';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  isRead: boolean;
+  relatedLoanId?: string | null;
+  createdAt: string;
+}
+
+export interface RegisterDeviceTokenDto {
+  token: string;
+  platform: 'ios' | 'android' | 'web';
+}
+
+export interface UnregisterDeviceTokenDto {
+  token: string;
+}
+
 // --- Pagination ---
 
 export interface PaginationMetadata {
