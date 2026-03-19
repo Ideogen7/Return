@@ -417,6 +417,16 @@ paths:
                     instance: /v1/loans
                     timestamp: '2026-01-15T10:30:00Z'
                     requestId: req_example123
+                returnDateTooSoon:
+                  summary: Date de retour trop proche (< J+2)
+                  value:
+                    type: https://api.return.app/errors/return-date-too-soon
+                    title: Return Date Too Soon
+                    status: 400
+                    detail: Return date must be at least 2 days after the loan creation date.
+                    instance: /v1/loans
+                    timestamp: '2026-01-15T10:30:00Z'
+                    requestId: req_example123
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1881,6 +1891,87 @@ paths:
           description: Toutes les notifications marquées comme lues
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /notifications/device-token:
+    post:
+      tags:
+        - Notifications
+      summary: Enregistrer ou mettre à jour le token FCM du device
+      description: |
+        Enregistre le token Firebase Cloud Messaging (FCM) du device de l'utilisateur
+        pour recevoir les notifications push. Appelé au démarrage de l'app et à chaque
+        rafraîchissement du token FCM.
+
+        Si un token existe déjà pour ce device, il est mis à jour.
+        Un utilisateur peut avoir plusieurs tokens (plusieurs devices).
+      operationId: registerDeviceToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - platform
+              properties:
+                token:
+                  type: string
+                  description: Token FCM du device
+                  example: 'fMI-QUBYRE...:APA91bH...'
+                platform:
+                  type: string
+                  enum: [ios, android, web]
+                  description: Plateforme du device
+                  example: android
+      responses:
+        '204':
+          description: Token enregistré avec succès
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags:
+        - Notifications
+      summary: Supprimer le token FCM du device (désinscription push)
+      description: |
+        Supprime le token FCM du device courant. Appelé lors du logout
+        pour arrêter de recevoir les notifications push sur ce device.
+      operationId: unregisterDeviceToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  description: Token FCM à supprimer
+                  example: 'fMI-QUBYRE...:APA91bH...'
+      responses:
+        '204':
+          description: Token supprimé avec succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Token introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://api.return.app/errors/device-token-not-found
+                title: Device Token Not Found
+                status: 404
+                detail: The specified device token was not found.
+                instance: /v1/notifications/device-token
+                timestamp: '2026-01-15T10:30:00Z'
+                requestId: req_example123
 
   # =============================================================================
   # USERS ENDPOINTS
