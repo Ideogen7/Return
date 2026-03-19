@@ -64,6 +64,7 @@ const ERROR_TYPE_MAP: Record<string, string> = {
   'https://api.return.app/errors/invitation-already-accepted': 'errors.invitationAlreadyAccepted',
   'https://api.return.app/errors/contact-not-accepted': 'errors.contactNotAccepted',
   'https://api.return.app/errors/return-date-too-soon': 'loans.returnDateTooSoon',
+  'https://api.return.app/errors/device-token-not-found': 'errors.deviceTokenNotFound',
 };
 
 // Traduit un ProblemDetails en message lisible

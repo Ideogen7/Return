@@ -133,7 +133,8 @@
     "invitationNotFound": "Invitation introuvable",
     "invitationNotPending": "Cette invitation n'est plus en attente",
     "invitationAlreadyAccepted": "Cette invitation a déjà été acceptée",
-    "contactNotAccepted": "Ce contact n'a pas encore accepté votre invitation"
+    "contactNotAccepted": "Ce contact n'a pas encore accepté votre invitation",
+    "deviceTokenNotFound": "Jeton d'appareil introuvable"
   },
   "items": {
     "title": "Objets",

@@ -133,7 +133,8 @@
     "invitationNotFound": "Invitation not found",
     "invitationNotPending": "This invitation is no longer pending",
     "invitationAlreadyAccepted": "This invitation has already been accepted",
-    "contactNotAccepted": "This contact has not yet accepted your invitation"
+    "contactNotAccepted": "This contact has not yet accepted your invitation",
+    "deviceTokenNotFound": "Device token not found"
   },
   "items": {
     "title": "Items",
