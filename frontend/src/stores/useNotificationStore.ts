@@ -29,7 +29,7 @@ const initialState = {
   error: null as ProblemDetails | null,
 };
 
-export const useNotificationStore = create<NotificationState>((set) => ({
+export const useNotificationStore = create<NotificationState>((set, get) => ({
   ...initialState,
 
   fetchNotifications: async (options) => {
@@ -56,10 +56,12 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   },
 
   markAsRead: async (id) => {
+    // Capture whether we actually decremented
+    const wasUnread = !!get().notifications.find((n) => n.id === id && !n.isRead);
+
     // Optimistic update
     set((state) => {
       const updated = state.notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n));
-      const wasUnread = state.notifications.find((n) => n.id === id && !n.isRead);
       return {
         notifications: updated,
         unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
@@ -68,14 +70,14 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     try {
       await apiClient.patch(`/notifications/${id}/read`);
     } catch (err) {
-      // Revert on failure
+      // Revert on failure — only increment if we actually decremented
       set((state) => {
         const reverted = state.notifications.map((n) =>
           n.id === id ? { ...n, isRead: false } : n,
         );
         return {
           notifications: reverted,
-          unreadCount: state.unreadCount + 1,
+          unreadCount: wasUnread ? state.unreadCount + 1 : state.unreadCount,
           error: extractProblemDetails(err),
         };
       });

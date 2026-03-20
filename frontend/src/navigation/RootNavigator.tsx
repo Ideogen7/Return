@@ -69,6 +69,7 @@ export function RootNavigator() {
       }
     };
 
+    useNotificationStore.getState().fetchUnreadCount();
     start();
 
     const subscription = AppState.addEventListener('change', (state) => {
