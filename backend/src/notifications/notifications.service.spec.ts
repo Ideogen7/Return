@@ -2,6 +2,7 @@ import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { NotificationType, ReminderType } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service.js';
+import { FirebaseService } from '../firebase/firebase.service.js';
 import { NotificationsService } from './notifications.service.js';
 
 // =============================================================================
@@ -21,10 +22,15 @@ const NOTIFICATION_ID = 'notif-1111-1111-1111-111111111111';
 describe('NotificationsService', () => {
   let service: NotificationsService;
   let prisma: DeepMockProxy<PrismaService>;
+  let firebaseService: { isAvailable: jest.Mock; sendToMultipleTokens: jest.Mock };
 
   beforeEach(() => {
     prisma = mockDeep<PrismaService>();
-    service = new NotificationsService(prisma);
+    firebaseService = {
+      isAvailable: jest.fn().mockReturnValue(false),
+      sendToMultipleTokens: jest.fn().mockResolvedValue(undefined),
+    };
+    service = new NotificationsService(prisma, firebaseService as unknown as FirebaseService);
   });
 
   describe('sendReminderNotification', () => {
