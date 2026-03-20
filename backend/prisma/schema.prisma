@@ -55,6 +55,10 @@ model User {
   sentInvitations     ContactInvitation[] @relation("SentInvitations")
   receivedInvitations ContactInvitation[] @relation("ReceivedInvitations")
 
+  // Notifications & Device Tokens (Sprint 5)
+  notifications Notification[]
+  deviceTokens  DeviceToken[]
+
   @@map("users")
 }
 
@@ -228,6 +232,10 @@ model Loan {
   lender   User     @relation("LenderLoans", fields: [lenderId], references: [id])
   borrower Borrower @relation(fields: [borrowerId], references: [id])
 
+  // Reminders & Notifications (Sprint 5)
+  reminders     Reminder[]
+  notifications Notification[]
+
   @@index([lenderId, status])
   @@index([borrowerId])
   @@index([itemId])
@@ -273,4 +281,121 @@ model ContactInvitation {
   @@index([recipientUserId])
   @@index([status])
   @@map("contact_invitations")
+}
+
+// =============================================================================
+// REMINDERS (Rappels automatiques — politique fixe)
+// =============================================================================
+
+/// Type de rappel (politique fixe, 5 rappels automatiques)
+enum ReminderType {
+  PREVENTIVE       // J-3 si Δ ≥ 3 jours, sinon J-1
+  ON_DUE_DATE      // Le jour de la date de retour (J)
+  FIRST_OVERDUE    // J+7
+  SECOND_OVERDUE   // J+14
+  FINAL_OVERDUE    // J+21, dernier rappel avant NOT_RETURNED
+}
+
+/// Statut du cycle de vie d'un rappel
+enum ReminderStatus {
+  SCHEDULED  // Planifié, non encore envoyé
+  SENT       // Envoyé avec succès
+  FAILED     // Échec d'envoi (retry prévu)
+  CANCELLED  // Annulé (prêt rendu avant l'envoi)
+}
+
+/// Canal de notification (V1 : push uniquement)
+enum NotificationChannel {
+  PUSH
+}
+
+/// Rappel automatique envoyé à l'emprunteur via push notification
+model Reminder {
+  id           String              @id @default(uuid()) @db.Uuid
+  loanId       String              @map("loan_id") @db.Uuid
+  type         ReminderType
+  status       ReminderStatus      @default(SCHEDULED)
+  scheduledFor DateTime            @map("scheduled_for")
+  sentAt       DateTime?           @map("sent_at")
+  message      String?
+  channel      NotificationChannel @default(PUSH)
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([loanId, status])
+  @@index([status, scheduledFor])
+  @@map("reminders")
+}
+
+// =============================================================================
+// NOTIFICATIONS (Notifications push — FCM)
+// =============================================================================
+
+/// Type de notification push
+enum NotificationType {
+  LOAN_CREATED
+  LOAN_CONFIRMED
+  LOAN_AUTO_CONFIRMED
+  LOAN_CONTESTED
+  LOAN_RETURNED
+  REMINDER_SENT
+  REMINDER_RECEIVED
+}
+
+/// Notification push reçue par l'utilisateur
+model Notification {
+  id            String           @id @default(uuid()) @db.Uuid
+  userId        String           @map("user_id") @db.Uuid
+  type          NotificationType
+  title         String
+  body          String
+  isRead        Boolean          @default(false) @map("is_read")
+  relatedLoanId String?          @map("related_loan_id") @db.Uuid
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relatedLoan Loan? @relation(fields: [relatedLoanId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// =============================================================================
+// DEVICE TOKENS (Tokens FCM pour notifications push)
+// =============================================================================
+
+/// Plateforme du device mobile
+enum DevicePlatform {
+  ios
+  android
+  web
+}
+
+/// Token FCM d'un device utilisateur pour recevoir les notifications push
+model DeviceToken {
+  id       String         @id @default(uuid()) @db.Uuid
+  userId   String         @map("user_id") @db.Uuid
+  token    String
+  platform DevicePlatform
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Un token FCM est unique globalement
+  @@unique([token])
+  @@index([userId])
+  @@map("device_tokens")
 }
