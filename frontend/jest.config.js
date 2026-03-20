@@ -9,6 +9,7 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^msw/node$': '<rootDir>/node_modules/msw/lib/node/index.js',
     '^expo-image-picker$': '<rootDir>/__mocks__/expo-image-picker.ts',
+    '^expo-notifications$': '<rootDir>/__mocks__/expo-notifications.ts',
   },
   collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/**/types/**'],
 };

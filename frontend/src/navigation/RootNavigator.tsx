@@ -1,7 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import i18n from '../config/i18n.config';
 import { useAuthStore } from '../stores/useAuthStore';
+import { useNotificationStore } from '../stores/useNotificationStore';
+import {
+  registerForPushNotifications,
+  setupNotificationHandler,
+} from '../services/pushNotifications';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 
@@ -18,6 +23,29 @@ export function RootNavigator() {
       i18n.changeLanguage(user.settings.language);
     }
   }, [user?.settings?.language]);
+
+  // Init / cleanup notifications on auth changes
+  const deviceTokenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const store = useNotificationStore.getState();
+
+    if (isAuthenticated) {
+      setupNotificationHandler();
+      registerForPushNotifications()
+        .then((token) => {
+          deviceTokenRef.current = token;
+        })
+        .catch(() => {});
+      store.fetchNotifications().catch(() => {});
+    } else {
+      if (deviceTokenRef.current) {
+        store.unregisterDeviceToken(deviceTokenRef.current).catch(() => {});
+        deviceTokenRef.current = null;
+      }
+      store.reset();
+    }
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return (

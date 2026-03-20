@@ -29,6 +29,7 @@
     "expo-image-picker": "~17.0.10",
     "expo-linear-gradient": "^15.0.8",
     "expo-localization": "~17.0.8",
+    "expo-notifications": "~0.32.16",
     "expo-status-bar": "~3.0.9",
     "i18next": "^25.8.10",
     "react": "19.1.0",

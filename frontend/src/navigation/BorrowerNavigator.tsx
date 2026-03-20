@@ -7,6 +7,7 @@ import { EditBorrowerScreen } from '../screens/borrowers/EditBorrowerScreen';
 import { SearchBorrowerScreen } from '../screens/borrowers/SearchBorrowerScreen';
 import { BorrowerInvitationsScreen } from '../screens/borrowers/BorrowerInvitationsScreen';
 import { SentInvitationsScreen } from '../screens/borrowers/SentInvitationsScreen';
+import { NotificationBell } from '../components/notifications/NotificationBell';
 import type { BorrowerStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<BorrowerStackParamList>();
@@ -26,7 +27,7 @@ export function BorrowerNavigator() {
       <Stack.Screen
         name="BorrowerList"
         component={BorrowerListScreen}
-        options={{ title: t('borrowers.title') }}
+        options={{ title: t('borrowers.title'), headerRight: () => <NotificationBell /> }}
       />
       <Stack.Screen
         name="CreateBorrower"

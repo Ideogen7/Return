@@ -133,7 +133,8 @@
     "invitationNotFound": "Invitation not found",
     "invitationNotPending": "This invitation is no longer pending",
     "invitationAlreadyAccepted": "This invitation has already been accepted",
-    "contactNotAccepted": "This contact has not yet accepted your invitation"
+    "contactNotAccepted": "This contact has not yet accepted your invitation",
+    "deviceTokenNotFound": "Device token not found"
   },
   "items": {
     "title": "Items",
@@ -233,7 +234,8 @@
     "myBorrowings": "My borrowings",
     "emptyBorrowings": "No borrowings",
     "emptyBorrowingsSubtitle": "Loans addressed to you will appear here",
-    "filterLoans": "Filter loans"
+    "filterLoans": "Filter loans",
+    "returnDateTooSoon": "Return date must be at least 2 days from now"
   },
   "invitations": {
     "searchPlaceholder": "Search for a user by name or email...",
@@ -255,12 +257,34 @@
     "statusRejected": "Rejected",
     "statusExpired": "Expired"
   },
+  "notifications": {
+    "title": "Notifications",
+    "emptyList": "No notifications",
+    "emptyListSubtitle": "Your notifications will appear here",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "unread": "Unread",
+    "all": "All",
+    "loanCreated": "New loan created",
+    "loanConfirmed": "Loan confirmed",
+    "loanAutoConfirmed": "Loan auto-confirmed",
+    "loanContested": "Loan contested",
+    "loanReturned": "Loan returned",
+    "reminderSent": "Reminder sent",
+    "reminderReceived": "Reminder received",
+    "timeNow": "now",
+    "timeMinutes": "{{count}}min",
+    "timeHours": "{{count}}h",
+    "timeDays": "{{count}}d",
+    "unreadBadge": "{{count}} unread notifications"
+  },
   "navigation": {
     "loans": "Loans",
     "tracking": "Tracking",
     "contacts": "Contacts",
     "items": "Items",
     "history": "History",
-    "profile": "Profile"
+    "profile": "Profile",
+    "notifications": "Notifications"
   }
 }

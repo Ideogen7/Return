@@ -18,6 +18,7 @@ import { ui } from '../../config/theme.config';
 import { useItemStore } from '../../stores/useItemStore';
 import { useBorrowerStore } from '../../stores/useBorrowerStore';
 import { ItemForm } from '../items/ItemForm';
+import { getMinReturnDate } from '../../utils/date';
 import type { CreateLoanDto, CreateItemDto } from '../../types/api.types';
 
 type LoanType = 'OBJECT' | 'MONEY';
@@ -321,8 +322,10 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
               }
               setCalendarExpanded(false);
             }}
+            validRange={{ startDate: getMinReturnDate() }}
           />
         )}
+        {calendarExpanded && <HelperText type="info">{t('loans.returnDateTooSoon')}</HelperText>}
 
         <TextInput
           label={t('loans.notes')}

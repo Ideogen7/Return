@@ -133,7 +133,8 @@
     "invitationNotFound": "Invitation introuvable",
     "invitationNotPending": "Cette invitation n'est plus en attente",
     "invitationAlreadyAccepted": "Cette invitation a déjà été acceptée",
-    "contactNotAccepted": "Ce contact n'a pas encore accepté votre invitation"
+    "contactNotAccepted": "Ce contact n'a pas encore accepté votre invitation",
+    "deviceTokenNotFound": "Jeton d'appareil introuvable"
   },
   "items": {
     "title": "Objets",
@@ -233,7 +234,8 @@
     "myBorrowings": "Mes emprunts",
     "emptyBorrowings": "Aucun emprunt",
     "emptyBorrowingsSubtitle": "Les prêts qui vous sont adressés apparaîtront ici",
-    "filterLoans": "Filtrer les prêts"
+    "filterLoans": "Filtrer les prêts",
+    "returnDateTooSoon": "La date de retour doit être au minimum dans 2 jours"
   },
   "invitations": {
     "searchPlaceholder": "Rechercher un utilisateur par nom ou email...",
@@ -255,12 +257,34 @@
     "statusRejected": "Refusée",
     "statusExpired": "Expirée"
   },
+  "notifications": {
+    "title": "Notifications",
+    "emptyList": "Aucune notification",
+    "emptyListSubtitle": "Vos notifications apparaîtront ici",
+    "markAllRead": "Tout marquer comme lu",
+    "markRead": "Marquer comme lu",
+    "unread": "Non lues",
+    "all": "Toutes",
+    "loanCreated": "Nouveau prêt créé",
+    "loanConfirmed": "Prêt confirmé",
+    "loanAutoConfirmed": "Prêt confirmé automatiquement",
+    "loanContested": "Prêt contesté",
+    "loanReturned": "Prêt rendu",
+    "reminderSent": "Rappel envoyé",
+    "reminderReceived": "Rappel reçu",
+    "timeNow": "à l'instant",
+    "timeMinutes": "{{count}}min",
+    "timeHours": "{{count}}h",
+    "timeDays": "{{count}}j",
+    "unreadBadge": "{{count}} notifications non lues"
+  },
   "navigation": {
     "loans": "Prêts",
     "tracking": "Suivi",
     "contacts": "Contacts",
     "items": "Objets",
     "history": "Historique",
-    "profile": "Profil"
+    "profile": "Profil",
+    "notifications": "Notifications"
   }
 }

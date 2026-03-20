@@ -4,6 +4,7 @@ import { LoanListScreen } from '../screens/loans/LoanListScreen';
 import { CreateLoanScreen } from '../screens/loans/CreateLoanScreen';
 import { LoanDetailScreen } from '../screens/loans/LoanDetailScreen';
 import { ConfirmLoanScreen } from '../screens/loans/ConfirmLoanScreen';
+import { NotificationBell } from '../components/notifications/NotificationBell';
 import type { LoanStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<LoanStackParamList>();
@@ -23,7 +24,7 @@ export function LoanNavigator() {
       <Stack.Screen
         name="LoanList"
         component={LoanListScreen}
-        options={{ title: t('navigation.tracking') }}
+        options={{ title: t('navigation.tracking'), headerRight: () => <NotificationBell /> }}
       />
       <Stack.Screen
         name="CreateLoan"

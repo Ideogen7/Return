@@ -1,16 +1,19 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Icon } from 'react-native-paper';
 import { LoanNavigator } from './LoanNavigator';
 import { BorrowerNavigator } from './BorrowerNavigator';
 import { ItemNavigator } from './ItemNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
+import { NotificationListScreen } from '../screens/notifications/NotificationListScreen';
 import { useContactInvitationStore } from '../stores/useContactInvitationStore';
-import type { AppTabParamList } from './types';
+import type { AppTabParamList, RootAppStackParamList } from './types';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
+const Stack = createNativeStackNavigator<RootAppStackParamList>();
 
-export function AppNavigator() {
+function TabNavigator() {
   const { t } = useTranslation();
   const pendingCount = useContactInvitationStore((s) => s.pendingCount);
 
@@ -78,5 +81,27 @@ export function AppNavigator() {
         }}
       />
     </Tab.Navigator>
+  );
+}
+
+export function AppNavigator() {
+  const { t } = useTranslation();
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: '#FFFFFF' },
+        headerTintColor: '#2D3748',
+        headerTitleStyle: { fontWeight: '600' },
+        headerShadowVisible: false,
+      }}
+    >
+      <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="NotificationList"
+        component={NotificationListScreen}
+        options={{ title: t('notifications.title') }}
+      />
+    </Stack.Navigator>
   );
 }
