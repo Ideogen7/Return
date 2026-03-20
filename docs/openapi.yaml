@@ -2171,6 +2171,24 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+    delete:
+      tags:
+        - Users
+      summary: Supprimer la photo de profil
+      description: Supprime la photo de profil de l'utilisateur authentifié.
+      operationId: deleteUserAvatar
+      responses:
+        '204':
+          description: Photo de profil supprimée avec succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Aucune photo de profil à supprimer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
   /users/me/password:
     patch:
       tags:

@@ -569,19 +569,18 @@ const MOCK_MODULES = {
 
 **Backend disponible** :
 
-- `GET /loans/{loanId}/reminders` (200 OK)
-- `GET /reminders/{id}` (200 OK)
-- `POST /reminders/{id}/cancel` (204 No Content, 409 Already sent)
+- `POST /notifications/device-token` (204 No Content)
+- `DELETE /notifications/device-token` (204 No Content)
 - `GET /notifications` (200 OK, filtre unreadOnly)
-- `PATCH /notifications/{id}/read` (200 OK)
+- `PATCH /notifications/{id}/read` (204 No Content)
 - `POST /notifications/read-all` (204 No Content)
 
 > **Note** : Les rappels sont 100% automatiques (politique fixe adaptative : PREVENTIVE J-3 ou J-1 selon le délai, puis
 > J, J+7, J+14, J+21).
 > 5 rappels planifiés automatiquement à la création d'un prêt avec date d'échéance (minimum J+2).
-> Les 3 endpoints `/reminders/*` ne sont pas utilisés en V1 (réservés pour rappels manuels V2+).
-> **Endpoints actifs en V1** : 3 endpoints notifications (`GET /notifications`, `PATCH /notifications/{id}/read`,
-> `POST /notifications/read-all`).
+> Les 3 endpoints `/reminders/*` ne sont pas implémentés en V1 (réservés pour rappels manuels V2+).
+> **Endpoints actifs en V1** : 5 endpoints notifications (`POST/DELETE /notifications/device-token`,
+> `GET /notifications`, `PATCH /notifications/{id}/read`, `POST /notifications/read-all`).
 
 **Action Frontend** :
 
@@ -671,7 +670,7 @@ const MOCK_MODULES = {
 
 ### Backend
 
-- [ ] ~40 endpoints fonctionnels (conformes à openapi.yaml, 3 endpoints Reminders réservés V2)
+- [ ] ~49 endpoints fonctionnels (conformes à openapi.yaml, 3 endpoints Reminders réservés V2)
 - [ ] Couverture de tests : Domain 95%, Services 90%, Controllers 70%
 - [ ] Smoke tests d'intégration passent (flow complet register -> loan -> return)
 - [ ] Documentation Swagger accessible `/api/docs`
