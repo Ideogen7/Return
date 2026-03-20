@@ -17,39 +17,19 @@ import type { UpdateLoanDto } from './dto/update-loan.dto.js';
 import type { ContestLoanDto } from './dto/contest-loan.dto.js';
 import type { CreateItemDto } from '../items/dto/create-item.dto.js';
 import { ContactInvitationsService } from '../contact-invitations/contact-invitations.service.js';
-import type {
-  LoanResponse,
-  LoanItemResponse,
-  LoanLenderResponse,
-  LoanBorrowerResponse,
-  PaginatedLoansResponse,
-} from './interfaces/loan-response.interface.js';
-import type { PhotoResponse } from '../items/interfaces/photo-response.interface.js';
+import type { LoanResponse, PaginatedLoansResponse } from './interfaces/loan-response.interface.js';
+import { toLoanResponse, type LoanWithRelations } from '../common/mappers/loan-response.mapper.js';
 import type {
   LoanCreatedEvent,
   LoanStatusChangedEvent,
   LoanDeletedEvent,
 } from '../common/events/loan.events.js';
-import {
-  LoanStatus,
-  Prisma,
-  type Loan,
-  type Item,
-  type Photo,
-  type User,
-  type Borrower,
-} from '@prisma/client';
+import { LoanStatus, Prisma } from '@prisma/client';
 
 const MAX_LOANS_PER_DAY = 15;
 
 /** Transaction client type for Prisma interactive transactions */
 type TxClient = Prisma.TransactionClient;
-
-type LoanWithRelations = Loan & {
-  item: Item & { photos: Photo[] };
-  lender: User;
-  borrower: Borrower;
-};
 
 @Injectable()
 export class LoansService {
@@ -158,7 +138,7 @@ export class LoansService {
     };
     this.eventEmitter.emit(LOAN_EVENTS.CREATED, event);
 
-    return this.toLoanResponse(loan);
+    return toLoanResponse(loan);
   }
 
   // =========================================================================
@@ -220,7 +200,7 @@ export class LoansService {
     const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
 
     return {
-      data: loans.map((loan) => this.toLoanResponse(loan as LoanWithRelations)),
+      data: loans.map((loan) => toLoanResponse(loan as LoanWithRelations)),
       pagination: {
         currentPage: page,
         totalPages,
@@ -235,7 +215,7 @@ export class LoansService {
   async findById(loanId: string, userId: string): Promise<LoanResponse> {
     const loan = await this.findLoanOrFail(loanId);
     this.resolveUserRole(loan, userId, `/v1/loans/${loanId}`);
-    return this.toLoanResponse(loan);
+    return toLoanResponse(loan);
   }
 
   /**
@@ -267,7 +247,7 @@ export class LoansService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return loans.map((loan) => this.toLoanResponse(loan as LoanWithRelations));
+    return loans.map((loan) => toLoanResponse(loan as LoanWithRelations));
   }
 
   // =========================================================================
@@ -313,7 +293,7 @@ export class LoansService {
       },
     });
 
-    return this.toLoanResponse(updated as LoanWithRelations);
+    return toLoanResponse(updated as LoanWithRelations);
   }
 
   // =========================================================================
@@ -412,7 +392,7 @@ export class LoansService {
     };
     this.eventEmitter.emit(LOAN_EVENTS.STATUS_CHANGED, event);
 
-    return this.toLoanResponse(updated as LoanWithRelations);
+    return toLoanResponse(updated as LoanWithRelations);
   }
 
   async confirm(loanId: string, userId: string): Promise<LoanResponse> {
@@ -450,7 +430,7 @@ export class LoansService {
     };
     this.eventEmitter.emit(LOAN_EVENTS.STATUS_CHANGED, event);
 
-    return this.toLoanResponse(updated as LoanWithRelations);
+    return toLoanResponse(updated as LoanWithRelations);
   }
 
   async contest(loanId: string, userId: string, dto: ContestLoanDto): Promise<LoanResponse> {
@@ -488,7 +468,7 @@ export class LoansService {
     };
     this.eventEmitter.emit(LOAN_EVENTS.STATUS_CHANGED, event);
 
-    return this.toLoanResponse(updated as LoanWithRelations);
+    return toLoanResponse(updated as LoanWithRelations);
   }
 
   // =========================================================================
@@ -653,71 +633,5 @@ export class LoansService {
         path,
       );
     }
-  }
-
-  private toLoanResponse(loan: LoanWithRelations): LoanResponse {
-    return {
-      id: loan.id,
-      item: this.toItemResponse(loan.item),
-      lender: this.toLenderResponse(loan.lender),
-      borrower: this.toBorrowerResponse(loan.borrower),
-      returnDate: loan.returnDate ? loan.returnDate.toISOString().slice(0, 10) : null,
-      status: loan.status,
-      confirmationDate: loan.confirmationDate?.toISOString() ?? null,
-      returnedDate: loan.returnedDate?.toISOString() ?? null,
-      notes: loan.notes,
-      contestReason: loan.contestReason,
-      createdAt: loan.createdAt.toISOString(),
-      updatedAt: loan.updatedAt.toISOString(),
-    };
-  }
-
-  private toItemResponse(item: Item & { photos: Photo[] }): LoanItemResponse {
-    return {
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      category: item.category,
-      estimatedValue: item.estimatedValue,
-      photos: item.photos.map((p) => this.toPhotoResponse(p)),
-      createdAt: item.createdAt.toISOString(),
-    };
-  }
-
-  private toPhotoResponse(photo: Photo): PhotoResponse {
-    return {
-      id: photo.id,
-      url: photo.url,
-      thumbnailUrl: photo.thumbnailUrl,
-      uploadedAt: photo.uploadedAt.toISOString(),
-    };
-  }
-
-  private toLenderResponse(user: User): LoanLenderResponse {
-    return {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      profilePicture: user.profilePicture,
-    };
-  }
-
-  private toBorrowerResponse(borrower: Borrower): LoanBorrowerResponse {
-    return {
-      id: borrower.id,
-      firstName: borrower.firstName,
-      lastName: borrower.lastName,
-      email: borrower.email,
-      phoneNumber: borrower.phoneNumber,
-      userId: borrower.userId,
-      statistics: {
-        totalLoans: borrower.totalLoans,
-        returnedOnTime: borrower.returnedOnTime,
-        returnedLate: borrower.returnedLate,
-        notReturned: borrower.notReturned,
-        averageReturnDelay: borrower.averageReturnDelay,
-        trustScore: borrower.trustScore,
-      },
-    };
   }
 }

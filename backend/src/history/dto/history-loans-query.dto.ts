@@ -1,13 +1,4 @@
-import {
-  IsArray,
-  IsDateString,
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsUUID,
-  Max,
-  Min,
-} from 'class-validator';
+import { IsArray, IsDateString, IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { LoanStatus } from '@prisma/client';
 
@@ -28,7 +19,7 @@ export class HistoryLoansQueryDto {
     return value;
   })
   @IsArray()
-  @IsEnum(LoanStatus, { each: true })
+  @IsIn(['RETURNED', 'NOT_RETURNED', 'CONTESTED', 'ABANDONED'], { each: true })
   status?: LoanStatus[];
 
   @IsOptional()

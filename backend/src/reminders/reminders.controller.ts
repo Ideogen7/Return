@@ -10,15 +10,12 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
-import type { Reminder } from '@prisma/client';
 import { ReminderStatus } from '@prisma/client';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
-import { PrismaService } from '../prisma/prisma.service.js';
 import {
   ConflictException,
-  ForbiddenException,
   NotFoundException,
 } from '../common/exceptions/problem-details.exception.js';
 import { RemindersService } from './reminders.service.js';
@@ -39,10 +36,7 @@ import type { ReminderResponse } from './interfaces/reminder-response.interface.
 @Controller()
 @UseGuards(JwtAuthGuard)
 export class RemindersController {
-  constructor(
-    private readonly remindersService: RemindersService,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly remindersService: RemindersService) {}
 
   /**
    * GET /v1/loans/:loanId/reminders
@@ -53,11 +47,17 @@ export class RemindersController {
     @Param('loanId', ParseUUIDPipe) loanId: string,
     @Request() req: ExpressRequest & { user: AuthenticatedUser },
   ): Promise<ReminderResponse[]> {
-    const loan = await this.findLoanOrFail(loanId, `/v1/loans/${loanId}/reminders`);
-    this.assertLender(loan.lenderId, req.user.userId, `/v1/loans/${loanId}/reminders`);
+    const loan = await this.remindersService.findLoanForReminders(
+      loanId,
+      `/v1/loans/${loanId}/reminders`,
+    );
+    this.remindersService.assertLoanOwnership(
+      loan,
+      req.user.userId,
+      `/v1/loans/${loanId}/reminders`,
+    );
 
-    const reminders = await this.remindersService.findByLoanId(loanId);
-    return reminders.map((r) => this.toReminderResponse(r));
+    return this.remindersService.findByLoanId(loanId);
   }
 
   /**
@@ -75,9 +75,13 @@ export class RemindersController {
       throw new NotFoundException('Reminder', reminderId, `/v1/reminders/${reminderId}`);
     }
 
-    this.assertLender(reminder.loan.lenderId, req.user.userId, `/v1/reminders/${reminderId}`);
+    this.remindersService.assertLoanOwnership(
+      reminder.loan,
+      req.user.userId,
+      `/v1/reminders/${reminderId}`,
+    );
 
-    return this.toReminderResponse(reminder);
+    return this.remindersService.toReminderResponse(reminder);
   }
 
   /**
@@ -96,8 +100,8 @@ export class RemindersController {
       throw new NotFoundException('Reminder', reminderId, `/v1/reminders/${reminderId}/cancel`);
     }
 
-    this.assertLender(
-      reminder.loan.lenderId,
+    this.remindersService.assertLoanOwnership(
+      reminder.loan,
       req.user.userId,
       `/v1/reminders/${reminderId}/cancel`,
     );
@@ -112,59 +116,5 @@ export class RemindersController {
     }
 
     await this.remindersService.cancel(reminderId);
-  }
-
-  // ===========================================================================
-  // Private helpers
-  // ===========================================================================
-
-  /**
-   * Finds a loan by ID or throws 404. Only fetches the lenderId
-   * (minimal select for ownership check).
-   */
-  private async findLoanOrFail(
-    loanId: string,
-    path: string,
-  ): Promise<{ id: string; lenderId: string }> {
-    const loan = await this.prisma.loan.findUnique({
-      where: { id: loanId },
-      select: { id: true, lenderId: true, deletedAt: true },
-    });
-
-    if (!loan || loan.deletedAt !== null) {
-      throw new NotFoundException('Loan', loanId, path);
-    }
-
-    return loan;
-  }
-
-  /**
-   * Asserts the current user is the lender of the loan.
-   */
-  private assertLender(lenderId: string, userId: string, path: string): void {
-    if (lenderId !== userId) {
-      throw new ForbiddenException(
-        'forbidden',
-        'Forbidden',
-        'Only the lender can access reminders for this loan.',
-        path,
-      );
-    }
-  }
-
-  /**
-   * Maps a Prisma Reminder to the API response DTO.
-   */
-  private toReminderResponse(reminder: Reminder): ReminderResponse {
-    return {
-      id: reminder.id,
-      loanId: reminder.loanId,
-      type: reminder.type,
-      status: reminder.status,
-      scheduledFor: reminder.scheduledFor.toISOString(),
-      sentAt: reminder.sentAt?.toISOString() ?? null,
-      message: reminder.message,
-      channel: reminder.channel,
-    };
   }
 }

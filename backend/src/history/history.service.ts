@@ -2,34 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { HistoryLoansQueryDto } from './dto/history-loans-query.dto.js';
 import { TERMINAL_STATUSES } from './dto/history-loans-query.dto.js';
-import type {
-  LoanResponse,
-  PaginatedLoansResponse,
-} from '../loans/interfaces/loan-response.interface.js';
+import type { PaginatedLoansResponse } from '../loans/interfaces/loan-response.interface.js';
 import type { PhotoResponse } from '../items/interfaces/photo-response.interface.js';
-import type {
-  LoanItemResponse,
-  LoanLenderResponse,
-  LoanBorrowerResponse,
-} from '../loans/interfaces/loan-response.interface.js';
 import {
-  LoanStatus,
-  type Loan,
-  type Item,
-  type Photo,
-  type User,
-  type Borrower,
-} from '@prisma/client';
-
-// =========================================================================
-// Types
-// =========================================================================
-
-type LoanWithRelations = Loan & {
-  item: Item & { photos: Photo[] };
-  lender: User;
-  borrower: Borrower;
-};
+  toLoanResponse,
+  toPhotoResponse,
+  type LoanWithRelations,
+} from '../common/mappers/loan-response.mapper.js';
+import { LoanStatus } from '@prisma/client';
 
 /** Active statuses used for overview counting */
 const ACTIVE_STATUSES: LoanStatus[] = [
@@ -73,8 +53,11 @@ export interface MostLoanedItem {
   item: {
     id: string;
     name: string;
+    description: string | null;
     category: string;
+    estimatedValue: number | null;
     photos: PhotoResponse[];
+    createdAt: string;
   };
   loanCount: number;
 }
@@ -154,7 +137,7 @@ export class HistoryService {
     const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
 
     return {
-      data: loans.map((loan) => this.toLoanResponse(loan as LoanWithRelations)),
+      data: loans.map((loan) => toLoanResponse(loan as LoanWithRelations)),
       pagination: {
         currentPage: page,
         totalPages,
@@ -233,7 +216,7 @@ export class HistoryService {
       }
 
       if (validCount > 0) {
-        averageReturnDelay = Math.round(totalDays / validCount);
+        averageReturnDelay = Math.round((totalDays / validCount) * 10) / 10;
       }
     }
 
@@ -254,7 +237,7 @@ export class HistoryService {
   private async computeByCategory(userId: string): Promise<CategoryStats[]> {
     const loans = await this.prisma.loan.findMany({
       where: { lenderId: userId, deletedAt: null },
-      include: { item: true },
+      select: { item: { select: { category: true, estimatedValue: true } } },
     });
 
     const categoryMap = new Map<string, { count: number; totalValue: number | null }>();
@@ -290,9 +273,22 @@ export class HistoryService {
   private async computeTopBorrowers(userId: string): Promise<TopBorrower[]> {
     const loans = await this.prisma.loan.findMany({
       where: { lenderId: userId, deletedAt: null },
-      include: {
+      select: {
+        borrowerId: true,
         borrower: {
-          include: { user: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            trustScore: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                profilePicture: true,
+              },
+            },
+          },
         },
       },
     });
@@ -300,7 +296,7 @@ export class HistoryService {
     const borrowerMap = new Map<
       string,
       {
-        borrower: Borrower & { user: User | null };
+        borrower: (typeof loans)[number]['borrower'];
         count: number;
       }
     >();
@@ -311,7 +307,7 @@ export class HistoryService {
         existing.count++;
       } else {
         borrowerMap.set(loan.borrowerId, {
-          borrower: loan.borrower as Borrower & { user: User | null },
+          borrower: loan.borrower,
           count: 1,
         });
       }
@@ -340,15 +336,28 @@ export class HistoryService {
   private async computeMostLoanedItems(userId: string): Promise<MostLoanedItem[]> {
     const loans = await this.prisma.loan.findMany({
       where: { lenderId: userId, deletedAt: null },
-      include: {
-        item: { include: { photos: true } },
+      select: {
+        itemId: true,
+        item: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            category: true,
+            estimatedValue: true,
+            createdAt: true,
+            photos: {
+              select: { id: true, url: true, thumbnailUrl: true, uploadedAt: true },
+            },
+          },
+        },
       },
     });
 
     const itemMap = new Map<
       string,
       {
-        item: Item & { photos: Photo[] };
+        item: (typeof loans)[number]['item'];
         count: number;
       }
     >();
@@ -359,7 +368,7 @@ export class HistoryService {
         existing.count++;
       } else {
         itemMap.set(loan.itemId, {
-          item: loan.item as Item & { photos: Photo[] },
+          item: loan.item,
           count: 1,
         });
       }
@@ -373,80 +382,13 @@ export class HistoryService {
       item: {
         id: item.id,
         name: item.name,
+        description: item.description,
         category: item.category,
-        photos: item.photos.map((p) => this.toPhotoResponse(p)),
+        estimatedValue: item.estimatedValue,
+        photos: item.photos.map((p) => toPhotoResponse(p)),
+        createdAt: item.createdAt.toISOString(),
       },
       loanCount: count,
     }));
-  }
-
-  // =======================================================================
-  // Private: Response mapping (same pattern as LoansService)
-  // =======================================================================
-
-  private toLoanResponse(loan: LoanWithRelations): LoanResponse {
-    return {
-      id: loan.id,
-      item: this.toItemResponse(loan.item),
-      lender: this.toLenderResponse(loan.lender),
-      borrower: this.toBorrowerResponse(loan.borrower),
-      returnDate: loan.returnDate ? loan.returnDate.toISOString().slice(0, 10) : null,
-      status: loan.status,
-      confirmationDate: loan.confirmationDate?.toISOString() ?? null,
-      returnedDate: loan.returnedDate?.toISOString() ?? null,
-      notes: loan.notes,
-      contestReason: loan.contestReason,
-      createdAt: loan.createdAt.toISOString(),
-      updatedAt: loan.updatedAt.toISOString(),
-    };
-  }
-
-  private toItemResponse(item: Item & { photos: Photo[] }): LoanItemResponse {
-    return {
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      category: item.category,
-      estimatedValue: item.estimatedValue,
-      photos: item.photos.map((p) => this.toPhotoResponse(p)),
-      createdAt: item.createdAt.toISOString(),
-    };
-  }
-
-  private toPhotoResponse(photo: Photo): PhotoResponse {
-    return {
-      id: photo.id,
-      url: photo.url,
-      thumbnailUrl: photo.thumbnailUrl,
-      uploadedAt: photo.uploadedAt.toISOString(),
-    };
-  }
-
-  private toLenderResponse(user: User): LoanLenderResponse {
-    return {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      profilePicture: user.profilePicture,
-    };
-  }
-
-  private toBorrowerResponse(borrower: Borrower): LoanBorrowerResponse {
-    return {
-      id: borrower.id,
-      firstName: borrower.firstName,
-      lastName: borrower.lastName,
-      email: borrower.email,
-      phoneNumber: borrower.phoneNumber,
-      userId: borrower.userId,
-      statistics: {
-        totalLoans: borrower.totalLoans,
-        returnedOnTime: borrower.returnedOnTime,
-        returnedLate: borrower.returnedLate,
-        notReturned: borrower.notReturned,
-        averageReturnDelay: borrower.averageReturnDelay,
-        trustScore: borrower.trustScore,
-      },
-    };
   }
 }

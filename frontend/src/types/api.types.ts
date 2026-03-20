@@ -295,33 +295,6 @@ export interface Reminder {
   channel: 'PUSH';
 }
 
-// --- Historique & Statistiques ---
-
-export interface HistoryStatistics {
-  overview: {
-    totalLoans: number;
-    activeLoans: number;
-    returnedLoans: number;
-    notReturnedLoans: number;
-    contestedLoans: number;
-    averageReturnDelay: number | null;
-  };
-  byCategory: Array<{
-    category: ItemCategory;
-    count: number;
-    totalValue: number | null;
-  }>;
-  topBorrowers: Array<{
-    borrower: UserSummary;
-    loanCount: number;
-    trustScore: number;
-  }>;
-  mostLoanedItems: Array<{
-    item: Item;
-    loanCount: number;
-  }>;
-}
-
 // --- Pagination ---
 
 export interface PaginationMetadata {

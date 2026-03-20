@@ -5,13 +5,13 @@ import { ReminderStatus, ReminderType, NotificationChannel } from '@prisma/clien
 import { RemindersController } from './reminders.controller.js';
 import { RemindersService } from './reminders.service.js';
 import type { ReminderWithLoan } from './reminders.service.js';
-import { PrismaService } from '../prisma/prisma.service.js';
 import {
   ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '../common/exceptions/problem-details.exception.js';
 import type { AuthenticatedUser } from '../auth/strategies/jwt.strategy.js';
+import type { ReminderResponse } from './interfaces/reminder-response.interface.js';
 
 // =============================================================================
 // Fixtures
@@ -41,7 +41,7 @@ const MOCK_OTHER_AUTH_USER: AuthenticatedUser = {
 const NOW = new Date('2026-04-07T10:00:00.000Z');
 const SCHEDULED_FOR = new Date('2026-04-10T00:00:00.000Z');
 
-const MOCK_REMINDER = {
+const MOCK_REMINDER_WITH_LOAN: ReminderWithLoan = {
   id: REMINDER_ID,
   loanId: LOAN_ID,
   type: ReminderType.PREVENTIVE,
@@ -52,18 +52,24 @@ const MOCK_REMINDER = {
   channel: NotificationChannel.PUSH,
   createdAt: NOW,
   updatedAt: NOW,
-};
-
-const MOCK_REMINDER_WITH_LOAN: ReminderWithLoan = {
-  ...MOCK_REMINDER,
   loan: { id: LOAN_ID, lenderId: LENDER_USER_ID },
 };
 
 const MOCK_SENT_REMINDER_WITH_LOAN: ReminderWithLoan = {
-  ...MOCK_REMINDER,
+  ...MOCK_REMINDER_WITH_LOAN,
   status: ReminderStatus.SENT,
   sentAt: new Date('2026-04-10T08:00:00.000Z'),
-  loan: { id: LOAN_ID, lenderId: LENDER_USER_ID },
+};
+
+const MOCK_REMINDER_RESPONSE: ReminderResponse = {
+  id: REMINDER_ID,
+  loanId: LOAN_ID,
+  type: ReminderType.PREVENTIVE,
+  status: ReminderStatus.SCHEDULED,
+  scheduledFor: SCHEDULED_FOR.toISOString(),
+  sentAt: null,
+  message: null,
+  channel: NotificationChannel.PUSH,
 };
 
 // =============================================================================
@@ -73,18 +79,13 @@ const MOCK_SENT_REMINDER_WITH_LOAN: ReminderWithLoan = {
 describe('RemindersController', () => {
   let controller: RemindersController;
   let remindersService: DeepMockProxy<RemindersService>;
-  let prisma: DeepMockProxy<PrismaService>;
 
   beforeEach(async () => {
     remindersService = mockDeep<RemindersService>();
-    prisma = mockDeep<PrismaService>();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RemindersController],
-      providers: [
-        { provide: RemindersService, useValue: remindersService },
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [{ provide: RemindersService, useValue: remindersService }],
     }).compile();
 
     controller = module.get<RemindersController>(RemindersController);
@@ -96,32 +97,34 @@ describe('RemindersController', () => {
 
   describe('findByLoan', () => {
     it('should return all reminders for a loan', async () => {
-      prisma.loan.findUnique.mockResolvedValue({
+      remindersService.findLoanForReminders.mockResolvedValue({
         id: LOAN_ID,
         lenderId: LENDER_USER_ID,
-        deletedAt: null,
-      } as never);
-      remindersService.findByLoanId.mockResolvedValue([MOCK_REMINDER]);
+      });
+      remindersService.assertLoanOwnership.mockReturnValue(undefined);
+      remindersService.findByLoanId.mockResolvedValue([MOCK_REMINDER_RESPONSE]);
 
       const mockReq = { user: MOCK_AUTH_USER };
       const result = await controller.findByLoan(LOAN_ID, mockReq as never);
 
       expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        id: REMINDER_ID,
-        loanId: LOAN_ID,
-        type: ReminderType.PREVENTIVE,
-        status: ReminderStatus.SCHEDULED,
-        scheduledFor: SCHEDULED_FOR.toISOString(),
-        sentAt: null,
-        message: null,
-        channel: NotificationChannel.PUSH,
-      });
+      expect(result[0]).toEqual(MOCK_REMINDER_RESPONSE);
+      expect(remindersService.findLoanForReminders).toHaveBeenCalledWith(
+        LOAN_ID,
+        `/v1/loans/${LOAN_ID}/reminders`,
+      );
+      expect(remindersService.assertLoanOwnership).toHaveBeenCalledWith(
+        { id: LOAN_ID, lenderId: LENDER_USER_ID },
+        LENDER_USER_ID,
+        `/v1/loans/${LOAN_ID}/reminders`,
+      );
       expect(remindersService.findByLoanId).toHaveBeenCalledWith(LOAN_ID);
     });
 
     it('should throw 404 when loan does not exist', async () => {
-      prisma.loan.findUnique.mockResolvedValue(null);
+      remindersService.findLoanForReminders.mockRejectedValue(
+        new NotFoundException('Loan', LOAN_ID, `/v1/loans/${LOAN_ID}/reminders`),
+      );
       const mockReq = { user: MOCK_AUTH_USER };
 
       await expect(controller.findByLoan(LOAN_ID, mockReq as never)).rejects.toThrow(
@@ -130,11 +133,9 @@ describe('RemindersController', () => {
     });
 
     it('should throw 404 when loan is soft-deleted', async () => {
-      prisma.loan.findUnique.mockResolvedValue({
-        id: LOAN_ID,
-        lenderId: LENDER_USER_ID,
-        deletedAt: new Date(),
-      } as never);
+      remindersService.findLoanForReminders.mockRejectedValue(
+        new NotFoundException('Loan', LOAN_ID, `/v1/loans/${LOAN_ID}/reminders`),
+      );
       const mockReq = { user: MOCK_AUTH_USER };
 
       await expect(controller.findByLoan(LOAN_ID, mockReq as never)).rejects.toThrow(
@@ -143,11 +144,18 @@ describe('RemindersController', () => {
     });
 
     it('should throw 403 when user is not the lender', async () => {
-      prisma.loan.findUnique.mockResolvedValue({
+      remindersService.findLoanForReminders.mockResolvedValue({
         id: LOAN_ID,
         lenderId: LENDER_USER_ID,
-        deletedAt: null,
-      } as never);
+      });
+      remindersService.assertLoanOwnership.mockImplementation(() => {
+        throw new ForbiddenException(
+          'forbidden',
+          'Forbidden',
+          'Only the lender can access reminders for this loan.',
+          `/v1/loans/${LOAN_ID}/reminders`,
+        );
+      });
       const mockReq = { user: MOCK_OTHER_AUTH_USER };
 
       await expect(controller.findByLoan(LOAN_ID, mockReq as never)).rejects.toThrow(
@@ -163,21 +171,15 @@ describe('RemindersController', () => {
   describe('findById', () => {
     it('should return a single reminder', async () => {
       remindersService.findById.mockResolvedValue(MOCK_REMINDER_WITH_LOAN);
+      remindersService.assertLoanOwnership.mockReturnValue(undefined);
+      remindersService.toReminderResponse.mockReturnValue(MOCK_REMINDER_RESPONSE);
       const mockReq = { user: MOCK_AUTH_USER };
 
       const result = await controller.findById(REMINDER_ID, mockReq as never);
 
-      expect(result).toEqual({
-        id: REMINDER_ID,
-        loanId: LOAN_ID,
-        type: ReminderType.PREVENTIVE,
-        status: ReminderStatus.SCHEDULED,
-        scheduledFor: SCHEDULED_FOR.toISOString(),
-        sentAt: null,
-        message: null,
-        channel: NotificationChannel.PUSH,
-      });
+      expect(result).toEqual(MOCK_REMINDER_RESPONSE);
       expect(remindersService.findById).toHaveBeenCalledWith(REMINDER_ID);
+      expect(remindersService.toReminderResponse).toHaveBeenCalledWith(MOCK_REMINDER_WITH_LOAN);
     });
 
     it('should throw 404 when reminder does not exist', async () => {
@@ -194,6 +196,14 @@ describe('RemindersController', () => {
         ...MOCK_REMINDER_WITH_LOAN,
         loan: { id: LOAN_ID, lenderId: OTHER_USER_ID },
       });
+      remindersService.assertLoanOwnership.mockImplementation(() => {
+        throw new ForbiddenException(
+          'forbidden',
+          'Forbidden',
+          'Only the lender can access reminders for this loan.',
+          `/v1/reminders/${REMINDER_ID}`,
+        );
+      });
       const mockReq = { user: MOCK_AUTH_USER };
 
       await expect(controller.findById(REMINDER_ID, mockReq as never)).rejects.toThrow(
@@ -209,6 +219,7 @@ describe('RemindersController', () => {
   describe('cancel', () => {
     it('should cancel a SCHEDULED reminder (204)', async () => {
       remindersService.findById.mockResolvedValue(MOCK_REMINDER_WITH_LOAN);
+      remindersService.assertLoanOwnership.mockReturnValue(undefined);
       remindersService.cancel.mockResolvedValue(undefined);
       const mockReq = { user: MOCK_AUTH_USER };
 
@@ -231,6 +242,14 @@ describe('RemindersController', () => {
         ...MOCK_REMINDER_WITH_LOAN,
         loan: { id: LOAN_ID, lenderId: OTHER_USER_ID },
       });
+      remindersService.assertLoanOwnership.mockImplementation(() => {
+        throw new ForbiddenException(
+          'forbidden',
+          'Forbidden',
+          'Only the lender can access reminders for this loan.',
+          `/v1/reminders/${REMINDER_ID}/cancel`,
+        );
+      });
       const mockReq = { user: MOCK_AUTH_USER };
 
       await expect(controller.cancel(REMINDER_ID, mockReq as never)).rejects.toThrow(
@@ -240,6 +259,7 @@ describe('RemindersController', () => {
 
     it('should throw 409 when reminder is already SENT', async () => {
       remindersService.findById.mockResolvedValue(MOCK_SENT_REMINDER_WITH_LOAN);
+      remindersService.assertLoanOwnership.mockReturnValue(undefined);
       const mockReq = { user: MOCK_AUTH_USER };
 
       await expect(controller.cancel(REMINDER_ID, mockReq as never)).rejects.toThrow(
@@ -252,6 +272,7 @@ describe('RemindersController', () => {
         ...MOCK_REMINDER_WITH_LOAN,
         status: ReminderStatus.FAILED,
       });
+      remindersService.assertLoanOwnership.mockReturnValue(undefined);
       const mockReq = { user: MOCK_AUTH_USER };
 
       await expect(controller.cancel(REMINDER_ID, mockReq as never)).rejects.toThrow(
@@ -264,6 +285,7 @@ describe('RemindersController', () => {
         ...MOCK_REMINDER_WITH_LOAN,
         status: ReminderStatus.CANCELLED,
       });
+      remindersService.assertLoanOwnership.mockReturnValue(undefined);
       const mockReq = { user: MOCK_AUTH_USER };
 
       await expect(controller.cancel(REMINDER_ID, mockReq as never)).rejects.toThrow(

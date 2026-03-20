@@ -2,7 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ReminderStatus, type Reminder } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  ForbiddenException,
+  NotFoundException,
+} from '../common/exceptions/problem-details.exception.js';
 import { ReminderPolicy } from './reminder-policy.js';
+import type { ReminderResponse } from './interfaces/reminder-response.interface.js';
 
 /** Reminder with its loan relation (includes lenderId for ownership checks) */
 export type ReminderWithLoan = Reminder & {
@@ -31,14 +36,59 @@ export class RemindersService {
     this.logger.log(`Scheduled ${schedules.length} reminders for loan ${loanId}`);
   }
 
+  // ===========================================================================
+  // Loan lookup & ownership
+  // ===========================================================================
+
   /**
-   * Returns all reminders for a given loan, ordered by scheduledFor ASC.
+   * Finds a loan by ID for reminder access. Throws 404 if the loan
+   * does not exist or has been soft-deleted.
    */
-  async findByLoanId(loanId: string): Promise<Reminder[]> {
-    return this.prisma.reminder.findMany({
+  async findLoanForReminders(
+    loanId: string,
+    path: string,
+  ): Promise<{ id: string; lenderId: string }> {
+    const loan = await this.prisma.loan.findUnique({
+      where: { id: loanId },
+      select: { id: true, lenderId: true, deletedAt: true },
+    });
+
+    if (!loan || loan.deletedAt !== null) {
+      throw new NotFoundException('Loan', loanId, path);
+    }
+
+    return loan;
+  }
+
+  /**
+   * Asserts the current user is the lender of the loan.
+   * Throws 403 if the userId does not match.
+   */
+  assertLoanOwnership(loan: { lenderId: string }, userId: string, path: string): void {
+    if (loan.lenderId !== userId) {
+      throw new ForbiddenException(
+        'forbidden',
+        'Forbidden',
+        'Only the lender can access reminders for this loan.',
+        path,
+      );
+    }
+  }
+
+  // ===========================================================================
+  // CRUD
+  // ===========================================================================
+
+  /**
+   * Returns all reminders for a given loan, ordered by scheduledFor ASC,
+   * already mapped to the API response shape.
+   */
+  async findByLoanId(loanId: string): Promise<ReminderResponse[]> {
+    const reminders = await this.prisma.reminder.findMany({
       where: { loanId },
       orderBy: { scheduledFor: 'asc' },
     });
+    return reminders.map((r) => this.toReminderResponse(r));
   }
 
   /**
@@ -61,5 +111,25 @@ export class RemindersService {
       where: { id: reminderId },
       data: { status: ReminderStatus.CANCELLED },
     });
+  }
+
+  // ===========================================================================
+  // Mapping
+  // ===========================================================================
+
+  /**
+   * Maps a Prisma Reminder to the API response DTO.
+   */
+  toReminderResponse(reminder: Reminder): ReminderResponse {
+    return {
+      id: reminder.id,
+      loanId: reminder.loanId,
+      type: reminder.type,
+      status: reminder.status,
+      scheduledFor: reminder.scheduledFor.toISOString(),
+      sentAt: reminder.sentAt?.toISOString() ?? null,
+      message: reminder.message,
+      channel: reminder.channel,
+    };
   }
 }
