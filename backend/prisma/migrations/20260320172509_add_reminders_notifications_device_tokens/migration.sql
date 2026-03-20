@@ -14,7 +14,7 @@ CREATE TYPE "NotificationType" AS ENUM ('LOAN_CREATED', 'LOAN_CONFIRMED', 'LOAN_
 CREATE TYPE "DevicePlatform" AS ENUM ('ios', 'android', 'web');
 
 -- DropIndex
-DROP INDEX "contact_invitations_sender_recipient_pending_idx";
+DROP INDEX IF EXISTS "contact_invitations_sender_recipient_pending_idx";
 
 -- CreateTable
 CREATE TABLE "reminders" (

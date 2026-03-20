@@ -94,6 +94,35 @@ describe('useNotificationStore', () => {
     });
   });
 
+  describe('fetchUnreadCount', () => {
+    it('should set unreadCount from pagination.totalItems', async () => {
+      await useNotificationStore.getState().fetchUnreadCount();
+
+      expect(useNotificationStore.getState().unreadCount).toBe(1);
+    });
+
+    it('should fail silently on error without changing state', async () => {
+      // Set an initial unreadCount
+      await useNotificationStore.getState().fetchNotifications();
+      expect(useNotificationStore.getState().unreadCount).toBe(1);
+
+      server.use(
+        http.get(`${API_BASE}/notifications`, () => {
+          return HttpResponse.json(
+            { type: 'error', title: 'Error', status: 500, detail: 'fail' },
+            { status: 500 },
+          );
+        }),
+      );
+
+      // Should not throw
+      await useNotificationStore.getState().fetchUnreadCount();
+
+      // unreadCount unchanged
+      expect(useNotificationStore.getState().unreadCount).toBe(1);
+    });
+  });
+
   describe('registerDeviceToken', () => {
     it('should register device token and call correct endpoint', async () => {
       let capturedBody: Record<string, unknown> | null = null;
