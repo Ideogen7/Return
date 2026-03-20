@@ -41,6 +41,8 @@ const MOCK_PAGINATED: PaginatedNotifications = {
     itemsPerPage: 20,
     totalItems: 1,
     totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
   },
 };
 
@@ -94,7 +96,14 @@ describe('NotificationsController', () => {
     it('should pass unreadOnly filter', async () => {
       notificationsService.findAllByUser.mockResolvedValue({
         data: [],
-        pagination: { currentPage: 1, itemsPerPage: 20, totalItems: 0, totalPages: 0 },
+        pagination: {
+          currentPage: 1,
+          itemsPerPage: 20,
+          totalItems: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
       });
 
       const req = { user: MOCK_AUTH_USER } as unknown as Express.Request;

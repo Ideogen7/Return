@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { LoanStatus } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service.js';

@@ -73,7 +73,14 @@ describe('RemindersCronService', () => {
           scheduledFor: { lte: expect.any(Date) },
         },
         include: {
-          loan: { select: { id: true, borrowerId: true, lenderId: true } },
+          loan: {
+            select: {
+              id: true,
+              borrowerId: true,
+              lenderId: true,
+              borrower: { select: { userId: true } },
+            },
+          },
         },
       });
     });
@@ -81,7 +88,15 @@ describe('RemindersCronService', () => {
     it('should update reminder status to SENT and set sentAt', async () => {
       const reminder = makeReminder();
       prisma.reminder.findMany.mockResolvedValue([
-        { ...reminder, loan: { id: LOAN_ID, borrowerId: BORROWER_ID, lenderId: LENDER_ID } },
+        {
+          ...reminder,
+          loan: {
+            id: LOAN_ID,
+            borrowerId: BORROWER_ID,
+            lenderId: LENDER_ID,
+            borrower: { userId: null },
+          },
+        },
       ] as never);
 
       await cronService.sendScheduledReminders();
@@ -95,7 +110,15 @@ describe('RemindersCronService', () => {
     it('should call notificationsService.sendReminderNotification for each reminder', async () => {
       const reminder = makeReminder();
       prisma.reminder.findMany.mockResolvedValue([
-        { ...reminder, loan: { id: LOAN_ID, borrowerId: BORROWER_ID, lenderId: LENDER_ID } },
+        {
+          ...reminder,
+          loan: {
+            id: LOAN_ID,
+            borrowerId: BORROWER_ID,
+            lenderId: LENDER_ID,
+            borrower: { userId: 'borrower-user-id' },
+          },
+        },
       ] as never);
 
       await cronService.sendScheduledReminders();
@@ -105,6 +128,7 @@ describe('RemindersCronService', () => {
         LOAN_ID,
         LENDER_ID,
         reminder.type,
+        'borrower-user-id',
       );
     });
 
@@ -120,7 +144,15 @@ describe('RemindersCronService', () => {
     it('should set status to FAILED when notification fails', async () => {
       const reminder = makeReminder();
       prisma.reminder.findMany.mockResolvedValue([
-        { ...reminder, loan: { id: LOAN_ID, borrowerId: BORROWER_ID, lenderId: LENDER_ID } },
+        {
+          ...reminder,
+          loan: {
+            id: LOAN_ID,
+            borrowerId: BORROWER_ID,
+            lenderId: LENDER_ID,
+            borrower: { userId: null },
+          },
+        },
       ] as never);
       notificationsService.sendReminderNotification.mockRejectedValue(new Error('FCM error'));
 
@@ -138,7 +170,12 @@ describe('RemindersCronService', () => {
       prisma.reminder.findMany.mockResolvedValue([
         {
           ...finalReminder,
-          loan: { id: LOAN_ID, borrowerId: BORROWER_ID, lenderId: LENDER_ID },
+          loan: {
+            id: LOAN_ID,
+            borrowerId: BORROWER_ID,
+            lenderId: LENDER_ID,
+            borrower: { userId: null },
+          },
         },
       ] as never);
 
@@ -154,7 +191,15 @@ describe('RemindersCronService', () => {
     it('should NOT emit ALL_EXHAUSTED for non-FINAL_OVERDUE reminders', async () => {
       const reminder = makeReminder({ type: ReminderType.FIRST_OVERDUE });
       prisma.reminder.findMany.mockResolvedValue([
-        { ...reminder, loan: { id: LOAN_ID, borrowerId: BORROWER_ID, lenderId: LENDER_ID } },
+        {
+          ...reminder,
+          loan: {
+            id: LOAN_ID,
+            borrowerId: BORROWER_ID,
+            lenderId: LENDER_ID,
+            borrower: { userId: null },
+          },
+        },
       ] as never);
 
       await cronService.sendScheduledReminders();

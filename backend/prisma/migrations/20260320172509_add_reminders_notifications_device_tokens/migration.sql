@@ -87,3 +87,8 @@ ALTER TABLE "notifications" ADD CONSTRAINT "notifications_related_loan_id_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "device_tokens" ADD CONSTRAINT "device_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Recreate partial unique index (dropped by Prisma auto-migration, must be preserved)
+CREATE UNIQUE INDEX "contact_invitations_sender_recipient_pending_idx"
+  ON "contact_invitations" ("sender_user_id", "recipient_email")
+  WHERE "status" = 'PENDING';

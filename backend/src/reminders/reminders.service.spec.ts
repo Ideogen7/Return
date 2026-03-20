@@ -23,7 +23,7 @@ describe('RemindersService', () => {
       await service.scheduleReminders(LOAN_ID, RETURN_DATE, CREATED_AT);
 
       expect(prisma.reminder.createMany).toHaveBeenCalledTimes(1);
-      const call = prisma.reminder.createMany.mock.calls[0]![0]!;
+      const call = prisma.reminder.createMany.mock.calls[0][0]!;
       expect((call.data as unknown[]).length).toBe(5);
     });
 
@@ -32,7 +32,7 @@ describe('RemindersService', () => {
 
       await service.scheduleReminders(LOAN_ID, RETURN_DATE, CREATED_AT);
 
-      const call = prisma.reminder.createMany.mock.calls[0]![0]!;
+      const call = prisma.reminder.createMany.mock.calls[0][0]!;
       const data = call.data as Array<{
         loanId: string;
         type: ReminderType;
@@ -43,9 +43,9 @@ describe('RemindersService', () => {
       for (let i = 0; i < expectedDates.length; i++) {
         expect(data[i]).toEqual({
           loanId: LOAN_ID,
-          type: expectedDates[i]!.type,
+          type: expectedDates[i].type,
           status: ReminderStatus.SCHEDULED,
-          scheduledFor: expectedDates[i]!.scheduledFor,
+          scheduledFor: expectedDates[i].scheduledFor,
         });
       }
     });

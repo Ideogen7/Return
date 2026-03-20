@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { DevicePlatform } from '@prisma/client';
+import { DevicePlatform } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { NotFoundException } from '../common/exceptions/problem-details.exception.js';
@@ -11,22 +11,13 @@ export class DeviceTokensService {
   constructor(private readonly prisma: PrismaService) {}
 
   async registerToken(userId: string, token: string, platform: DevicePlatform): Promise<void> {
-    const existing = await this.prisma.deviceToken.findFirst({
-      where: { userId, token },
+    await this.prisma.deviceToken.upsert({
+      where: { token },
+      update: { userId, platform },
+      create: { userId, token, platform },
     });
 
-    if (existing) {
-      await this.prisma.deviceToken.update({
-        where: { id: existing.id },
-        data: { platform },
-      });
-      this.logger.log(`Updated device token for user ${userId}`);
-    } else {
-      await this.prisma.deviceToken.create({
-        data: { userId, token, platform },
-      });
-      this.logger.log(`Registered new device token for user ${userId}`);
-    }
+    this.logger.log(`Registered or updated device token for user ${userId}`);
   }
 
   async unregisterToken(userId: string, token: string): Promise<void> {

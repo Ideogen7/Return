@@ -27,8 +27,7 @@ describe('DeviceTokensService', () => {
 
   describe('registerToken', () => {
     it('should upsert device token for the user', async () => {
-      prisma.deviceToken.findFirst.mockResolvedValue(null);
-      prisma.deviceToken.create.mockResolvedValue({
+      prisma.deviceToken.upsert.mockResolvedValue({
         id: TOKEN_ID,
         userId: USER_ID,
         token: TOKEN,
@@ -39,8 +38,10 @@ describe('DeviceTokensService', () => {
 
       await service.registerToken(USER_ID, TOKEN, DevicePlatform.android);
 
-      expect(prisma.deviceToken.create).toHaveBeenCalledWith({
-        data: {
+      expect(prisma.deviceToken.upsert).toHaveBeenCalledWith({
+        where: { token: TOKEN },
+        update: { userId: USER_ID, platform: DevicePlatform.android },
+        create: {
           userId: USER_ID,
           token: TOKEN,
           platform: DevicePlatform.android,
@@ -48,21 +49,26 @@ describe('DeviceTokensService', () => {
       });
     });
 
-    it('should update existing token if same token already registered', async () => {
-      prisma.deviceToken.findFirst.mockResolvedValue({
+    it('should handle reassigning token to a different user', async () => {
+      prisma.deviceToken.upsert.mockResolvedValue({
         id: TOKEN_ID,
         userId: USER_ID,
         token: TOKEN,
-        platform: DevicePlatform.ios,
+        platform: DevicePlatform.android,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
       await service.registerToken(USER_ID, TOKEN, DevicePlatform.android);
 
-      expect(prisma.deviceToken.update).toHaveBeenCalledWith({
-        where: { id: TOKEN_ID },
-        data: { platform: DevicePlatform.android },
+      expect(prisma.deviceToken.upsert).toHaveBeenCalledWith({
+        where: { token: TOKEN },
+        update: { userId: USER_ID, platform: DevicePlatform.android },
+        create: {
+          userId: USER_ID,
+          token: TOKEN,
+          platform: DevicePlatform.android,
+        },
       });
     });
   });

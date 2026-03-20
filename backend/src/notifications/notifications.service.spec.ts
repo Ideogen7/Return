@@ -57,6 +57,46 @@ describe('NotificationsService', () => {
         },
       });
     });
+
+    it('should also create a REMINDER_RECEIVED notification for the borrower when borrowerUserId is provided', async () => {
+      prisma.notification.create.mockResolvedValue({} as never);
+
+      await service.sendReminderNotification(
+        REMINDER_ID,
+        LOAN_ID,
+        LENDER_USER_ID,
+        ReminderType.ON_DUE_DATE,
+        BORROWER_USER_ID,
+      );
+
+      expect(prisma.notification.create).toHaveBeenCalledTimes(2);
+      expect(prisma.notification.create).toHaveBeenCalledWith({
+        data: {
+          userId: BORROWER_USER_ID,
+          type: NotificationType.REMINDER_RECEIVED,
+          title: expect.any(String),
+          body: expect.any(String),
+          relatedLoanId: LOAN_ID,
+        },
+      });
+    });
+
+    it('should NOT create a borrower notification when borrowerUserId is null', async () => {
+      prisma.notification.create.mockResolvedValue({} as never);
+
+      await service.sendReminderNotification(
+        REMINDER_ID,
+        LOAN_ID,
+        LENDER_USER_ID,
+        ReminderType.ON_DUE_DATE,
+        null,
+      );
+
+      expect(prisma.notification.create).toHaveBeenCalledTimes(1);
+      expect(prisma.notification.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ type: NotificationType.REMINDER_SENT }),
+      });
+    });
   });
 
   describe('findAllByUser', () => {
@@ -85,6 +125,8 @@ describe('NotificationsService', () => {
 
       expect(result.data).toHaveLength(1);
       expect(result.pagination.totalItems).toBe(1);
+      expect(result.pagination.hasNextPage).toBe(false);
+      expect(result.pagination.hasPreviousPage).toBe(false);
       expect(prisma.notification.findMany).toHaveBeenCalledWith({
         where: { userId: BORROWER_USER_ID },
         orderBy: { createdAt: 'desc' },

@@ -6,7 +6,7 @@ import { ReminderStatus, ReminderType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { REMINDER_EVENTS } from '../common/events/reminder.events.js';
 import type { AllRemindersExhaustedEvent } from '../common/events/reminder.events.js';
-import type { NotificationsService } from '../notifications/notifications.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 @Injectable()
 export class RemindersCronService {
@@ -28,7 +28,14 @@ export class RemindersCronService {
         scheduledFor: { lte: now },
       },
       include: {
-        loan: { select: { id: true, borrowerId: true, lenderId: true } },
+        loan: {
+          select: {
+            id: true,
+            borrowerId: true,
+            lenderId: true,
+            borrower: { select: { userId: true } },
+          },
+        },
       },
     });
 
@@ -43,6 +50,7 @@ export class RemindersCronService {
           reminder.loan.id,
           reminder.loan.lenderId,
           reminder.type,
+          reminder.loan.borrower?.userId ?? null,
         );
 
         await this.prisma.reminder.update({

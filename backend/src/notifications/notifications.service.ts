@@ -30,6 +30,8 @@ export interface PaginatedNotifications {
     itemsPerPage: number;
     totalItems: number;
     totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
   };
 }
 
@@ -50,6 +52,7 @@ export class NotificationsService {
     loanId: string,
     lenderUserId: string,
     reminderType: ReminderType,
+    borrowerUserId: string | null = null,
   ): Promise<void> {
     const title = REMINDER_TITLES[reminderType] ?? 'Rappel de prêt';
 
@@ -62,6 +65,18 @@ export class NotificationsService {
         relatedLoanId: loanId,
       },
     });
+
+    if (borrowerUserId) {
+      await this.prisma.notification.create({
+        data: {
+          userId: borrowerUserId,
+          type: NotificationType.REMINDER_RECEIVED,
+          title,
+          body: `Vous avez un rappel concernant un objet emprunté.`,
+          relatedLoanId: loanId,
+        },
+      });
+    }
 
     this.logger.log(`Sent ${reminderType} notification for reminder ${reminderId}, loan ${loanId}`);
   }
@@ -85,6 +100,8 @@ export class NotificationsService {
       this.prisma.notification.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(totalItems / limit);
+
     return {
       data: data.map((n) => ({
         id: n.id,
@@ -99,7 +116,9 @@ export class NotificationsService {
         currentPage: page,
         itemsPerPage: limit,
         totalItems,
-        totalPages: Math.ceil(totalItems / limit),
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
       },
     };
   }
