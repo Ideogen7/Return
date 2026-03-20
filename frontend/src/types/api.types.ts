@@ -274,6 +274,27 @@ export interface UnregisterDeviceTokenDto {
   token: string;
 }
 
+// --- Rappels (Reminders) ---
+
+export type ReminderType =
+  | 'PREVENTIVE'
+  | 'ON_DUE_DATE'
+  | 'FIRST_OVERDUE'
+  | 'SECOND_OVERDUE'
+  | 'FINAL_OVERDUE';
+export type ReminderStatus = 'SCHEDULED' | 'SENT' | 'FAILED' | 'CANCELLED';
+
+export interface Reminder {
+  id: string;
+  loanId: string;
+  type: ReminderType;
+  status: ReminderStatus;
+  scheduledFor: string;
+  sentAt?: string | null;
+  message?: string;
+  channel: 'PUSH';
+}
+
 // --- Pagination ---
 
 export interface PaginationMetadata {
