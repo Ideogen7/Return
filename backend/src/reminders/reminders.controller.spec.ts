@@ -68,7 +68,6 @@ const MOCK_REMINDER_RESPONSE: ReminderResponse = {
   status: ReminderStatus.SCHEDULED,
   scheduledFor: SCHEDULED_FOR.toISOString(),
   sentAt: null,
-  message: null,
   channel: NotificationChannel.PUSH,
 };
 
@@ -267,30 +266,32 @@ describe('RemindersController', () => {
       );
     });
 
-    it('should throw 409 when reminder is FAILED', async () => {
+    it('should call cancel when reminder is FAILED (not blocked by controller)', async () => {
       remindersService.findById.mockResolvedValue({
         ...MOCK_REMINDER_WITH_LOAN,
         status: ReminderStatus.FAILED,
       });
       remindersService.assertLoanOwnership.mockReturnValue(undefined);
+      remindersService.cancel.mockResolvedValue(undefined);
       const mockReq = { user: MOCK_AUTH_USER };
 
-      await expect(controller.cancel(REMINDER_ID, mockReq as never)).rejects.toThrow(
-        ConflictException,
-      );
+      await controller.cancel(REMINDER_ID, mockReq as never);
+
+      expect(remindersService.cancel).toHaveBeenCalledWith(REMINDER_ID);
     });
 
-    it('should throw 409 when reminder is already CANCELLED', async () => {
+    it('should call cancel when reminder is already CANCELLED (not blocked by controller)', async () => {
       remindersService.findById.mockResolvedValue({
         ...MOCK_REMINDER_WITH_LOAN,
         status: ReminderStatus.CANCELLED,
       });
       remindersService.assertLoanOwnership.mockReturnValue(undefined);
+      remindersService.cancel.mockResolvedValue(undefined);
       const mockReq = { user: MOCK_AUTH_USER };
 
-      await expect(controller.cancel(REMINDER_ID, mockReq as never)).rejects.toThrow(
-        ConflictException,
-      );
+      await controller.cancel(REMINDER_ID, mockReq as never);
+
+      expect(remindersService.cancel).toHaveBeenCalledWith(REMINDER_ID);
     });
   });
 });

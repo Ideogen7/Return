@@ -128,7 +128,7 @@ export class RemindersService {
       status: reminder.status,
       scheduledFor: reminder.scheduledFor.toISOString(),
       sentAt: reminder.sentAt?.toISOString() ?? null,
-      message: reminder.message,
+      message: reminder.message ?? undefined,
       channel: reminder.channel,
     };
   }

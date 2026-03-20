@@ -29,7 +29,7 @@ export interface HistoryOverview {
   returnedLoans: number;
   notReturnedLoans: number;
   contestedLoans: number;
-  averageReturnDelay: number | null;
+  averageReturnDelay: number;
 }
 
 export interface CategoryStats {
@@ -114,7 +114,9 @@ export class HistoryService {
         createdAt.gte = new Date(query.startDate);
       }
       if (query.endDate) {
-        createdAt.lte = new Date(query.endDate);
+        const end = new Date(query.endDate);
+        end.setHours(23, 59, 59, 999);
+        createdAt.lte = end;
       }
       where.createdAt = createdAt;
     }
@@ -199,7 +201,7 @@ export class HistoryService {
       }),
     ]);
 
-    let averageReturnDelay: number | null = null;
+    let averageReturnDelay: number = 0;
     if (returnedLoansData.length > 0) {
       let totalDays = 0;
       let validCount = 0;
@@ -347,7 +349,7 @@ export class HistoryService {
             estimatedValue: true,
             createdAt: true,
             photos: {
-              select: { id: true, url: true, thumbnailUrl: true, uploadedAt: true },
+              select: { id: true, itemId: true, url: true, thumbnailUrl: true, uploadedAt: true },
             },
           },
         },

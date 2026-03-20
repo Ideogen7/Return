@@ -106,11 +106,11 @@ export class RemindersController {
       `/v1/reminders/${reminderId}/cancel`,
     );
 
-    if (reminder.status !== ReminderStatus.SCHEDULED) {
+    if (reminder.status === ReminderStatus.SENT) {
       throw new ConflictException(
         'reminder-already-sent',
         'Reminder Already Sent',
-        `Cannot cancel a reminder with status '${reminder.status}'. Only SCHEDULED reminders can be cancelled.`,
+        'Cannot cancel a reminder that has already been sent.',
         `/v1/reminders/${reminderId}/cancel`,
       );
     }

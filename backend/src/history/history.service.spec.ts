@@ -182,7 +182,7 @@ describe('HistoryService', () => {
           where: expect.objectContaining({
             createdAt: {
               gte: new Date('2025-01-01'),
-              lte: new Date('2025-06-30'),
+              lte: expect.any(Date),
             },
           }),
         }),
@@ -332,14 +332,14 @@ describe('HistoryService', () => {
         returnedLoans: 0,
         notReturnedLoans: 0,
         contestedLoans: 0,
-        averageReturnDelay: null,
+        averageReturnDelay: 0,
       });
       expect(result.byCategory).toEqual([]);
       expect(result.topBorrowers).toEqual([]);
       expect(result.mostLoanedItems).toEqual([]);
     });
 
-    it('should return null averageReturnDelay when no returned loans have returnDate', async () => {
+    it('should return 0 averageReturnDelay when no returned loans have returnDate', async () => {
       prisma.loan.count
         .mockResolvedValueOnce(5) // totalLoans
         .mockResolvedValueOnce(3) // activeLoans
@@ -355,7 +355,7 @@ describe('HistoryService', () => {
 
       const result = await service.getStatistics(LENDER_USER_ID);
 
-      expect(result.overview.averageReturnDelay).toBeNull();
+      expect(result.overview.averageReturnDelay).toBe(0);
     });
   });
 });

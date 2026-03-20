@@ -7,6 +7,6 @@ export interface ReminderResponse {
   status: ReminderStatus;
   scheduledFor: string;
   sentAt: string | null;
-  message: string | null;
+  message?: string;
   channel: NotificationChannel;
 }

@@ -107,8 +107,11 @@ const MOCK_STATISTICS: HistoryStatistics = {
       item: {
         id: '220e8400-e29b-41d4-a716-446655440000',
         name: 'Perceuse',
+        description: 'Perceuse électrique polyvalente',
         category: 'TOOLS',
+        estimatedValue: 250,
         photos: [],
+        createdAt: new Date('2024-01-01T00:00:00.000Z'),
       },
       loanCount: 3,
     },
