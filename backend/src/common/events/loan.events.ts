@@ -42,6 +42,12 @@ export interface LoanCreatedEvent {
 
   /** ID du prêteur (propriétaire du prêt) */
   lenderUserId: string;
+
+  /** Date de retour prévue (null si prêt sans échéance) */
+  returnDate: Date | null;
+
+  /** Date de création du prêt */
+  createdAt: Date;
 }
 
 /**
