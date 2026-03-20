@@ -54,7 +54,7 @@ tags:
     description: Endpoints de santé pour monitoring et load balancer
 
 security:
-  - BearerAuth: [ ]
+  - BearerAuth: []
 
 paths:
   # =============================================================================
@@ -70,7 +70,7 @@ paths:
         Inscription d'un nouvel utilisateur. Retourne un JWT valide après création.
         Le compte est créé avec le rôle `LENDER` par défaut.
       operationId: registerUser
-      security: [ ] # Public endpoint
+      security: [] # Public endpoint
       requestBody:
         required: true
         content:
@@ -134,7 +134,7 @@ paths:
         Authentification par email + mot de passe. Retourne un access token (15 min)
         et un refresh token (30 jours).
       operationId: loginUser
-      security: [ ] # Public endpoint
+      security: [] # Public endpoint
       requestBody:
         required: true
         content:
@@ -184,7 +184,7 @@ paths:
         Le refresh token est à usage unique (rotation) : un nouveau refresh token
         est retourné à chaque appel. L'ancien token est immédiatement invalidé.
       operationId: refreshToken
-      security: [ ] # Public endpoint (le refresh token est dans le body)
+      security: [] # Public endpoint (le refresh token est dans le body)
       requestBody:
         required: true
         content:
@@ -251,7 +251,7 @@ paths:
               $ref: '#/components/schemas/LoanStatus'
           style: form
           explode: false
-          example: [ ACTIVE, AWAITING_RETURN ]
+          example: [ACTIVE, AWAITING_RETURN]
         - name: borrowerId
           in: query
           description: |
@@ -291,7 +291,7 @@ paths:
           description: Champ de tri
           schema:
             type: string
-            enum: [ createdAt, returnDate, status ]
+            enum: [createdAt, returnDate, status]
             default: createdAt
           example: returnDate
         - name: sortOrder
@@ -299,7 +299,7 @@ paths:
           description: Ordre de tri
           schema:
             type: string
-            enum: [ asc, desc ]
+            enum: [asc, desc]
             default: desc
           example: asc
         - name: role
@@ -310,7 +310,7 @@ paths:
             Par défaut 'lender'.
           schema:
             type: string
-            enum: [ lender, borrower ]
+            enum: [lender, borrower]
             default: lender
           example: lender
       responses:
@@ -1108,14 +1108,14 @@ paths:
           description: Champ de tri
           schema:
             type: string
-            enum: [ firstName, lastName, trustScore, totalLoans ]
+            enum: [firstName, lastName, trustScore, totalLoans]
             default: firstName
           example: trustScore
         - name: sortOrder
           in: query
           schema:
             type: string
-            enum: [ asc, desc ]
+            enum: [asc, desc]
             default: asc
         - name: page
           in: query
@@ -2061,7 +2061,7 @@ paths:
                   description: Mot de passe pour confirmer
                 confirmationText:
                   type: string
-                  enum: [ 'DELETE MY ACCOUNT' ]
+                  enum: ['DELETE MY ACCOUNT']
                   description: 'Doit être exactement "DELETE MY ACCOUNT"'
       responses:
         '204':
@@ -2171,6 +2171,24 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+    delete:
+      tags:
+        - Users
+      summary: Supprimer la photo de profil
+      description: Supprime la photo de profil de l'utilisateur authentifié.
+      operationId: deleteUserAvatar
+      responses:
+        '204':
+          description: Photo de profil supprimée avec succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Aucune photo de profil à supprimer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
   /users/me/password:
     patch:
       tags:
@@ -2238,7 +2256,7 @@ paths:
             type: array
             items:
               type: string
-              enum: [ RETURNED, NOT_RETURNED, CONTESTED, ABANDONED ]
+              enum: [RETURNED, NOT_RETURNED, CONTESTED, ABANDONED]
           style: form
           explode: false
         - name: borrowerId
@@ -2392,7 +2410,7 @@ paths:
         Retourne le statut du serveur. Utilisé par le load balancer Fly.io
         pour déterminer si l'instance est vivante.
       operationId: healthCheck
-      security: [ ]
+      security: []
       responses:
         '200':
           description: Serveur opérationnel
@@ -2421,7 +2439,7 @@ paths:
         Vérifie que toutes les dépendances sont opérationnelles
         (PostgreSQL, Redis, FCM). Utilisé pour le routing du load balancer.
       operationId: readinessCheck
-      security: [ ]
+      security: []
       responses:
         '200':
           description: Toutes les dépendances opérationnelles
@@ -2438,15 +2456,15 @@ paths:
                     properties:
                       database:
                         type: string
-                        enum: [ ok, error ]
+                        enum: [ok, error]
                         example: ok
                       redis:
                         type: string
-                        enum: [ ok, error ]
+                        enum: [ok, error]
                         example: ok
                       fcm:
                         type: string
-                        enum: [ ok, error ]
+                        enum: [ok, error]
                         example: ok
         '503':
           description: Une ou plusieurs dépendances indisponibles
@@ -2912,7 +2930,7 @@ components:
           description: Activer/désactiver les rappels automatiques
         language:
           type: string
-          enum: [ fr, en ]
+          enum: [fr, en]
           example: fr
           description: Langue de l'interface et des notifications (V1 — FR et EN)
         timezone:

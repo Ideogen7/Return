@@ -37,6 +37,8 @@ describe('BorrowerStatsListener', () => {
       loanId: LOAN_ID,
       borrowerId: BORROWER_ID,
       lenderUserId: LENDER_ID,
+      returnDate: new Date('2026-04-15'),
+      createdAt: new Date('2026-03-15'),
     };
 
     it('should increment totalLoans by 1', async () => {

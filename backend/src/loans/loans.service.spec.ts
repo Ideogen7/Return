@@ -194,6 +194,8 @@ describe('LoansService', () => {
         loanId: LOAN_ID,
         borrowerId: BORROWER_ID,
         lenderUserId: LENDER_USER_ID,
+        returnDate: new Date('2025-06-01'),
+        createdAt: NOW,
       });
     });
 

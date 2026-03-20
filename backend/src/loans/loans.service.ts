@@ -143,6 +143,8 @@ export class LoansService {
       loanId: loan.id,
       borrowerId: loan.borrowerId,
       lenderUserId: lenderId,
+      returnDate: loan.returnDate,
+      createdAt: loan.createdAt,
     };
     this.eventEmitter.emit(LOAN_EVENTS.CREATED, event);
 

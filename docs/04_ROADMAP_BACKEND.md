@@ -146,8 +146,8 @@ Cyclé TDD par comportement pour chaque endpoint utilisateur.
 | **USER-012** | RED : Test `PATCH /users/me/settings` (update enableReminders, defaultLanguage)                | USER-011   | Test écrit, échoue  | 15min |
 | **USER-013** | GREEN : Implémenter `UserService.updateSettings()` + `UsersController.updateSettings()`        | USER-012   | Test USER-012 passe | 45min |
 
-> **Note** : `PUT /users/me/avatar` (upload photo de profil) nécessite Cloudflare R2, configuré au Sprint 3.
-> Cet endpoint est implémenté au Sprint 3 après ITEM-011 (PhotoStorageService).
+> **Note** : `PUT /users/me/avatar` et `DELETE /users/me/avatar` (upload/suppression photo de profil) nécessitent Cloudflare R2, configuré au Sprint 3.
+> Ces endpoints sont implémentés au Sprint 3 après ITEM-011 (PhotoStorageService).
 
 🏁 **Livrable Sprint 1** : **Frontend peut s'authentifier + gérer profil et paramètres** (4 endpoints Auth + 6 endpoints Users).
 
@@ -285,21 +285,24 @@ Cyclé TDD par comportement.
 
 ### Phase 3.3 : Endpoints API
 
-| ID           | Titre                                               | Dépendance | Critère de Fin                             | Temps |
-| ------------ | --------------------------------------------------- | ---------- | ------------------------------------------ | ----- |
-| **ITEM-015** | Créer `ItemsController` (6 endpoints CRUD + photos) | ITEM-014   | Tous les tests ITEM-005 à ITEM-014 passent | 2h    |
+| ID           | Titre                                                              | Dépendance | Critère de Fin                             | Temps |
+| ------------ | ------------------------------------------------------------------ | ---------- | ------------------------------------------ | ----- |
+| **ITEM-015** | Créer `ItemsController` (7 endpoints CRUD + photos + delete photo) | ITEM-014   | Tous les tests ITEM-005 à ITEM-014 passent | 2h    |
 
 ### Phase 3.4 : Avatar Utilisateur (après R2)
 
-> **Note** : `PUT /users/me/avatar` est implémenté dans ce sprint car il dépend de `PhotoStorageService` (ITEM-011, interface R2). Le code réutilise la même interface de stockage que les photos d'items.
+> **Note** : `PUT /users/me/avatar` et `DELETE /users/me/avatar` sont implémentés dans ce sprint car ils dépendent de `PhotoStorageService` (ITEM-011, interface R2). Le code réutilise la même interface de stockage que les photos d'items.
 
 | ID           | Titre                                                                         | Dépendance | Critère de Fin      | Temps |
 | ------------ | ----------------------------------------------------------------------------- | ---------- | ------------------- | ----- |
 | **USER-014** | RED : Test `PUT /users/me/avatar` (upload success 200, retourne URL)          | ITEM-011   | Test écrit, échoue  | 20min |
 | **USER-015** | GREEN : Implémenter `UserService.updateAvatar()` (upload R2 via PhotoStorage) | USER-014   | Test USER-014 passe | 1h    |
 | **USER-016** | Ajouter `UsersController.updateAvatar()` (PUT /users/me/avatar)               | USER-015   | Test E2E passe      | 30min |
+| **USER-017** | RED : Test `DELETE /users/me/avatar` (suppression success 204, 404 si aucun)  | USER-015   | Test écrit, échoue  | 15min |
+| **USER-018** | GREEN : Implémenter `UserService.deleteAvatar()` (delete R2 via PhotoStorage) | USER-017   | Test USER-017 passe | 45min |
+| **USER-019** | Ajouter `UsersController.deleteAvatar()` (DELETE /users/me/avatar)            | USER-018   | Test E2E passe      | 20min |
 
-🏁 **Livrable Sprint 3** : **Frontend peut gérer les objets avec photos** (6 endpoints Items + 1 endpoint Users: avatar).
+🏁 **Livrable Sprint 3** : **Frontend peut gérer les objets avec photos** (7 endpoints Items + 2 endpoints Users: avatar).
 
 ---
 
@@ -332,14 +335,14 @@ Cyclé TDD par comportement.
 
 **Comportement 1 : Créer un pret**
 
-| ID            | Titre                                                                                                                                  | Dépendance | Critère de Fin                     | Temps |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------- | ----- |
-| **LOAN-005**  | RED : Test `POST /loans` (success 201, status=PENDING_CONFIRMATION, item=UUID, borrower=UUID)                                          | LOAN-004   | Test écrit, échoue                 | 30min |
-| **LOAN-005b** | RED : Test `POST /loans` (success 201, item=CreateItemDto inline, borrower=CreateBorrowerDto inline)                                   | LOAN-005   | Test écrit, échoue                 | 20min |
+| ID            | Titre                                                                                                                                         | Dépendance | Critère de Fin                     | Temps |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------- | ----- |
+| **LOAN-005**  | RED : Test `POST /loans` (success 201, status=PENDING_CONFIRMATION, item=UUID, borrower=UUID)                                                 | LOAN-004   | Test écrit, échoue                 | 30min |
+| **LOAN-005b** | RED : Test `POST /loans` (success 201, item=CreateItemDto inline, borrower=CreateBorrowerDto inline)                                          | LOAN-005   | Test écrit, échoue                 | 20min |
 | **LOAN-006**  | RED : Test `POST /loans` (erreur 400 si returnDate < today + 2 jours). La date de retour doit être au minimum J+2 (2 jours après la création) | LOAN-005   | Test écrit, échoue                 | 20min |
-| **LOAN-006b** | RED : Test `POST /loans` (erreur 429 si > 15 prêts/jour)                                                                               | LOAN-006   | Test écrit, échoue                 | 15min |
-| **LOAN-007**  | GREEN : Implémenter `LoanFactory.toCreateInput()` (validation business rules)                                                          | LOAN-004   | Pattern Factory appliqué           | 1h30  |
-| **LOAN-008**  | GREEN : Implémenter `LoanService.create()` (oneOf item/borrower, appel Factory + EventBus LOAN_CREATED via Prisma, rate limit 15/jour) | LOAN-007   | Tests LOAN-005 à LOAN-006b passent | 2h30  |
+| **LOAN-006b** | RED : Test `POST /loans` (erreur 429 si > 15 prêts/jour)                                                                                      | LOAN-006   | Test écrit, échoue                 | 15min |
+| **LOAN-007**  | GREEN : Implémenter `LoanFactory.toCreateInput()` (validation business rules)                                                                 | LOAN-004   | Pattern Factory appliqué           | 1h30  |
+| **LOAN-008**  | GREEN : Implémenter `LoanService.create()` (oneOf item/borrower, appel Factory + EventBus LOAN_CREATED via Prisma, rate limit 15/jour)        | LOAN-007   | Tests LOAN-005 à LOAN-006b passent | 2h30  |
 
 > **Note** : Conformément à la spec OpenAPI (RÈGLE DE DIAMANT), `POST /loans` accepte un `item` et un `borrower`
 > passés soit comme UUID (référence existante), soit comme objet inline (CreateItemDto / CreateBorrowerDto).
@@ -520,8 +523,8 @@ l'invitation doit être acceptée avant de pouvoir créer un prêt pour cette pe
 | **CINV-009** | Test TDD : `rejectInvitation(id, userId)` + `listInvitations(userId, direction?, status?)` (direction: sent/received)                                                                                                                               | CINV-008   | Tests RED écrits                                                                                                     | 30min |
 | **CINV-010** | Implémenter `rejectInvitation()` + `listInvitations()` avec filtrage `direction` (sent/received)                                                                                                                                                    | CINV-009   | Tests CINV-009 GREEN                                                                                                 | 1h    |
 | **CINV-011** | Créer `contact-invitation.events.ts` : constante `CONTACT_INVITATION_EVENTS = { ACCEPTED: 'contact-invitation.accepted', REJECTED: 'contact-invitation.rejected' }` + interfaces `ContactInvitationAcceptedEvent`, `ContactInvitationRejectedEvent` | CINV-008   | Événements typés exportés, nommage aligné avec `USER_EVENTS` / `LOAN_EVENTS`                                         | 30min |
-| **CINV-012** | Créer `ContactInvitationsController` : 7 endpoints (search, send, list sent, list received, accept, reject, delete) avec Guards JWT + param `?direction`                                                                                            | CINV-010   | Controllers créés, routes accessibles                                                                                | 1h30  |
-| **CINV-013** | Tests Supertest : 7 endpoints nominaux + cas d'erreur (404, 409, 400, 403) + list sent/received                                                                                                                                                     | CINV-012   | Tests Supertest GREEN                                                                                                | 2h    |
+| **CINV-012** | Créer `ContactInvitationsController` : 6 endpoints (search, send, list avec param `?direction`, accept, reject, delete) avec Guards JWT                                                                                                             | CINV-010   | Controllers créés, routes accessibles                                                                                | 1h30  |
+| **CINV-013** | Tests Supertest : 6 endpoints nominaux + cas d'erreur (404, 409, 400, 403) + filtre `?direction=sent/received`                                                                                                                                      | CINV-012   | Tests Supertest GREEN                                                                                                | 2h    |
 | **CINV-014** | [Forward-compatible] Créer `ContactInvitationListener` : `@OnEvent('user.registered')` — lier invitations PENDING par email. No-op en Sprint 4.6 (recipientUserId déjà renseigné à l'envoi), prépare Sprint 5+ (invitations externes)               | CINV-011   | Listener actif, test unitaire passe                                                                                  | 1h    |
 | **CINV-015** | Créer `ContactInvitationsModule` (imports: PrismaModule, EventEmitter2 / providers / exports)                                                                                                                                                       | CINV-012   | Module importable dans AppModule                                                                                     | 30min |
 | **CINV-016** | Tests intégration inter-modules : Loan creation → vérifie contact ACCEPTED requis (403 si non accepté)                                                                                                                                              | CINV-015   | Test d'intégration passe, 403 documenté dans OpenAPI                                                                 | 1h    |
@@ -546,9 +549,9 @@ exclusivement geres par le système selon la politique fixe.
 
 ### Phase 5.0 : Setup FCM + Docker Dev
 
-| ID          | Titre                                                                                       | Dépendance | Critère de Fin                             | Temps |
-| ----------- | ------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------ | ----- |
-| **REM-001** | Configurer Firebasé SDK (projet Firebase, service account, google-services.json, test push) | SETUP-001  | Notification push de test reçue sur device | 2h    |
+| ID           | Titre                                                                                                                        | Dépendance | Critère de Fin                                             | Temps |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------- | ----- |
+| **REM-001**  | Configurer Firebasé SDK (projet Firebase, service account, google-services.json, test push)                                  | SETUP-001  | Notification push de test reçue sur device                 | 2h    |
 | **REM-001b** | Créer `backend/Dockerfile.dev` (node:22-slim, npm ci, prisma generate, `npx nest start --watch`, volume src pour hot reload) | SETUP-001  | `docker build` backend dev réussit, hot reload fonctionnel | 45min |
 
 ### Phase 5.1 : Base de Données
@@ -565,12 +568,12 @@ Cyclé TDD par comportement.
 
 **Comportement 1 : Planification automatique des rappels**
 
-| ID          | Titre                                                                                                                                                    | Dépendance        | Critère de Fin                    | Temps |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | --------------------------------- | ----- |
+| ID          | Titre                                                                                                                                                                                                                  | Dépendance        | Critère de Fin                    | Temps |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | --------------------------------- | ----- |
 | **REM-005** | RED : Test création automatique de 5 rappels (PREVENTIVE adaptatif J-3 ou J-1, ON_DUE_DATE J, FIRST_OVERDUE J+7, SECOND_OVERDUE J+14, FINAL_OVERDUE J+21) quand prêt créé. Tester les 2 cas : Δ ≥ 3 → J-3, Δ = 2 → J-1 | REM-004           | Test écrit, échoue                | 45min |
-| **REM-006** | GREEN : Implémenter `ReminderPolicy.calculateDates()` (politique adaptative : PREVENTIVE à J-3 si Δ ≥ 3, sinon J-1 ; puis J, J+7, J+14, J+21). Valider aussi que `returnDate >= createdAt + 2 jours` | REM-005           | Politique de calcul fonctionnelle | 1h30  |
-| **REM-007** | GREEN : Implémenter `ReminderService.scheduleReminders()` (création automatique via Prisma + BullMQ)                                                     | REM-006           | Test REM-005 passe                | 2h    |
-| **REM-008** | GREEN : Écouter événement `LOAN_CREATED` (EventBus) pour déclenchér `scheduleReminders()`                                                                | REM-007, LOAN-008 | Pattern Observer appliqué         | 1h    |
+| **REM-006** | GREEN : Implémenter `ReminderPolicy.calculateDates()` (politique adaptative : PREVENTIVE à J-3 si Δ ≥ 3, sinon J-1 ; puis J, J+7, J+14, J+21). Valider aussi que `returnDate >= createdAt + 2 jours`                   | REM-005           | Politique de calcul fonctionnelle | 1h30  |
+| **REM-007** | GREEN : Implémenter `ReminderService.scheduleReminders()` (création automatique via Prisma + BullMQ)                                                                                                                   | REM-006           | Test REM-005 passe                | 2h    |
+| **REM-008** | GREEN : Écouter événement `LOAN_CREATED` (EventBus) pour déclenchér `scheduleReminders()`                                                                                                                              | REM-007, LOAN-008 | Pattern Observer appliqué         | 1h    |
 
 **Comportement 2 : Envoi automatique des rappels**
 
@@ -597,7 +600,7 @@ Cyclé TDD par comportement.
 | ----------- | --------------------------------------------------------------------------- | ---------- | ------------------ | ----- |
 | **REM-014** | RED : Test `GET /notifications` (liste paginée avec filtre unreadOnly)      | REM-011    | Test écrit, échoue | 20min |
 | **REM-015** | GREEN : Implémenter `NotificationService.findAll()` (pagination via Prisma) | REM-014    | Test REM-014 passe | 1h    |
-| **REM-016** | RED : Test `PATCH /notifications/{id}/read` (marquer comme lu success 200)  | REM-015    | Test écrit, échoue | 15min |
+| **REM-016** | RED : Test `PATCH /notifications/{id}/read` (marquer comme lu success 204)  | REM-015    | Test écrit, échoue | 15min |
 | **REM-017** | GREEN : Implémenter `NotificationService.markAsRead()` (via Prisma)         | REM-016    | Test REM-016 passe | 30min |
 | **REM-020** | RED : Test `POST /notifications/read-all` (marquer toutes comme lues 204)   | REM-017    | Test écrit, échoue | 15min |
 | **REM-021** | GREEN : Implémenter `NotificationService.markAllAsRead()` (via Prisma)      | REM-020    | Test REM-020 passe | 30min |
@@ -610,7 +613,18 @@ Cyclé TDD par comportement.
 | **REM-019** | Créer `NotificationsController.markAsRead()` (PATCH /notifications/{id}/read)  | REM-017    | Test REM-016 passe | 30min |
 | **REM-022** | Créer `NotificationsController.markAllAsRead()` (POST /notifications/read-all) | REM-021    | Test REM-020 passe | 30min |
 
-🏁 **Livrable Sprint 5** : **Frontend reçoit des notifications push automatiques** (3 endpoints Notifications + système de rappels automatique en arrière-plan + `Dockerfile.dev` backend pour environnement Docker unifié).
+### Phase 5.4 : Device Token (FCM)
+
+| ID          | Titre                                                                                             | Dépendance | Critère de Fin     | Temps |
+| ----------- | ------------------------------------------------------------------------------------------------- | ---------- | ------------------ | ----- |
+| **REM-023** | RED : Test `POST /notifications/device-token` (enregistrer token FCM, success 204)                | REM-011    | Test écrit, échoue | 15min |
+| **REM-024** | GREEN : Implémenter `NotificationService.registerDeviceToken()` (upsert Prisma)                   | REM-023    | Test REM-023 passe | 45min |
+| **REM-025** | RED : Test `DELETE /notifications/device-token` (supprimer token FCM, success 204, 404 not found) | REM-024    | Test écrit, échoue | 15min |
+| **REM-026** | GREEN : Implémenter `NotificationService.unregisterDeviceToken()` (delete Prisma)                 | REM-025    | Test REM-025 passe | 30min |
+| **REM-027** | Créer `NotificationsController.registerDeviceToken()` (POST /notifications/device-token)          | REM-024    | Test REM-023 passe | 30min |
+| **REM-028** | Créer `NotificationsController.unregisterDeviceToken()` (DELETE /notifications/device-token)      | REM-026    | Test REM-025 passe | 30min |
+
+🏁 **Livrable Sprint 5** : **Frontend reçoit des notifications push automatiques** (5 endpoints Notifications + système de rappels automatique en arrière-plan + `Dockerfile.dev` backend pour environnement Docker unifié).
 
 ---
 
@@ -649,6 +663,10 @@ Cyclé TDD par comportement.
 > **Definition du trustScore** : Ratio simple `(prêts retournés / total de prêts terminés) * 100` exprime en
 > pourcentage. Un emprunteur sans prêt terminé à un score de `null` (non calculable). Pas d'algorithme
 > complexe en V1 -- on pourra ponderer par anciennete ou délai en V2+.
+
+> **⚠️ Déjà implémenté** : Les tâches HIST-006/007/010/011/012/013 (`GET /borrowers/{id}/statistics` et
+> `GET /borrowers/{id}/loans`) ont été implémentées en avance dans le module Borrowers (Sprint 2+4).
+> Le `BorrowersController` expose déjà ces 2 endpoints avec tests. Ces tâches sont à considérer comme terminées.
 
 | ID           | Titre                                                                                | Dépendance | Critère de Fin      | Temps |
 | ------------ | ------------------------------------------------------------------------------------ | ---------- | ------------------- | ----- |
@@ -724,13 +742,13 @@ Cyclé TDD par comportement.
 | **Sprint 0**   | 3-4 jours       | Setup infrastructuré          | 2 (health + ready) + Docker                                                            | CI/CD          |
 | **Sprint 1**   | 5 jours         | Auth + Users                  | 10 (Auth: 4, Users: 6)                                                                 | ~20 tests      |
 | **Sprint 2**   | 4 jours         | Borrowers                     | 5                                                                                      | ~8 tests       |
-| **Sprint 3**   | 4 jours         | Items + Avatar                | 7 (Items: 6, Avatar: 1)                                                                | ~10 tests      |
+| **Sprint 3**   | 4 jours         | Items + Avatar                | 9 (Items: 7, Avatar: 2)                                                                | ~10 tests      |
 | **Sprint 4**   | 8 jours         | Loans (coeur métier)          | 8 + intégration inter-modules                                                          | ~20 tests      |
 | **Sprint 4.5** | 3 jours         | Corrections intégration Loans | 0 (listener événement + migration rattachement + tests dual-perspective + doc OpenAPI) | ~12 tests      |
 | **Sprint 4.6** | 5 jours         | Contact Invitation System     | 6 (search, send, list, accept, reject, delete)                                         | ~17 tests      |
-| **Sprint 5**   | 5 jours         | Reminders + Notifications     | 3 + système auto                                                                       | ~12 tests      |
-| **Sprint 6**   | 4 jours         | History + R2 + Déploiement    | 5 (History: 2, Borrower stats/loans: 2, E2E) + R2                                      | E2E complet    |
-| **TOTAL**      | **46-50 jours** | **8 modules + 1 correctif**   | **~46 endpoints** (+ 3 réservés V2)                                                    | **~91+ tests** |
+| **Sprint 5**   | 5 jours         | Reminders + Notifications     | 5 + système auto                                                                       | ~12 tests      |
+| **Sprint 6**   | 4 jours         | History + R2 + Déploiement    | 4 (History: 2, Borrower stats/loans: 2) + E2E + R2                                     | E2E complet    |
+| **TOTAL**      | **46-50 jours** | **8 modules + 1 correctif**   | **~49 endpoints** (+ 3 réservés V2)                                                    | **~91+ tests** |
 
 > **Endpoints réservés V2** : 3 endpoints Reminders (`GET /loans/{id}/reminders`, `GET /reminders/{id}`,
 > `POST /reminders/{id}/cancel`) sont définis dans `openapi.yaml` mais ne sont pas implémentés en V1 car

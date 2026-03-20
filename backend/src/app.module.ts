@@ -14,6 +14,8 @@ import { BorrowersModule } from './borrowers/borrowers.module.js';
 import { ItemsModule } from './items/items.module.js';
 import { LoansModule } from './loans/loans.module.js';
 import { ContactInvitationsModule } from './contact-invitations/contact-invitations.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
+import { RemindersModule } from './reminders/reminders.module.js';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware.js';
 
 @Module({
@@ -41,6 +43,8 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
     ItemsModule,
     LoansModule,
     ContactInvitationsModule,
+    NotificationsModule,
+    RemindersModule,
   ],
   providers: [
     {
