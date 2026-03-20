@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsString, Min, Max } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Min, Max } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export enum Environment {
@@ -40,4 +40,8 @@ export class EnvironmentVariables {
 
   @IsString()
   CORS_ORIGIN: string = 'http://localhost:8081';
+
+  @IsOptional()
+  @IsString()
+  FIREBASE_SERVICE_ACCOUNT_BASE64?: string;
 }

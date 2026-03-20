@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { NotificationType, type ReminderType } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service.js';
+import { FirebaseService } from '../firebase/firebase.service.js';
 import {
   NotFoundException,
   ForbiddenException,
@@ -45,7 +46,10 @@ export interface FindAllOptions {
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly firebaseService: FirebaseService,
+  ) {}
 
   async sendReminderNotification(
     reminderId: string,
@@ -79,6 +83,14 @@ export class NotificationsService {
     }
 
     this.logger.log(`Sent ${reminderType} notification for reminder ${reminderId}, loan ${loanId}`);
+
+    // Send FCM push notifications
+    const userIds = [lenderUserId, ...(borrowerUserId ? [borrowerUserId] : [])];
+    await this.sendPushToUsers(userIds, title, `Un rappel de type ${reminderType} a été envoyé.`, {
+      loanId,
+      reminderId,
+      type: 'REMINDER',
+    });
   }
 
   async findAllByUser(userId: string, options: FindAllOptions): Promise<PaginatedNotifications> {
@@ -156,5 +168,28 @@ export class NotificationsService {
       where: { userId, isRead: false },
       data: { isRead: true },
     });
+  }
+
+  private async sendPushToUsers(
+    userIds: string[],
+    title: string,
+    body: string,
+    data?: Record<string, string>,
+  ): Promise<void> {
+    if (!this.firebaseService.isAvailable()) return;
+
+    const tokens = await this.prisma.deviceToken.findMany({
+      where: { userId: { in: userIds } },
+      select: { token: true },
+    });
+
+    if (tokens.length === 0) return;
+
+    await this.firebaseService.sendToMultipleTokens(
+      tokens.map((t) => t.token),
+      title,
+      body,
+      data,
+    );
   }
 }
