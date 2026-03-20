@@ -274,6 +274,54 @@ export interface UnregisterDeviceTokenDto {
   token: string;
 }
 
+// --- Rappels (Reminders) ---
+
+export type ReminderType =
+  | 'PREVENTIVE'
+  | 'ON_DUE_DATE'
+  | 'FIRST_OVERDUE'
+  | 'SECOND_OVERDUE'
+  | 'FINAL_OVERDUE';
+export type ReminderStatus = 'SCHEDULED' | 'SENT' | 'FAILED' | 'CANCELLED';
+
+export interface Reminder {
+  id: string;
+  loanId: string;
+  type: ReminderType;
+  status: ReminderStatus;
+  scheduledFor: string;
+  sentAt?: string | null;
+  message?: string | null;
+  channel: 'PUSH';
+}
+
+// --- Historique & Statistiques ---
+
+export interface HistoryStatistics {
+  overview: {
+    totalLoans: number;
+    activeLoans: number;
+    returnedLoans: number;
+    notReturnedLoans: number;
+    contestedLoans: number;
+    averageReturnDelay: number | null;
+  };
+  byCategory: Array<{
+    category: ItemCategory;
+    count: number;
+    totalValue: number | null;
+  }>;
+  topBorrowers: Array<{
+    borrower: UserSummary;
+    loanCount: number;
+    trustScore: number;
+  }>;
+  mostLoanedItems: Array<{
+    item: Item;
+    loanCount: number;
+  }>;
+}
+
 // --- Pagination ---
 
 export interface PaginationMetadata {

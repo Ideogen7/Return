@@ -7,7 +7,7 @@ const MOCK_MODULES: Record<string, boolean> = {
   reminders: true,
   notifications: false,
   users: false,
-  history: true,
+  history: false,
   'contact-invitations': false,
 };
 

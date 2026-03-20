@@ -14,6 +14,7 @@ export type RootAppStackParamList = {
 // Tabs principaux
 export type AppTabParamList = {
   LoanTab: NavigatorScreenParams<LoanStackParamList> | undefined;
+  HistoryTab: NavigatorScreenParams<HistoryStackParamList> | undefined;
   BorrowerTab: undefined;
   ItemTab: undefined;
   ProfileTab: undefined;
@@ -45,6 +46,13 @@ export type LoanStackParamList = {
   CreateLoan: undefined;
   LoanDetail: { id: string };
   ConfirmLoan: { id: string };
+};
+
+// Stack History
+export type HistoryStackParamList = {
+  Dashboard: undefined;
+  History: undefined;
+  Statistics: undefined;
 };
 
 // Stack Borrowers

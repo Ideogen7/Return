@@ -152,6 +152,25 @@ const mockNotificationRead = {
   createdAt: '2026-03-17T08:00:00Z',
 };
 
+// History mock data
+const mockArchivedLoan = {
+  id: 'archived-loan-1',
+  item: {
+    id: 'item-1',
+    name: 'Perceuse Bosch',
+    category: 'TOOLS' as const,
+    photos: [],
+    createdAt: '2026-01-15T10:00:00Z',
+  },
+  lender: { id: 'user-1', firstName: 'John', lastName: 'Doe' },
+  borrower: { id: 'borrower-1', firstName: 'Jane', lastName: 'Smith', email: 'jane@test.com' },
+  status: 'RETURNED' as const,
+  returnDate: '2026-02-15T00:00:00Z',
+  returnedDate: '2026-02-14T10:00:00Z',
+  createdAt: '2026-01-15T10:00:00Z',
+  updatedAt: '2026-02-14T10:00:00Z',
+};
+
 export const handlers = [
   // =========================================================================
   // AUTHENTICATION
@@ -713,5 +732,67 @@ export const handlers = [
   // DELETE /notifications/device-token
   http.delete(`${API_REAL}/notifications/device-token`, () => {
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  // =========================================================================
+  // HISTORY
+  // =========================================================================
+
+  // GET /history/loans
+  http.get(`${API_REAL}/history/loans`, () => {
+    return HttpResponse.json(
+      {
+        data: [mockArchivedLoan],
+        pagination: {
+          currentPage: 1,
+          itemsPerPage: 20,
+          totalItems: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+      { status: 200 },
+    );
+  }),
+
+  // GET /history/statistics
+  http.get(`${API_REAL}/history/statistics`, () => {
+    return HttpResponse.json(
+      {
+        overview: {
+          totalLoans: 42,
+          activeLoans: 5,
+          returnedLoans: 35,
+          notReturnedLoans: 2,
+          contestedLoans: 0,
+          averageReturnDelay: -1.5,
+        },
+        byCategory: [
+          { category: 'TOOLS', count: 12, totalValue: 450.0 },
+          { category: 'ELECTRONICS', count: 8, totalValue: 1200.0 },
+        ],
+        topBorrowers: [
+          {
+            borrower: { id: 'user-2', firstName: 'Jane', lastName: 'Smith' },
+            loanCount: 8,
+            trustScore: 92.5,
+          },
+        ],
+        mostLoanedItems: [
+          {
+            item: {
+              id: 'item-1',
+              name: 'Perceuse Bosch',
+              category: 'TOOLS',
+              photos: [],
+              createdAt: '2026-01-15T10:00:00Z',
+            },
+            loanCount: 6,
+          },
+        ],
+      },
+      { status: 200 },
+    );
   }),
 ];

@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Icon } from 'react-native-paper';
 import { LoanNavigator } from './LoanNavigator';
+import { HistoryNavigator } from './HistoryNavigator';
 import { BorrowerNavigator } from './BorrowerNavigator';
 import { ItemNavigator } from './ItemNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
@@ -47,6 +48,14 @@ function TabNavigator() {
           tabBarIcon: ({ color, size }) => (
             <Icon source="handshake-outline" color={color} size={size} />
           ),
+        }}
+      />
+      <Tab.Screen
+        name="HistoryTab"
+        component={HistoryNavigator}
+        options={{
+          title: t('navigation.history'),
+          tabBarIcon: ({ color, size }) => <Icon source="chart-line" color={color} size={size} />,
         }}
       />
       <Tab.Screen
