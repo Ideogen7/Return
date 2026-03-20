@@ -84,13 +84,22 @@ export class NotificationsService {
 
     this.logger.log(`Sent ${reminderType} notification for reminder ${reminderId}, loan ${loanId}`);
 
-    // Send FCM push notifications
-    const userIds = [lenderUserId, ...(borrowerUserId ? [borrowerUserId] : [])];
-    await this.sendPushToUsers(userIds, title, `Un rappel de type ${reminderType} a été envoyé.`, {
+    // Send FCM push notifications — per-recipient body
+    const lenderBody = `Un rappel de type ${reminderType} a été envoyé pour votre prêt.`;
+    await this.sendPushToUsers([lenderUserId], title, lenderBody, {
       loanId,
       reminderId,
       type: 'REMINDER',
     });
+
+    if (borrowerUserId) {
+      const borrowerBody = `Vous avez un rappel concernant un objet emprunté.`;
+      await this.sendPushToUsers([borrowerUserId], title, borrowerBody, {
+        loanId,
+        reminderId,
+        type: 'REMINDER',
+      });
+    }
   }
 
   async findAllByUser(userId: string, options: FindAllOptions): Promise<PaginatedNotifications> {
@@ -179,7 +188,10 @@ export class NotificationsService {
     if (!this.firebaseService.isAvailable()) return;
 
     const tokens = await this.prisma.deviceToken.findMany({
-      where: { userId: { in: userIds } },
+      where: {
+        userId: { in: userIds },
+        user: { pushNotificationsEnabled: true },
+      },
       select: { token: true },
     });
 

@@ -22,11 +22,14 @@ export class FirebaseService implements OnModuleInit {
         Buffer.from(base64, 'base64').toString('utf-8'),
       ) as admin.ServiceAccount;
 
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
+      const app =
+        admin.apps.length > 0
+          ? admin.app()
+          : admin.initializeApp({
+              credential: admin.credential.cert(serviceAccount),
+            });
 
-      this.messaging = admin.messaging();
+      this.messaging = app.messaging();
       this.logger.log('Firebase Admin SDK initialized');
     } catch (error) {
       this.logger.error(`Failed to initialize Firebase: ${String(error)}`);
@@ -54,7 +57,9 @@ export class FirebaseService implements OnModuleInit {
 
       await this.messaging.send(message);
     } catch (error) {
-      this.logger.error(`FCM send failed for token ${token}: ${String(error)}`);
+      this.logger.error(
+        `FCM send failed for token ${token.slice(0, 6)}…${token.slice(-4)}: ${String(error)}`,
+      );
     }
   }
 

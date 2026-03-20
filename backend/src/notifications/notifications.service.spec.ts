@@ -103,6 +103,78 @@ describe('NotificationsService', () => {
         data: expect.objectContaining({ type: NotificationType.REMINDER_SENT }),
       });
     });
+
+    it('should send FCM push to lender when Firebase is available and tokens exist', async () => {
+      firebaseService.isAvailable.mockReturnValue(true);
+      prisma.notification.create.mockResolvedValue({} as never);
+      prisma.deviceToken.findMany.mockResolvedValue([{ token: 'fcm-token-1' }] as never);
+
+      await service.sendReminderNotification(
+        REMINDER_ID,
+        LOAN_ID,
+        LENDER_USER_ID,
+        ReminderType.ON_DUE_DATE,
+      );
+
+      expect(prisma.deviceToken.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: { in: [LENDER_USER_ID] },
+          user: { pushNotificationsEnabled: true },
+        },
+        select: { token: true },
+      });
+      expect(firebaseService.sendToMultipleTokens).toHaveBeenCalledWith(
+        ['fcm-token-1'],
+        expect.any(String),
+        expect.stringContaining('prêt'),
+        expect.objectContaining({ loanId: LOAN_ID }),
+      );
+    });
+
+    it('should send separate FCM pushes to lender and borrower with different bodies', async () => {
+      firebaseService.isAvailable.mockReturnValue(true);
+      prisma.notification.create.mockResolvedValue({} as never);
+      prisma.deviceToken.findMany
+        .mockResolvedValueOnce([{ token: 'lender-token' }] as never)
+        .mockResolvedValueOnce([{ token: 'borrower-token' }] as never);
+
+      await service.sendReminderNotification(
+        REMINDER_ID,
+        LOAN_ID,
+        LENDER_USER_ID,
+        ReminderType.ON_DUE_DATE,
+        BORROWER_USER_ID,
+      );
+
+      expect(firebaseService.sendToMultipleTokens).toHaveBeenCalledTimes(2);
+      expect(firebaseService.sendToMultipleTokens).toHaveBeenCalledWith(
+        ['lender-token'],
+        expect.any(String),
+        expect.stringContaining('prêt'),
+        expect.objectContaining({ type: 'REMINDER' }),
+      );
+      expect(firebaseService.sendToMultipleTokens).toHaveBeenCalledWith(
+        ['borrower-token'],
+        expect.any(String),
+        expect.stringContaining('emprunté'),
+        expect.objectContaining({ type: 'REMINDER' }),
+      );
+    });
+
+    it('should NOT send FCM push when no device tokens found', async () => {
+      firebaseService.isAvailable.mockReturnValue(true);
+      prisma.notification.create.mockResolvedValue({} as never);
+      prisma.deviceToken.findMany.mockResolvedValue([] as never);
+
+      await service.sendReminderNotification(
+        REMINDER_ID,
+        LOAN_ID,
+        LENDER_USER_ID,
+        ReminderType.ON_DUE_DATE,
+      );
+
+      expect(firebaseService.sendToMultipleTokens).not.toHaveBeenCalled();
+    });
   });
 
   describe('findAllByUser', () => {

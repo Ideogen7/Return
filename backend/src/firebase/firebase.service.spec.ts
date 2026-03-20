@@ -29,8 +29,34 @@ describe('FirebaseService', () => {
     service = new FirebaseService(configService as unknown as ConfigService);
   });
 
+  /** Helper: simulate a fully initialized service with mocked messaging */
+  function initializeWithMockMessaging(): void {
+    service['messaging'] = { send: mockSend } as never;
+  }
+
   describe('isAvailable', () => {
     it('should return false when Firebase is not configured', () => {
+      expect(service.isAvailable()).toBe(false);
+    });
+
+    it('should return true when messaging is initialized', () => {
+      initializeWithMockMessaging();
+      expect(service.isAvailable()).toBe(true);
+    });
+  });
+
+  describe('onModuleInit', () => {
+    it('should keep service unavailable when FIREBASE_SERVICE_ACCOUNT_BASE64 is not set', () => {
+      service.onModuleInit();
+      expect(service.isAvailable()).toBe(false);
+    });
+
+    it('should keep service unavailable when invalid base64/JSON is provided', () => {
+      configService.get.mockReturnValue('not-valid-json-base64');
+      service = new FirebaseService(configService as unknown as ConfigService);
+
+      service.onModuleInit();
+
       expect(service.isAvailable()).toBe(false);
     });
   });
@@ -41,8 +67,7 @@ describe('FirebaseService', () => {
     });
 
     it('should call messaging.send when Firebase is configured', async () => {
-      // Simulate initialized messaging
-      service['messaging'] = { send: mockSend } as never;
+      initializeWithMockMessaging();
 
       await service.sendPushNotification(DEVICE_TOKEN, TITLE, BODY);
 
@@ -53,7 +78,7 @@ describe('FirebaseService', () => {
     });
 
     it('should call messaging.send with data payload when provided', async () => {
-      service['messaging'] = { send: mockSend } as never;
+      initializeWithMockMessaging();
 
       await service.sendPushNotification(DEVICE_TOKEN, TITLE, BODY, {
         loanId: 'loan-123',
@@ -77,7 +102,7 @@ describe('FirebaseService', () => {
 
   describe('sendToMultipleTokens', () => {
     it('should call send for each token', async () => {
-      service['messaging'] = { send: mockSend } as never;
+      initializeWithMockMessaging();
       const tokens = ['token-1', 'token-2', 'token-3'];
 
       await service.sendToMultipleTokens(tokens, TITLE, BODY);
