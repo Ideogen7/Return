@@ -17,6 +17,9 @@ interface FetchLoansParams {
   page?: number;
   status?: LoanStatus[];
   borrowerId?: string;
+  sortBy?: 'createdAt' | 'returnDate' | 'status';
+  sortOrder?: 'asc' | 'desc';
+  includeArchived?: boolean;
 }
 
 interface LoanState {
@@ -56,6 +59,9 @@ export const useLoanStore = create<LoanState>((set) => ({
           limit: 20,
           ...(params?.status && { status: params.status.join(',') }),
           ...(params?.borrowerId && { borrowerId: params.borrowerId }),
+          ...(params?.sortBy !== undefined && { sortBy: params.sortBy }),
+          ...(params?.sortOrder !== undefined && { sortOrder: params.sortOrder }),
+          ...(params?.includeArchived !== undefined && { includeArchived: params.includeArchived }),
         },
       });
       set({ loans: data.data, isLoading: false });

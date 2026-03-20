@@ -19,4 +19,4 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["npx", "nest", "start", "--watch"]
+CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npx nest start --watch"]

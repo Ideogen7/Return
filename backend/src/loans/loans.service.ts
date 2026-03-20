@@ -81,6 +81,16 @@ export class LoansService {
           '/v1/loans',
         );
       }
+      const minReturnDate = new Date(today);
+      minReturnDate.setDate(minReturnDate.getDate() + 2);
+      if (returnDate < minReturnDate) {
+        throw new BadRequestException(
+          'return-date-too-soon',
+          'Return Date Too Soon',
+          'Return date must be at least 2 days after the loan creation date.',
+          '/v1/loans',
+        );
+      }
     }
 
     // Atomic transaction: resolve/create item + resolve borrower + loan in one go
@@ -270,7 +280,24 @@ export class LoansService {
 
     const data: Record<string, unknown> = {};
     if (dto.returnDate !== undefined) {
-      data.returnDate = dto.returnDate ? new Date(dto.returnDate) : null;
+      if (dto.returnDate) {
+        const returnDate = new Date(dto.returnDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const minReturnDate = new Date(today);
+        minReturnDate.setDate(minReturnDate.getDate() + 2);
+        if (returnDate < minReturnDate) {
+          throw new BadRequestException(
+            'return-date-too-soon',
+            'Return Date Too Soon',
+            'Return date must be at least 2 days from now.',
+            `/v1/loans/${loanId}`,
+          );
+        }
+        data.returnDate = returnDate;
+      } else {
+        data.returnDate = null;
+      }
     }
     if (dto.notes !== undefined) {
       data.notes = dto.notes;

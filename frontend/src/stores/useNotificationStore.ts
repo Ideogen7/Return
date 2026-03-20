@@ -16,6 +16,7 @@ interface NotificationState {
   }) => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
   registerDeviceToken: (token: string, platform: 'ios' | 'android' | 'web') => Promise<void>;
   unregisterDeviceToken: (token: string) => Promise<void>;
   reset: () => void;
@@ -58,9 +59,10 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     // Optimistic update
     set((state) => {
       const updated = state.notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+      const wasUnread = state.notifications.find((n) => n.id === id && !n.isRead);
       return {
         notifications: updated,
-        unreadCount: updated.filter((n) => !n.isRead).length,
+        unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
       };
     });
     try {
@@ -73,7 +75,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         );
         return {
           notifications: reverted,
-          unreadCount: reverted.filter((n) => !n.isRead).length,
+          unreadCount: state.unreadCount + 1,
           error: extractProblemDetails(err),
         };
       });
@@ -93,6 +95,17 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     } catch (err) {
       set({ isLoading: false, error: extractProblemDetails(err) });
       throw err;
+    }
+  },
+
+  fetchUnreadCount: async () => {
+    try {
+      const { data } = await apiClient.get<PaginatedResponse<Notification>>('/notifications', {
+        params: { unreadOnly: true, limit: 1 },
+      });
+      set({ unreadCount: data.pagination.totalItems });
+    } catch {
+      // Silent fail — badge update is non-critical
     }
   },
 

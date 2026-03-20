@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, StyleSheet, View } from 'react-native';
 import i18n from '../config/i18n.config';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useNotificationStore } from '../stores/useNotificationStore';
@@ -45,6 +45,45 @@ export function RootNavigator() {
       }
       store.reset();
     }
+  }, [isAuthenticated]);
+
+  // Poll unread count every 30s to keep the badge up to date
+  // Pause polling when app is in background to save battery
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const start = () => {
+      if (!interval) {
+        interval = setInterval(() => {
+          useNotificationStore.getState().fetchUnreadCount();
+        }, 30_000);
+      }
+    };
+
+    const stop = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    start();
+
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        useNotificationStore.getState().fetchUnreadCount();
+        start();
+      } else {
+        stop();
+      }
+    });
+
+    return () => {
+      stop();
+      subscription.remove();
+    };
   }, [isAuthenticated]);
 
   if (isLoading) {
