@@ -60,7 +60,7 @@ export class RemindersCronService {
           this.logger.log(`All reminders exhausted for loan ${reminder.loan.id}`);
         }
       } catch (error) {
-        this.logger.error(`Failed to send reminder ${reminder.id}: ${error}`);
+        this.logger.error(`Failed to send reminder ${reminder.id}: ${String(error)}`);
         await this.prisma.reminder.update({
           where: { id: reminder.id },
           data: { status: ReminderStatus.FAILED },
