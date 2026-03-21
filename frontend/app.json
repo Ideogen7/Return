@@ -13,19 +13,34 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.ideogen.returnapp",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Return needs access to your camera to take photos of loaned items.",
+        "NSPhotoLibraryUsageDescription": "Return needs access to your photo library to attach photos to loaned items."
+      }
     },
     "android": {
+      "package": "com.ideogen.returnapp",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["CAMERA", "READ_MEDIA_IMAGES", "READ_EXTERNAL_STORAGE"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-localization"]
+    "plugins": ["expo-localization"],
+    "extra": {
+      "eas": {
+        "projectId": "595176ea-3595-4aec-8ba5-b56da4f48a67"
+      }
+    },
+    "owner": "natismael"
   }
 }

@@ -58,5 +58,12 @@ frontend/android
 copilot-instructions.md
 
 
+# Build artifacts (APK/AAB)
+*.apk
+*.aab
+
+# Google Play service account credentials
+google-play-service-account.json
+
 # Upload artifacts (dev)
 backend/uploads/
