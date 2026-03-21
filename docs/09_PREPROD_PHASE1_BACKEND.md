@@ -57,14 +57,14 @@ Les variables `NODE_ENV`, `PORT`, `API_PREFIX`, `LOG_LEVEL` sont définies dans 
 ### `backend/fly.toml` (nouveau)
 Configuration Fly.io :
 - App `return-api`, région `cdg`
-- `release_command` : `npx prisma migrate deploy` (exécuté avant chaque déploiement)
+- `release_command` : `npx prisma migrate deploy` (exécuté avant chaque déploiement, `prisma` est en dependencies pour garantir la version)
 - Health check : `GET /health` toutes les 30s
 - Auto-stop/start des machines (économie de coûts)
 - Concurrency : soft 200, hard 250 requests
 
 ### `backend/Dockerfile`
 - **Fix** : `CMD ["node", "dist/src/main.js"]` (au lieu de `dist/main.js`)
-- Le build TypeScript place les fichiers dans `dist/src/` car `prisma.config.ts` à la racine étend la structure de sortie
+- Le build NestJS/TypeScript génère la sortie dans `dist/src/` en fonction de la configuration `tsconfig` (`outDir: "dist"` sans `rootDir: "src"`), d'où le chemin d'entrée `dist/src/main.js`
 
 ### `backend/src/main.ts`
 - **Fix** : `app.listen(port, '0.0.0.0')` — Fly.io nécessite l'écoute sur toutes les interfaces
