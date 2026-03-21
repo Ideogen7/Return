@@ -3,6 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { NotificationType, LoanStatus } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service.js';
+import { NotificationsService } from './notifications.service.js';
 import { LOAN_EVENTS } from '../common/events/loan.events.js';
 import type { LoanCreatedEvent, LoanStatusChangedEvent } from '../common/events/loan.events.js';
 
@@ -10,7 +11,10 @@ import type { LoanCreatedEvent, LoanStatusChangedEvent } from '../common/events/
 export class LoanNotificationListener {
   private readonly logger = new Logger(LoanNotificationListener.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   @OnEvent(LOAN_EVENTS.CREATED)
   async handleLoanCreated(event: LoanCreatedEvent): Promise<void> {
@@ -27,15 +31,29 @@ export class LoanNotificationListener {
         return;
       }
 
+      const title = 'Nouveau prêt';
+      const body = 'Un nouveau prêt a été enregistré pour vous.';
+
       await this.prisma.notification.create({
         data: {
           userId: borrower.userId,
           type: NotificationType.LOAN_CREATED,
-          title: 'Nouveau prêt',
-          body: 'Un nouveau prêt a été enregistré pour vous.',
+          title,
+          body,
           relatedLoanId: event.loanId,
         },
       });
+
+      try {
+        await this.notificationsService.sendPushToUsers([borrower.userId], title, body, {
+          loanId: event.loanId,
+          type: String(NotificationType.LOAN_CREATED),
+        });
+      } catch (pushError) {
+        this.logger.warn(
+          `Push notification failed (in-app notification was created): ${String(pushError)}`,
+        );
+      }
 
       this.logger.log(
         `LOAN_CREATED notification sent to user ${borrower.userId} for loan ${event.loanId}`,
@@ -107,6 +125,19 @@ export class LoanNotificationListener {
       },
     });
 
+    try {
+      await this.notificationsService.sendPushToUsers(
+        [event.lenderUserId],
+        message.title,
+        message.body,
+        { loanId: event.loanId, type: String(type) },
+      );
+    } catch (pushError) {
+      this.logger.warn(
+        `Push notification failed (in-app notification was created): ${String(pushError)}`,
+      );
+    }
+
     this.logger.log(
       `${type} notification sent to lender ${event.lenderUserId} for loan ${event.loanId}`,
     );
@@ -138,6 +169,19 @@ export class LoanNotificationListener {
         relatedLoanId: event.loanId,
       },
     });
+
+    try {
+      await this.notificationsService.sendPushToUsers(
+        [borrower.userId],
+        message.title,
+        message.body,
+        { loanId: event.loanId, type: String(type) },
+      );
+    } catch (pushError) {
+      this.logger.warn(
+        `Push notification failed (in-app notification was created): ${String(pushError)}`,
+      );
+    }
 
     this.logger.log(
       `${type} notification sent to borrower ${borrower.userId} for loan ${event.loanId}`,

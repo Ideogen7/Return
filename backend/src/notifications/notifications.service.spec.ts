@@ -15,6 +15,9 @@ const LENDER_USER_ID = '33333333-3333-3333-3333-333333333333';
 const BORROWER_USER_ID = '44444444-4444-4444-4444-444444444444';
 const NOTIFICATION_ID = 'notif-1111-1111-1111-111111111111';
 
+const FCM_TOKEN_VALID = 'fcm-token-valid-1';
+const FCM_TOKEN_INVALID = 'fcm-token-invalid-stale';
+
 // =============================================================================
 // Test Suite — REM-011
 // =============================================================================
@@ -28,7 +31,8 @@ describe('NotificationsService', () => {
     prisma = mockDeep<PrismaService>();
     firebaseService = {
       isAvailable: jest.fn().mockReturnValue(false),
-      sendToMultipleTokens: jest.fn().mockResolvedValue(undefined),
+      // Returns string[] (list of invalid tokens) — default: no invalid tokens
+      sendToMultipleTokens: jest.fn().mockResolvedValue([]),
     };
     service = new NotificationsService(prisma, firebaseService as unknown as FirebaseService);
   });
@@ -107,7 +111,7 @@ describe('NotificationsService', () => {
     it('should send FCM push to lender when Firebase is available and tokens exist', async () => {
       firebaseService.isAvailable.mockReturnValue(true);
       prisma.notification.create.mockResolvedValue({} as never);
-      prisma.deviceToken.findMany.mockResolvedValue([{ token: 'fcm-token-1' }] as never);
+      prisma.deviceToken.findMany.mockResolvedValue([{ token: FCM_TOKEN_VALID }] as never);
 
       await service.sendReminderNotification(
         REMINDER_ID,
@@ -124,7 +128,7 @@ describe('NotificationsService', () => {
         select: { token: true },
       });
       expect(firebaseService.sendToMultipleTokens).toHaveBeenCalledWith(
-        ['fcm-token-1'],
+        [FCM_TOKEN_VALID],
         expect.any(String),
         expect.stringContaining('prêt'),
         expect.objectContaining({ loanId: LOAN_ID }),
@@ -172,6 +176,77 @@ describe('NotificationsService', () => {
         LENDER_USER_ID,
         ReminderType.ON_DUE_DATE,
       );
+
+      expect(firebaseService.sendToMultipleTokens).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('sendPushToUsers', () => {
+    it('should delete invalid tokens returned by sendToMultipleTokens', async () => {
+      firebaseService.isAvailable.mockReturnValue(true);
+      prisma.deviceToken.findMany.mockResolvedValue([
+        { token: FCM_TOKEN_VALID },
+        { token: FCM_TOKEN_INVALID },
+      ] as never);
+      firebaseService.sendToMultipleTokens.mockResolvedValue([FCM_TOKEN_INVALID]);
+      prisma.deviceToken.deleteMany.mockResolvedValue({ count: 1 });
+
+      await service.sendPushToUsers([LENDER_USER_ID], 'Test', 'Body');
+
+      expect(prisma.deviceToken.deleteMany).toHaveBeenCalledWith({
+        where: {
+          token: { in: [FCM_TOKEN_INVALID] },
+          userId: { in: [LENDER_USER_ID] },
+        },
+      });
+    });
+
+    it('should NOT call deleteMany when sendToMultipleTokens returns empty array', async () => {
+      firebaseService.isAvailable.mockReturnValue(true);
+      prisma.deviceToken.findMany.mockResolvedValue([{ token: FCM_TOKEN_VALID }] as never);
+      firebaseService.sendToMultipleTokens.mockResolvedValue([]);
+
+      await service.sendPushToUsers([LENDER_USER_ID], 'Test', 'Body');
+
+      expect(prisma.deviceToken.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('should delete multiple invalid tokens when sendToMultipleTokens returns several', async () => {
+      const staleToken1 = 'stale-token-aaa';
+      const staleToken2 = 'stale-token-bbb';
+      firebaseService.isAvailable.mockReturnValue(true);
+      prisma.deviceToken.findMany.mockResolvedValue([
+        { token: FCM_TOKEN_VALID },
+        { token: staleToken1 },
+        { token: staleToken2 },
+      ] as never);
+      firebaseService.sendToMultipleTokens.mockResolvedValue([staleToken1, staleToken2]);
+      prisma.deviceToken.deleteMany.mockResolvedValue({ count: 2 });
+
+      await service.sendPushToUsers([LENDER_USER_ID], 'Test', 'Body');
+
+      expect(prisma.deviceToken.deleteMany).toHaveBeenCalledWith({
+        where: {
+          token: { in: [staleToken1, staleToken2] },
+          userId: { in: [LENDER_USER_ID] },
+        },
+      });
+    });
+
+    it('should return early without calling Firebase when Firebase is unavailable', async () => {
+      firebaseService.isAvailable.mockReturnValue(false);
+
+      await service.sendPushToUsers([LENDER_USER_ID], 'Test', 'Body');
+
+      expect(prisma.deviceToken.findMany).not.toHaveBeenCalled();
+      expect(firebaseService.sendToMultipleTokens).not.toHaveBeenCalled();
+    });
+
+    it('should return early without calling sendToMultipleTokens when no device tokens found', async () => {
+      firebaseService.isAvailable.mockReturnValue(true);
+      prisma.deviceToken.findMany.mockResolvedValue([] as never);
+
+      await service.sendPushToUsers([LENDER_USER_ID], 'Test', 'Body');
 
       expect(firebaseService.sendToMultipleTokens).not.toHaveBeenCalled();
     });

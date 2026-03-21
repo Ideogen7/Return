@@ -6,9 +6,12 @@ import { FirebaseService } from './firebase.service.js';
 // Fixtures
 // =============================================================================
 
-const DEVICE_TOKEN = 'fMI-QUBYRE:APA91bH-test-token';
 const TITLE = 'Rappel jour J';
 const BODY = 'Vous avez un rappel concernant un objet emprunté.';
+
+const TOKEN_1 = 'token-aaaaaa-valid-1';
+const TOKEN_2 = 'token-bbbbbb-valid-2';
+const TOKEN_3 = 'token-cccccc-invalid-3';
 
 // =============================================================================
 // Test Suite — Firebase Service
@@ -17,21 +20,53 @@ const BODY = 'Vous avez un rappel concernant un objet emprunté.';
 describe('FirebaseService', () => {
   let service: FirebaseService;
   let configService: { get: jest.Mock };
-  let mockSend: jest.Mock;
+  let mockSendEachForMulticast: jest.Mock;
 
   beforeEach(() => {
     configService = {
       get: jest.fn().mockReturnValue(undefined),
     };
 
-    mockSend = jest.fn().mockResolvedValue('message-id-123');
+    mockSendEachForMulticast = jest.fn().mockResolvedValue({
+      successCount: 0,
+      failureCount: 0,
+      responses: [],
+    });
 
     service = new FirebaseService(configService as unknown as ConfigService);
   });
 
   /** Helper: simulate a fully initialized service with mocked messaging */
   function initializeWithMockMessaging(): void {
-    service['messaging'] = { send: mockSend } as never;
+    service['messaging'] = {
+      sendEachForMulticast: mockSendEachForMulticast,
+    } as never;
+  }
+
+  /** Helper: build a successful multicast response for N tokens */
+  function buildSuccessResponse(count: number) {
+    return {
+      successCount: count,
+      failureCount: 0,
+      responses: Array.from({ length: count }, () => ({ success: true, error: undefined })),
+    };
+  }
+
+  /** Helper: build a multicast response with one invalid token at a given index */
+  function buildResponseWithInvalidToken(
+    tokens: string[],
+    invalidIndex: number,
+    errorCode: string,
+  ) {
+    return {
+      successCount: tokens.length - 1,
+      failureCount: 1,
+      responses: tokens.map((_, idx) =>
+        idx === invalidIndex
+          ? { success: false, error: { code: errorCode, message: 'Token not registered' } }
+          : { success: true, error: undefined },
+      ),
+    };
   }
 
   describe('isAvailable', () => {
@@ -61,57 +96,131 @@ describe('FirebaseService', () => {
     });
   });
 
-  describe('sendPushNotification', () => {
-    it('should not throw when Firebase is not configured (graceful degradation)', async () => {
-      await expect(service.sendPushNotification(DEVICE_TOKEN, TITLE, BODY)).resolves.not.toThrow();
-    });
-
-    it('should call messaging.send when Firebase is configured', async () => {
-      initializeWithMockMessaging();
-
-      await service.sendPushNotification(DEVICE_TOKEN, TITLE, BODY);
-
-      expect(mockSend).toHaveBeenCalledWith({
-        token: DEVICE_TOKEN,
-        notification: { title: TITLE, body: BODY },
-      });
-    });
-
-    it('should call messaging.send with data payload when provided', async () => {
-      initializeWithMockMessaging();
-
-      await service.sendPushNotification(DEVICE_TOKEN, TITLE, BODY, {
-        loanId: 'loan-123',
-      });
-
-      expect(mockSend).toHaveBeenCalledWith({
-        token: DEVICE_TOKEN,
-        notification: { title: TITLE, body: BODY },
-        data: { loanId: 'loan-123' },
-      });
-    });
-
-    it('should not throw when messaging.send fails (log only)', async () => {
-      service['messaging'] = {
-        send: jest.fn().mockRejectedValue(new Error('FCM unavailable')),
-      } as never;
-
-      await expect(service.sendPushNotification(DEVICE_TOKEN, TITLE, BODY)).resolves.not.toThrow();
-    });
-  });
-
   describe('sendToMultipleTokens', () => {
-    it('should call send for each token', async () => {
+    it('should call sendEachForMulticast once with all tokens (not one send per token)', async () => {
       initializeWithMockMessaging();
-      const tokens = ['token-1', 'token-2', 'token-3'];
+      const tokens = [TOKEN_1, TOKEN_2, TOKEN_3];
+      mockSendEachForMulticast.mockResolvedValue(buildSuccessResponse(3));
 
       await service.sendToMultipleTokens(tokens, TITLE, BODY);
 
-      expect(mockSend).toHaveBeenCalledTimes(3);
+      expect(mockSendEachForMulticast).toHaveBeenCalledTimes(1);
+      expect(mockSendEachForMulticast).toHaveBeenCalledWith({
+        tokens,
+        notification: { title: TITLE, body: BODY },
+      });
     });
 
-    it('should not throw when no tokens provided', async () => {
-      await expect(service.sendToMultipleTokens([], TITLE, BODY)).resolves.not.toThrow();
+    it('should return empty array when all tokens are valid', async () => {
+      initializeWithMockMessaging();
+      const tokens = [TOKEN_1, TOKEN_2];
+      mockSendEachForMulticast.mockResolvedValue(buildSuccessResponse(2));
+
+      const result = await service.sendToMultipleTokens(tokens, TITLE, BODY);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return invalid tokens when sendEachForMulticast reports messaging/registration-token-not-registered', async () => {
+      initializeWithMockMessaging();
+      const tokens = [TOKEN_1, TOKEN_2, TOKEN_3];
+      mockSendEachForMulticast.mockResolvedValue(
+        buildResponseWithInvalidToken(tokens, 2, 'messaging/registration-token-not-registered'),
+      );
+
+      const result = await service.sendToMultipleTokens(tokens, TITLE, BODY);
+
+      expect(result).toEqual([TOKEN_3]);
+    });
+
+    it('should return invalid tokens when sendEachForMulticast reports messaging/invalid-registration-token', async () => {
+      initializeWithMockMessaging();
+      const tokens = [TOKEN_1, TOKEN_2];
+      mockSendEachForMulticast.mockResolvedValue(
+        buildResponseWithInvalidToken(tokens, 0, 'messaging/invalid-registration-token'),
+      );
+
+      const result = await service.sendToMultipleTokens(tokens, TITLE, BODY);
+
+      expect(result).toEqual([TOKEN_1]);
+    });
+
+    it('should not include tokens that failed with a non-invalid error code', async () => {
+      initializeWithMockMessaging();
+      const tokens = [TOKEN_1, TOKEN_2];
+      mockSendEachForMulticast.mockResolvedValue({
+        successCount: 1,
+        failureCount: 1,
+        responses: [
+          { success: true, error: undefined },
+          { success: false, error: { code: 'messaging/internal-error', message: 'Server error' } },
+        ],
+      });
+
+      const result = await service.sendToMultipleTokens(tokens, TITLE, BODY);
+
+      // transient error: token should NOT be cleaned up
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array when messaging is not initialized', async () => {
+      // messaging stays null (no initializeWithMockMessaging)
+      const result = await service.sendToMultipleTokens([TOKEN_1], TITLE, BODY);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array when tokens list is empty', async () => {
+      initializeWithMockMessaging();
+
+      const result = await service.sendToMultipleTokens([], TITLE, BODY);
+
+      expect(result).toEqual([]);
+      expect(mockSendEachForMulticast).not.toHaveBeenCalled();
+    });
+
+    it('should pass data payload to sendEachForMulticast when provided', async () => {
+      initializeWithMockMessaging();
+      const tokens = [TOKEN_1];
+      mockSendEachForMulticast.mockResolvedValue(buildSuccessResponse(1));
+
+      await service.sendToMultipleTokens(tokens, TITLE, BODY, { loanId: 'loan-42' });
+
+      expect(mockSendEachForMulticast).toHaveBeenCalledWith({
+        tokens,
+        notification: { title: TITLE, body: BODY },
+        data: { loanId: 'loan-42' },
+      });
+    });
+
+    it('should return empty array when sendEachForMulticast throws', async () => {
+      initializeWithMockMessaging();
+      mockSendEachForMulticast.mockRejectedValue(new Error('Network error'));
+
+      const result = await service.sendToMultipleTokens([TOKEN_1], TITLE, BODY);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should split 501 tokens into two batches and call sendEachForMulticast twice', async () => {
+      initializeWithMockMessaging();
+      // 501 tokens: first batch of 500, second batch of 1
+      const tokens = Array.from({ length: 501 }, (_, i) => `token-${i}`);
+      mockSendEachForMulticast
+        .mockResolvedValueOnce(buildSuccessResponse(500))
+        .mockResolvedValueOnce(buildSuccessResponse(1));
+
+      await service.sendToMultipleTokens(tokens, TITLE, BODY);
+
+      expect(mockSendEachForMulticast).toHaveBeenCalledTimes(2);
+      expect(mockSendEachForMulticast).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ tokens: tokens.slice(0, 500) }),
+      );
+      expect(mockSendEachForMulticast).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ tokens: tokens.slice(500) }),
+      );
     });
   });
 });

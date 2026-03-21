@@ -40,37 +40,50 @@ export class FirebaseService implements OnModuleInit {
     return this.messaging !== null;
   }
 
-  async sendPushNotification(
-    token: string,
-    title: string,
-    body: string,
-    data?: Record<string, string>,
-  ): Promise<void> {
-    if (!this.messaging) return;
-
-    try {
-      const message: admin.messaging.Message = {
-        token,
-        notification: { title, body },
-        ...(data && { data }),
-      };
-
-      await this.messaging.send(message);
-    } catch (error) {
-      this.logger.error(
-        `FCM send failed for token ${token.slice(0, 6)}…${token.slice(-4)}: ${String(error)}`,
-      );
-    }
-  }
-
   async sendToMultipleTokens(
     tokens: string[],
     title: string,
     body: string,
     data?: Record<string, string>,
-  ): Promise<void> {
-    await Promise.allSettled(
-      tokens.map((token) => this.sendPushNotification(token, title, body, data)),
-    );
+  ): Promise<string[]> {
+    if (!this.messaging || tokens.length === 0) return [];
+
+    const BATCH_SIZE = 500;
+    const invalidTokenCodes = new Set([
+      'messaging/registration-token-not-registered',
+      'messaging/invalid-registration-token',
+    ]);
+    const allInvalidTokens: string[] = [];
+
+    for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
+      const batch = tokens.slice(i, i + BATCH_SIZE);
+      try {
+        const message: admin.messaging.MulticastMessage = {
+          tokens: batch,
+          notification: { title, body },
+          ...(data && { data }),
+        };
+
+        const response = await this.messaging.sendEachForMulticast(message);
+
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success && resp.error && invalidTokenCodes.has(resp.error.code)) {
+            allInvalidTokens.push(batch[idx]);
+            this.logger.warn(
+              `Invalid FCM token detected: ${batch[idx].slice(0, 6)}…${batch[idx].slice(-4)}`,
+            );
+          } else if (!resp.success && resp.error) {
+            this.logger.error(
+              `FCM send failed for token ${batch[idx].slice(0, 6)}…${batch[idx].slice(-4)}: ${resp.error.code}`,
+            );
+          }
+        });
+      } catch (error) {
+        const code = error instanceof Error ? (error as { code?: string }).code : undefined;
+        this.logger.error(`FCM multicast failed: ${code ?? 'unknown error'}`);
+      }
+    }
+
+    return allInvalidTokens;
   }
 }
