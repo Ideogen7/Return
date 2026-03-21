@@ -219,7 +219,7 @@ export class PhotoStorageModule {}
 
 ## Étape 5 — Supprimer `useStaticAssets` en production
 
-Modifier `backend/src/main.ts`, ligne 44-45. Remplacer :
+Dans `backend/src/main.ts`, localiser le bloc qui sert les fichiers uploadés via `app.useStaticAssets(...)` et le remplacer par :
 
 ```typescript
 // Serve uploaded files (photos, avatars) at /uploads/*
