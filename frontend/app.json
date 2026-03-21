@@ -13,15 +13,24 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.ideogen.return",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Return needs access to your camera to take photos of loaned items.",
+        "NSPhotoLibraryUsageDescription": "Return needs access to your photo library to attach photos to loaned items."
+      }
     },
     "android": {
+      "package": "com.ideogen.return",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE"]
     },
     "web": {
       "favicon": "./assets/favicon.png"

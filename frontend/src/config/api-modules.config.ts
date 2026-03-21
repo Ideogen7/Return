@@ -4,7 +4,7 @@ const MOCK_MODULES: Record<string, boolean> = {
   borrowers: false,
   items: false,
   loans: false,
-  reminders: true,
+  reminders: false,
   notifications: false,
   users: false,
   'contact-invitations': false,
@@ -18,5 +18,5 @@ export function getBaseUrl(endpoint: string): string {
     return 'http://localhost:4010'; // Prism mock server (pas de /v1)
   }
 
-  return __DEV__ ? 'http://localhost:3000/v1' : 'https://api.return.app/v1';
+  return __DEV__ ? 'http://localhost:3000/v1' : 'https://return-api.fly.dev/v1';
 }
