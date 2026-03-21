@@ -13,7 +13,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "bundleIdentifier": "com.ideogen.return",
+      "bundleIdentifier": "com.ideogen.returnapp",
       "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "com.ideogen.return",
+      "package": "com.ideogen.returnapp",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -35,6 +35,12 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-localization"]
+    "plugins": ["expo-localization"],
+    "extra": {
+      "eas": {
+        "projectId": "595176ea-3595-4aec-8ba5-b56da4f48a67"
+      }
+    },
+    "owner": "natismael"
   }
 }

@@ -58,5 +58,9 @@ frontend/android
 copilot-instructions.md
 
 
+# Build artifacts (APK/AAB)
+*.apk
+*.aab
+
 # Upload artifacts (dev)
 backend/uploads/
