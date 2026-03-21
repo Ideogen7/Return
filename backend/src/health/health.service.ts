@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RedisService } from '../redis/redis.service.js';
+import { FirebaseService } from '../firebase/firebase.service.js';
 
 export interface HealthStatus {
   status: 'ok';
@@ -22,6 +23,7 @@ export class HealthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    private readonly firebase: FirebaseService,
   ) {}
 
   getHealth(): HealthStatus {
@@ -48,8 +50,8 @@ export class HealthService {
       redisStatus = 'error';
     }
 
-    // FCM n'est pas implémenté en V1 — hardcodé 'error' en attendant le module Notifications
-    const fcmStatus = 'error' as 'ok' | 'error';
+    // FCM check — vérifie si Firebase Admin SDK est initialisé
+    const fcmStatus: 'ok' | 'error' = this.firebase.isAvailable() ? 'ok' : 'error';
 
     const allOk = dbStatus === 'ok' && redisStatus === 'ok' && fcmStatus === 'ok';
 

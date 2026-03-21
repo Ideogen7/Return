@@ -85,7 +85,7 @@ async function bootstrap(): Promise<void> {
 
   // Start
   const port = config.get<number>('PORT', 3000);
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   logger.log(
     `Return API running on port ${port} [${config.get<string>('NODE_ENV')}] prefix=/${prefix}`,
