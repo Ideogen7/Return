@@ -62,5 +62,8 @@ copilot-instructions.md
 *.apk
 *.aab
 
+# Google Play service account credentials
+google-play-service-account.json
+
 # Upload artifacts (dev)
 backend/uploads/
