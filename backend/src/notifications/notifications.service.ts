@@ -197,21 +197,27 @@ export class NotificationsService {
 
     if (tokens.length === 0) return;
 
-    const invalidTokens = await this.firebaseService.sendToMultipleTokens(
-      tokens.map((t) => t.token),
-      title,
-      body,
-      data,
-    );
+    try {
+      const invalidTokens = await this.firebaseService.sendToMultipleTokens(
+        tokens.map((t) => t.token),
+        title,
+        body,
+        data,
+      );
 
-    if (invalidTokens.length > 0) {
-      await this.prisma.deviceToken.deleteMany({
-        where: {
-          token: { in: invalidTokens },
-          userId: { in: userIds },
-        },
-      });
-      this.logger.log(`Cleaned up ${invalidTokens.length} invalid device token(s)`);
+      if (invalidTokens.length > 0) {
+        await this.prisma.deviceToken.deleteMany({
+          where: {
+            token: { in: invalidTokens },
+            userId: { in: userIds },
+          },
+        });
+        this.logger.log(`Cleaned up ${invalidTokens.length} invalid device token(s)`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send push or clean up tokens: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
     }
   }
 }

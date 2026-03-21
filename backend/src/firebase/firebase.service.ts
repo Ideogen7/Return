@@ -79,7 +79,8 @@ export class FirebaseService implements OnModuleInit {
           }
         });
       } catch (error) {
-        this.logger.error(`FCM multicast failed: ${String(error)}`);
+        const code = error instanceof Error ? (error as { code?: string }).code : undefined;
+        this.logger.error(`FCM multicast failed: ${code ?? 'unknown error'}`);
       }
     }
 
