@@ -2,12 +2,12 @@
 
 ## Prérequis
 
-| Outil | Version | Vérification |
-|-------|---------|--------------|
-| Node.js | ≥ 22.x | `node -v` |
-| npm | ≥ 10.x | `npm -v` |
+| Outil                   | Version          | Vérification             |
+|-------------------------|------------------|--------------------------|
+| Node.js                 | ≥ 22.x           | `node -v`                |
+| npm                     | ≥ 10.x           | `npm -v`                 |
 | Docker + Docker Compose | Dernière version | `docker compose version` |
-| Git | ≥ 2.x | `git -v` |
+| Git                     | ≥ 2.x            | `git -v`                 |
 
 ---
 
@@ -32,10 +32,10 @@ Vérifie que les conteneurs sont en cours d'exécution :
 docker compose ps
 ```
 
-| Service | Port | Conteneur |
-|---------|------|-----------|
+| Service       | Port | Conteneur       |
+|---------------|------|-----------------|
 | PostgreSQL 17 | 5432 | return-postgres |
-| Redis 8 | 6379 | return-redis |
+| Redis 8       | 6379 | return-redis    |
 
 ---
 
@@ -66,19 +66,19 @@ Les autres valeurs ont des défauts fonctionnels pour le développement local.
 
 ### Référence des variables
 
-| Variable | Requis | Défaut | Description |
-|----------|--------|--------|-------------|
-| `NODE_ENV` | Non | `development` | Environnement (development, production, test) |
-| `PORT` | Non | `3000` | Port du serveur API |
-| `API_PREFIX` | Non | `v1` | Préfixe des routes API |
-| `DATABASE_URL` | Oui | (dans .env.example) | URL PostgreSQL |
-| `REDIS_URL` | Non | `redis://localhost:6379` | URL Redis |
-| `JWT_ACCESS_SECRET` | **Oui** | — | Secret pour les access tokens |
-| `JWT_REFRESH_SECRET` | **Oui** | — | Secret pour les refresh tokens |
-| `JWT_ACCESS_EXPIRATION` | Non | `15m` | Durée de vie access token |
-| `JWT_REFRESH_EXPIRATION` | Non | `30d` | Durée de vie refresh token |
-| `LOG_LEVEL` | Non | `info` | Niveau de log (error, warn, info, debug) |
-| `CORS_ORIGIN` | Non | `http://localhost:8081` | Origine CORS autorisée |
+| Variable                 | Requis  | Défaut                   | Description                                   |
+|--------------------------|---------|--------------------------|-----------------------------------------------|
+| `NODE_ENV`               | Non     | `development`            | Environnement (development, production, test) |
+| `PORT`                   | Non     | `3000`                   | Port du serveur API                           |
+| `API_PREFIX`             | Non     | `v1`                     | Préfixe des routes API                        |
+| `DATABASE_URL`           | Oui     | (dans .env.example)      | URL PostgreSQL                                |
+| `REDIS_URL`              | Non     | `redis://localhost:6379` | URL Redis                                     |
+| `JWT_ACCESS_SECRET`      | **Oui** | —                        | Secret pour les access tokens                 |
+| `JWT_REFRESH_SECRET`     | **Oui** | —                        | Secret pour les refresh tokens                |
+| `JWT_ACCESS_EXPIRATION`  | Non     | `15m`                    | Durée de vie access token                     |
+| `JWT_REFRESH_EXPIRATION` | Non     | `30d`                    | Durée de vie refresh token                    |
+| `LOG_LEVEL`              | Non     | `info`                   | Niveau de log (error, warn, info, debug)      |
+| `CORS_ORIGIN`            | Non     | `http://localhost:8081`  | Origine CORS autorisée                        |
 
 ---
 
@@ -98,7 +98,8 @@ Cette commande génère le client TypeScript à partir du schema `prisma/schema.
 npm run prisma:migrate
 ```
 
-Cela applique toutes les migrations SQL sur la base PostgreSQL locale. À relancer à chaque fois qu'un collègue ajoute une migration.
+Cela applique toutes les migrations SQL sur la base PostgreSQL locale. À relancer à chaque fois qu'un collègue ajoute
+une migration.
 
 ---
 
