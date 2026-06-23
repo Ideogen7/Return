@@ -25,14 +25,18 @@ describe('ReminderPolicy', () => {
       });
     });
 
-    it('should use J-1 for PREVENTIVE when Δ = 2 days', () => {
+    it('should NOT schedule a PREVENTIVE reminder when Δ < 3 days', () => {
+      // FIX-05 vol. B: short loans (Δ < 3) get no preventive reminder —
+      // the first relevant notification is ON_DUE_DATE (J).
       const createdAt = new Date('2026-04-08'); // Δ = 2 days < 3
 
       const result = ReminderPolicy.calculateDates(returnDate, createdAt);
 
+      expect(result).toHaveLength(4);
+      expect(result.some((r) => r.type === ReminderType.PREVENTIVE)).toBe(false);
       expect(result[0]).toEqual<ReminderSchedule>({
-        type: ReminderType.PREVENTIVE,
-        scheduledFor: new Date('2026-04-09'), // J-1
+        type: ReminderType.ON_DUE_DATE,
+        scheduledFor: returnDate, // J
       });
     });
 
@@ -88,18 +92,14 @@ describe('ReminderPolicy', () => {
       expect(result).toEqual([]);
     });
 
-    it('should skip PREVENTIVE reminder that falls before createdAt', () => {
-      // Δ = 1 day → J-1 = returnDate - 1 = createdAt itself
-      // PREVENTIVE at J-1 but createdAt is the same day
+    it('should not schedule a PREVENTIVE reminder for a very short loan (Δ = 1 day)', () => {
+      // FIX-05 vol. B: Δ = 1 day < 3 → no preventive at all.
       const tightCreatedAt = new Date('2026-04-09');
 
       const result = ReminderPolicy.calculateDates(returnDate, tightCreatedAt);
 
-      // PREVENTIVE J-1 = April 9 = createdAt → still valid (same day is OK)
-      expect(result[0]).toEqual<ReminderSchedule>({
-        type: ReminderType.PREVENTIVE,
-        scheduledFor: new Date('2026-04-09'), // J-1
-      });
+      expect(result.some((r) => r.type === ReminderType.PREVENTIVE)).toBe(false);
+      expect(result[0].type).toBe(ReminderType.ON_DUE_DATE);
     });
   });
 });
