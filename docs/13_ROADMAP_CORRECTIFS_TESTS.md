@@ -13,13 +13,17 @@
 
 ### Révision du 23/06/2026 (relecture Ismael + Ozias)
 
-- **FIX-05** requalifié en vrai correctif backend (deux volets : auto-confirmation à 24h pour les prêts courts + pas de rappel préventif avant J pour Δ<3 jours) — ce n'est plus « workflow à faire » ni « déjà implémenté »
+- **FIX-05** requalifié en vrai correctif backend (deux volets : auto-confirmation à 24h pour les prêts courts + pas de
+  rappel préventif avant J pour Δ<3 jours) — ce n'est plus « workflow à faire » ni « déjà implémenté »
 - **FIX-06, FIX-07, FIX-08** fusionnés dans **FIX-14** (chantier stats prêteur) — conservés pour traçabilité
-- **FIX-11** reformulé : le vrai problème est que le champ « Contact » est figé sur `loan.borrower` quel que soit le spectateur — il doit être relatif au rôle de l'utilisateur courant
-- **FIX-12** reformulé : pour un prêt actif, supprimer purement et simplement l'affichage de la date dans la timeline (pas de label « Sans échéance »)
+- **FIX-11** reformulé : le vrai problème est que le champ « Contact » est figé sur `loan.borrower` quel que soit le
+  spectateur — il doit être relatif au rôle de l'utilisateur courant
+- **FIX-12** reformulé : pour un prêt actif, supprimer purement et simplement l'affichage de la date dans la timeline (
+  pas de label « Sans échéance »)
 - **FIX-13** retiré (faux bug — renommer un contact est déjà possible via les alias locaux `firstName`/`lastName`)
 - **FIX-14** élargi au chantier stats prêteur englobant FIX-06/07/08
-- **FIX-15** reformulé et passé en **MVP** (🟠) : le vrai sujet est l'incohérence du trustScore calculé par-relation côté back mais global côté front — décision validée : trustScore global unique par utilisateur
+- **FIX-15** reformulé et passé en **MVP** (🟠) : le vrai sujet est l'incohérence du trustScore calculé par-relation côté
+  back mais global côté front — décision validée : trustScore global unique par utilisateur
 
 ---
 
@@ -43,24 +47,24 @@
 
 ## Tableau récapitulatif
 
-| ID     | Titre                                                                      | Gravité     | Périmètre / Qui                      | Effort               | Statut              |
-|--------|----------------------------------------------------------------------------|-------------|--------------------------------------|----------------------|---------------------|
-| FIX-01 | Photos objets : upload ET GET KO                                           | 🔴 Critique | Back (Ozias) + Front (Ismael, vérif) | M                    | ☐                   |
-| FIX-02 | Photo de profil ajoutée non affichée                                       | 🔴 Critique | Back (Ozias) + Front (Ismael, vérif) | M (mutualisé FIX-01) | ☐                   |
-| FIX-03 | Date de retour obligatoire                                                 | 🟠 Majeur   | Les deux                             | XS                   | ☐                   |
-| FIX-04 | Objet déjà prêté reste re-prêtable                                         | 🟠 Majeur   | Les deux                             | M                    | ☐                   |
-| FIX-05 | Workflow prêt court (Δ<3j) : auto-confirm 24h + pas de préventive avant J  | 🟠 Majeur   | Back (Ozias)                         | S                    | ☐                   |
-| FIX-06 | Stats : prêts CONTESTÉS comptés comme actifs                               | 🟠 Majeur   | Front (Ismael)                       | XS                   | → FIX-14            |
-| FIX-07 | Stats figées / "s'affichent quand elles veulent"                           | 🟠 Majeur   | Front (Ismael)                       | S                    | → FIX-14            |
-| FIX-08 | Mise à jour d'un prêt non reflétée dans les stats                          | 🟠 Majeur   | Front (Ismael)                       | M                    | → FIX-14            |
-| FIX-09 | Email d'un contact ne doit pas être modifiable                             | 🟠 Majeur   | Les deux                             | XS                   | ☐                   |
-| FIX-10 | Format de date incohérent selon la machine                                 | 🟠 Majeur   | Front (Ismael)                       | XS                   | ☐                   |
-| FIX-11 | Champ "Contact" figé sur loan.borrower quel que soit le spectateur         | 🟠 Majeur   | Front (Ismael)                       | S                    | ☐                   |
-| FIX-12 | Timeline affiche "Invalid Date" pour prêt actif (date absente)             | 🟡 Mineur   | Front (Ismael)                       | XS                   | ☐                   |
-| FIX-13 | Renommer un contact (impossible aujourd'hui)                               | 🟡 Mineur   | —                                    | —                    | ❌ Annulé           |
-| FIX-14 | Chantier stats prêteur : brancher `/history/statistics` (ex-FIX-06/07/08) | 🟠 Majeur   | Les deux (surtout Front)             | M                    | ☐                   |
-| FIX-15 | trustScore global incohérent (par-relation back vs global front)           | 🟠 Majeur   | Front + Back — MVP                   | M                    | ☐                   |
-| FIX-16 | Temps réel (websockets)                                                    | 🟡 Mineur   | Back + Front — POST-MVP              | M→L                  | ☐                   |
+| ID     | Titre                                                                     | Gravité     | Périmètre / Qui                      | Effort               | Statut   |
+|--------|---------------------------------------------------------------------------|-------------|--------------------------------------|----------------------|----------|
+| FIX-01 | Photos objets : upload ET GET KO                                          | 🔴 Critique | Back (Ozias) + Front (Ismael, vérif) | M                    | ☐        |
+| FIX-02 | Photo de profil ajoutée non affichée                                      | 🔴 Critique | Back (Ozias) + Front (Ismael, vérif) | M (mutualisé FIX-01) | ☐        |
+| FIX-03 | Date de retour obligatoire                                                | 🟠 Majeur   | Les deux                             | XS                   | ☐        |
+| FIX-04 | Objet déjà prêté reste re-prêtable                                        | 🟠 Majeur   | Les deux                             | M                    | ☐        |
+| FIX-05 | Workflow prêt court (Δ<3j) : auto-confirm 24h + pas de préventive avant J | 🟠 Majeur   | Back (Ozias)                         | S                    | ☐        |
+| FIX-06 | Stats : prêts CONTESTÉS comptés comme actifs                              | 🟠 Majeur   | Front (Ismael)                       | XS                   | → FIX-14 |
+| FIX-07 | Stats figées / "s'affichent quand elles veulent"                          | 🟠 Majeur   | Front (Ismael)                       | S                    | → FIX-14 |
+| FIX-08 | Mise à jour d'un prêt non reflétée dans les stats                         | 🟠 Majeur   | Front (Ismael)                       | M                    | → FIX-14 |
+| FIX-09 | Email d'un contact ne doit pas être modifiable                            | 🟠 Majeur   | Les deux                             | XS                   | ☐        |
+| FIX-10 | Format de date incohérent selon la machine                                | 🟠 Majeur   | Front (Ismael)                       | XS                   | ☐        |
+| FIX-11 | Champ "Contact" figé sur loan.borrower quel que soit le spectateur        | 🟠 Majeur   | Front (Ismael)                       | S                    | ☐        |
+| FIX-12 | Timeline affiche "Invalid Date" pour prêt actif (date absente)            | 🟡 Mineur   | Front (Ismael)                       | XS                   | ☐        |
+| FIX-13 | Renommer un contact (impossible aujourd'hui)                              | 🟡 Mineur   | —                                    | —                    | ❌ Annulé |
+| FIX-14 | Chantier stats prêteur : brancher `/history/statistics` (ex-FIX-06/07/08) | 🟠 Majeur   | Les deux (surtout Front)             | M                    | ☐        |
+| FIX-15 | trustScore global incohérent (par-relation back vs global front)          | 🟠 Majeur   | Front + Back — MVP                   | M                    | ☐        |
+| FIX-16 | Temps réel (websockets)                                                   | 🟡 Mineur   | Back + Front — POST-MVP              | M→L                  | ☐        |
 
 ---
 
@@ -422,14 +426,14 @@ est POST-MVP (FIX-16).
 
 ### Lots séquencés
 
-| Lot   | Contenu                                                                                       | Qui            | Effort | Cible    |
-|-------|-----------------------------------------------------------------------------------------------|----------------|--------|----------|
-| LOT 1 | Stats prêteur : brancher `GET /history/statistics` + `useFocusEffect` (FIX-14)               | Front (Ismael) | S      | MVP      |
-| LOT 2 | Fraîcheur après mutation : invalidation stats après créer/confirmer/contester (FIX-14)        | Front (Ismael) | XS     | MVP      |
-| LOT 3 | trustScore global : endpoint back + consommation front (FIX-15)                              | Back + Front   | M      | MVP      |
-| LOT 4 | Vérif format endpoint `/history/statistics` vs openapi.yaml (FIX-14 back)                    | Back (Ozias)   | XS     | MVP      |
-| LOT 5 | Websockets : push temps réel inter-comptes (FIX-16)                                          | Back + Front   | M→L    | Post-MVP |
-| LOT 6 | Dénormalisation `lenderStats` sur `User`                                                     | Back           | L      | Post-MVP |
+| Lot   | Contenu                                                                                | Qui            | Effort | Cible    |
+|-------|----------------------------------------------------------------------------------------|----------------|--------|----------|
+| LOT 1 | Stats prêteur : brancher `GET /history/statistics` + `useFocusEffect` (FIX-14)         | Front (Ismael) | S      | MVP      |
+| LOT 2 | Fraîcheur après mutation : invalidation stats après créer/confirmer/contester (FIX-14) | Front (Ismael) | XS     | MVP      |
+| LOT 3 | trustScore global : endpoint back + consommation front (FIX-15)                        | Back + Front   | M      | MVP      |
+| LOT 4 | Vérif format endpoint `/history/statistics` vs openapi.yaml (FIX-14 back)              | Back (Ozias)   | XS     | MVP      |
+| LOT 5 | Websockets : push temps réel inter-comptes (FIX-16)                                    | Back + Front   | M→L    | Post-MVP |
+| LOT 6 | Dénormalisation `lenderStats` sur `User`                                               | Back           | L      | Post-MVP |
 
 ---
 
@@ -437,32 +441,32 @@ est POST-MVP (FIX-16).
 
 ### Ismael — Front (quick-wins d'abord)
 
-| Ordre | FIX                                                                                          | Effort | Nature        |
-|-------|----------------------------------------------------------------------------------------------|--------|---------------|
-| 1     | FIX-12 — Supprimer l'affichage de la date dans la timeline si absente                       | XS     | Quick-win     |
-| 2     | FIX-10 — `formatDate()` centralisé + remplacer les 9 occurrences                            | XS     | Quick-win     |
-| 3     | FIX-03 [front] — Rendre date de retour obligatoire dans le wizard                           | XS     | Quick-win     |
-| 4     | FIX-11 — Helper `getContactForUser()` dans LoanCard + LoanDetailScreen                      | S      | Fonctionnel   |
-| 5     | FIX-14 — Brancher `GET /history/statistics` + `useFocusEffect` + invalidation mutations     | M      | LOT 1+2 archi |
-| 6     | FIX-15 [front] — Afficher le trustScore global (endpoint back) sur profil self + fiche contact | M   | MVP           |
-| 7     | FIX-04 [front] — Filtrer objets disponibles uniquement dans le wizard                       | S      | Fonctionnel   |
-| 8     | FIX-09 [front] — Email non éditable en mode édition contact                                  | XS     | Fonctionnel   |
-| 9     | FIX-01/02 [vérif] — Vérifier affichage URL absolue photos + avatar                          | XS     | Vérification  |
+| Ordre | FIX                                                                                            | Effort | Nature        |
+|-------|------------------------------------------------------------------------------------------------|--------|---------------|
+| 1     | FIX-12 — Supprimer l'affichage de la date dans la timeline si absente                          | XS     | Quick-win     |
+| 2     | FIX-10 — `formatDate()` centralisé + remplacer les 9 occurrences                               | XS     | Quick-win     |
+| 3     | FIX-03 [front] — Rendre date de retour obligatoire dans le wizard                              | XS     | Quick-win     |
+| 4     | FIX-11 — Helper `getContactForUser()` dans LoanCard + LoanDetailScreen                         | S      | Fonctionnel   |
+| 5     | FIX-14 — Brancher `GET /history/statistics` + `useFocusEffect` + invalidation mutations        | M      | LOT 1+2 archi |
+| 6     | FIX-15 [front] — Afficher le trustScore global (endpoint back) sur profil self + fiche contact | M      | MVP           |
+| 7     | FIX-04 [front] — Filtrer objets disponibles uniquement dans le wizard                          | S      | Fonctionnel   |
+| 8     | FIX-09 [front] — Email non éditable en mode édition contact                                    | XS     | Fonctionnel   |
+| 9     | FIX-01/02 [vérif] — Vérifier affichage URL absolue photos + avatar                             | XS     | Vérification  |
 
 ### Ozias — Back (quick-wins d'abord)
 
-| Ordre | FIX                                                                                          | Effort | Nature             |
-|-------|----------------------------------------------------------------------------------------------|--------|--------------------|
-| 1     | FIX-05 volet B — Pas de PREVENTIVE pour Δ<3j (`reminder-policy.ts`)                         | XS     | Quick-win          |
-| 2     | FIX-01 + FIX-02 — `UPLOAD_BASE_URL` via `fly secrets set` (court terme)                     | XS     | Quick-win bloquant |
-| 3     | FIX-03 [back] — Rendre `returnDate` obligatoire dans le DTO                                  | XS     | Quick-win          |
-| 4     | FIX-09 [back] — Retirer email du `UpdateBorrowerDto`                                         | XS     | Fonctionnel        |
-| 5     | FIX-05 volet A — Auto-confirm 24h pour Δ<3j (`loans-cron.service.ts`)                       | S      | Workflow correctif |
-| 6     | FIX-04 [back] — Contrôle 409 prêt actif sur même item                                       | M      | Fonctionnel        |
-| 7     | FIX-15 [back] — Exposer endpoint trustScore global (agrégé tous prêteurs)                   | M      | MVP                |
-| 8     | FIX-14 [back] — Vérifier format endpoint `/history/statistics` vs openapi.yaml              | XS     | Vérification       |
-| 9     | FIX-01 + FIX-02 [fond] — Implémenter R2PhotoStorageService (= CORR-02)                     | M      | Persistance        |
-| —     | FIX-16 — Websockets                                                                          | M→L    | POST-MVP           |
+| Ordre | FIX                                                                            | Effort | Nature             |
+|-------|--------------------------------------------------------------------------------|--------|--------------------|
+| 1     | FIX-05 volet B — Pas de PREVENTIVE pour Δ<3j (`reminder-policy.ts`)            | XS     | Quick-win          |
+| 2     | FIX-01 + FIX-02 — `UPLOAD_BASE_URL` via `fly secrets set` (court terme)        | XS     | Quick-win bloquant |
+| 3     | FIX-03 [back] — Rendre `returnDate` obligatoire dans le DTO                    | XS     | Quick-win          |
+| 4     | FIX-09 [back] — Retirer email du `UpdateBorrowerDto`                           | XS     | Fonctionnel        |
+| 5     | FIX-05 volet A — Auto-confirm 24h pour Δ<3j (`loans-cron.service.ts`)          | S      | Workflow correctif |
+| 6     | FIX-04 [back] — Contrôle 409 prêt actif sur même item                          | M      | Fonctionnel        |
+| 7     | FIX-15 [back] — Exposer endpoint trustScore global (agrégé tous prêteurs)      | M      | MVP                |
+| 8     | FIX-14 [back] — Vérifier format endpoint `/history/statistics` vs openapi.yaml | XS     | Vérification       |
+| 9     | FIX-01 + FIX-02 [fond] — Implémenter R2PhotoStorageService (= CORR-02)         | M      | Persistance        |
+| —     | FIX-16 — Websockets                                                            | M→L    | POST-MVP           |
 
 > **Note Ozias** : la transition automatique `ACTIVE → AWAITING_RETURN` à l'échéance est un sujet à confirmer
 > séparément — hors périmètre des FIX ci-dessus.
@@ -497,4 +501,5 @@ est POST-MVP (FIX-16).
 
 ---
 
-*Document produit à partir des notes de tests terrain du 22/06/2026 — révisé le 23/06/2026 (relecture Ismael + Ozias) — à mettre à jour après chaque correctif appliqué.*
+*Document produit à partir des notes de tests terrain du 22/06/2026 — révisé le 23/06/2026 (relecture Ismael + Ozias) —
+à mettre à jour après chaque correctif appliqué.*
