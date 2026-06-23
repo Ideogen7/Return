@@ -311,6 +311,54 @@ export interface PaginatedResponse<T> {
   pagination: PaginationMetadata;
 }
 
+// --- Historique & Statistiques ---
+
+export interface HistoryOverview {
+  totalLoans: number;
+  activeLoans: number;
+  returnedLoans: number;
+  notReturnedLoans: number;
+  contestedLoans: number;
+  averageReturnDelay: number;
+}
+
+export interface HistoryCategoryStats {
+  category: string;
+  count: number;
+  totalValue: number | null;
+}
+
+export interface HistoryTopBorrower {
+  borrower: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profilePicture: string | null;
+  };
+  loanCount: number;
+  trustScore: number;
+}
+
+export interface HistoryMostLoanedItem {
+  item: {
+    id: string;
+    name: string;
+    description: string | null;
+    category: string;
+    estimatedValue: number | null;
+    photos: Photo[];
+    createdAt: string;
+  };
+  loanCount: number;
+}
+
+export interface HistoryStatistics {
+  overview: HistoryOverview;
+  byCategory: HistoryCategoryStats[];
+  topBorrowers: HistoryTopBorrower[];
+  mostLoanedItems: HistoryMostLoanedItem[];
+}
+
 // --- Erreurs RFC 7807 ---
 
 export interface ErrorDetail {

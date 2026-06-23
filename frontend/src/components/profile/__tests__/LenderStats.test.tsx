@@ -1,10 +1,27 @@
 import { render, screen, waitFor } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
 import { server } from '../../../../__mocks__/server';
-import { http, HttpResponse } from 'msw';
 import { LenderStats } from '../LenderStats';
+import { useHistoryStore } from '../../../stores/useHistoryStore';
+import type { HistoryStatistics } from '../../../types/api.types';
 
-const API_REAL = 'http://localhost:3000/v1';
+// Helper to build a minimal HistoryStatistics fixture
+function makeStats(overrides: Partial<HistoryStatistics['overview']> = {}): HistoryStatistics {
+  return {
+    overview: {
+      totalLoans: 0,
+      activeLoans: 0,
+      returnedLoans: 0,
+      notReturnedLoans: 0,
+      contestedLoans: 0,
+      averageReturnDelay: 0,
+      ...overrides,
+    },
+    byCategory: [],
+    topBorrowers: [],
+    mostLoanedItems: [],
+  };
+}
 
 function renderStats() {
   return render(
@@ -15,109 +32,117 @@ function renderStats() {
 }
 
 beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  useHistoryStore.getState().reset();
+});
 afterAll(() => server.close());
 
 describe('LenderStats (unified)', () => {
-  it('should render both lender and borrower sections', async () => {
-    renderStats();
+  describe('lender section — reads from useHistoryStore', () => {
+    it('should render both lender and borrower sections', async () => {
+      useHistoryStore.setState({ statistics: makeStats() });
 
-    await waitFor(() => {
-      expect(screen.getByTestId('lender-stats')).toBeTruthy();
+      renderStats();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('lender-stats')).toBeTruthy();
+      });
+
+      expect(screen.getByText('My loans')).toBeTruthy();
+      expect(screen.getByText('My borrowings')).toBeTruthy();
     });
 
-    expect(screen.getByText('My loans')).toBeTruthy();
-    expect(screen.getByText('My borrowings')).toBeTruthy();
+    it('should display lender overview values from the store', async () => {
+      useHistoryStore.setState({
+        statistics: makeStats({ totalLoans: 5, activeLoans: 2, returnedLoans: 3 }),
+      });
+
+      renderStats();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('lender-stats')).toBeTruthy();
+      });
+
+      // Each stat value is rendered as a Text node — check for numeric display
+      expect(screen.getByText('5')).toBeTruthy();
+      expect(screen.getByText('2')).toBeTruthy();
+      expect(screen.getByText('3')).toBeTruthy();
+    });
+
+    it('should display activeLoans as-is from the store (no client-side over-counting — FIX-06 non-regression)', async () => {
+      // The backend endpoint already excludes CONTESTED loans from activeLoans.
+      // The component must display the raw value — no filtering on the client.
+      useHistoryStore.setState({
+        statistics: makeStats({ totalLoans: 9, activeLoans: 7, returnedLoans: 2 }),
+      });
+
+      renderStats();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('lender-stats')).toBeTruthy();
+      });
+
+      // activeLoans value (7) is displayed verbatim from the store — no client recount
+      expect(screen.getByText('7')).toBeTruthy();
+    });
+
+    it('should fall back to zeros when statistics is null in the store', async () => {
+      // statistics stays null (default after reset) — no crash, values default to 0
+      useHistoryStore.setState({ statistics: null });
+
+      renderStats();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('lender-stats')).toBeTruthy();
+      });
+
+      // Three lender stat cards each display "0"
+      const zeros = screen.getAllByText('0');
+      expect(zeros.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should NOT render the overdue label (FIX-14: overdue card was removed)', async () => {
+      useHistoryStore.setState({
+        statistics: makeStats({ totalLoans: 10, activeLoans: 3, returnedLoans: 6 }),
+      });
+
+      renderStats();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('lender-stats')).toBeTruthy();
+      });
+
+      // "Overdue" is the en.json translation for profile.overdueLoans
+      expect(screen.queryByText('Overdue')).toBeNull();
+    });
   });
 
-  it('should compute metrics independently for each role', async () => {
-    server.use(
-      http.get(`${API_REAL}/loans`, ({ request }) => {
-        const url = new URL(request.url);
-        const role = url.searchParams.get('role');
+  describe('borrower section — reads from GET /loans?role=borrower via MSW', () => {
+    it('should display trust score computed from borrower loans (default MSW handler)', async () => {
+      // Default handler returns 1 RETURNED loan with returnedDate before returnDate → score 100%
+      useHistoryStore.setState({ statistics: makeStats() });
 
-        if (role === 'borrower') {
-          return HttpResponse.json({
-            data: [
-              {
-                id: 'b-loan-1',
-                item: { id: 'i1', name: 'Book', category: 'BOOKS' },
-                lender: { id: 'l1', firstName: 'A', lastName: 'B' },
-                borrower: { id: 'b1', firstName: 'C', lastName: 'D', email: 'c@t.com' },
-                status: 'RETURNED',
-                returnDate: '2026-03-15',
-                returnedDate: '2026-03-14T10:00:00Z',
-                confirmationDate: '2026-02-01T10:00:00Z',
-                notes: null,
-                contestReason: null,
-                createdAt: '2026-02-01T10:00:00Z',
-                updatedAt: '2026-03-14T10:00:00Z',
-              },
-              {
-                id: 'b-loan-2',
-                item: { id: 'i2', name: 'Drill', category: 'TOOLS' },
-                lender: { id: 'l1', firstName: 'A', lastName: 'B' },
-                borrower: { id: 'b1', firstName: 'C', lastName: 'D', email: 'c@t.com' },
-                status: 'RETURNED',
-                returnDate: '2026-03-10',
-                returnedDate: '2026-03-12T10:00:00Z',
-                confirmationDate: '2026-02-01T10:00:00Z',
-                notes: null,
-                contestReason: null,
-                createdAt: '2026-02-01T10:00:00Z',
-                updatedAt: '2026-03-12T10:00:00Z',
-              },
-            ],
-            pagination: {
-              currentPage: 1,
-              itemsPerPage: 100,
-              totalItems: 2,
-              totalPages: 1,
-              hasNextPage: false,
-              hasPreviousPage: false,
-            },
-          });
-        }
+      renderStats();
 
-        // Lender: 1 active loan
-        return HttpResponse.json({
-          data: [
-            {
-              id: 'l-loan-1',
-              item: { id: 'i3', name: 'Camera', category: 'ELECTRONICS' },
-              lender: { id: 'me', firstName: 'Me', lastName: 'User' },
-              borrower: { id: 'b2', firstName: 'X', lastName: 'Y', email: 'x@t.com' },
-              status: 'ACTIVE',
-              returnDate: '2026-05-01',
-              returnedDate: null,
-              confirmationDate: '2026-03-01T10:00:00Z',
-              notes: null,
-              contestReason: null,
-              createdAt: '2026-03-01T10:00:00Z',
-              updatedAt: '2026-03-01T10:00:00Z',
-            },
-          ],
-          pagination: {
-            currentPage: 1,
-            itemsPerPage: 100,
-            totalItems: 1,
-            totalPages: 1,
-            hasNextPage: false,
-            hasPreviousPage: false,
-          },
-        });
-      }),
-    );
-
-    renderStats();
-
-    // Borrower: 2 loans, 1 on time, 1 late → score = (100+50)/2 = 75
-    await waitFor(() => {
-      expect(screen.getByText('75%')).toBeTruthy();
+      await waitFor(() => {
+        expect(screen.getByText('100%')).toBeTruthy();
+      });
     });
 
-    // Lender: 1 total loan (check there's a "1" in the lender section)
-    // Both sections should show independent data, not interfere
-    expect(screen.getByTestId('lender-stats')).toBeTruthy();
+    it('should keep borrower section intact alongside lender section (non-regression)', async () => {
+      useHistoryStore.setState({
+        statistics: makeStats({ totalLoans: 5, activeLoans: 2, returnedLoans: 3 }),
+      });
+
+      renderStats();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('lender-stats')).toBeTruthy();
+      });
+
+      // Trust score card from borrower section is present
+      expect(screen.getByText('Trust')).toBeTruthy();
+    });
   });
 });

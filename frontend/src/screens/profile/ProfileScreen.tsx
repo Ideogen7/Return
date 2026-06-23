@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, ActivityIndicator, Snackbar } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ProfileCard } from '../../components/profile/ProfileCard';
 import { LenderStats } from '../../components/profile/LenderStats';
 import { PhotoPicker } from '../../components/items/PhotoPicker';
 import { buildPhotoFormData } from '../../utils/photo';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useHistoryStore } from '../../stores/useHistoryStore';
 import type { AppStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Profile'>;
@@ -24,6 +26,13 @@ export function ProfileScreen({ navigation }: Props) {
       useAuthStore.getState().hydrate();
     }
   }, [user]);
+
+  // Refresh statistics each time the screen comes into focus (covers FIX-07 / FIX-08)
+  useFocusEffect(
+    useCallback(() => {
+      useHistoryStore.getState().fetchStatistics();
+    }, []),
+  );
 
   const handleAvatarPicked = async (uri: string) => {
     try {

@@ -666,6 +666,30 @@ export const handlers = [
   }),
 
   // =========================================================================
+  // HISTORY / STATISTICS
+  // =========================================================================
+
+  // GET /history/statistics
+  http.get(`${API_REAL}/history/statistics`, () => {
+    return HttpResponse.json(
+      {
+        overview: {
+          totalLoans: 3,
+          activeLoans: 1,
+          returnedLoans: 2,
+          notReturnedLoans: 0,
+          contestedLoans: 0,
+          averageReturnDelay: 1.5,
+        },
+        byCategory: [],
+        topBorrowers: [],
+        mostLoanedItems: [],
+      },
+      { status: 200 },
+    );
+  }),
+
+  // =========================================================================
   // NOTIFICATIONS
   // =========================================================================
 

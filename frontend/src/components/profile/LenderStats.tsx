@@ -4,14 +4,7 @@ import { Card, Text, Icon, Divider } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import apiClient from '../../api/apiClient';
 import type { Loan, PaginatedResponse } from '../../types/api.types';
-
-const ACTIVE_STATUSES = new Set([
-  'PENDING_CONFIRMATION',
-  'ACTIVE',
-  'ACTIVE_BY_DEFAULT',
-  'CONTESTED',
-  'AWAITING_RETURN',
-]);
+import { useHistoryStore } from '../../stores/useHistoryStore';
 
 interface StatItem {
   icon: string;
@@ -20,32 +13,11 @@ interface StatItem {
   color: string;
 }
 
-interface LenderMetrics {
-  totalLoans: number;
-  activeLoans: number;
-  returnedLoans: number;
-  overdueLoans: number;
-}
-
 interface BorrowerMetrics {
   loansReceived: number;
   returnedOnTime: number;
   returnedLate: number;
   trustScore: number;
-}
-
-function computeLenderMetrics(loans: Loan[]): LenderMetrics {
-  const now = new Date();
-  return {
-    totalLoans: loans.length,
-    activeLoans: loans.filter((l) => ACTIVE_STATUSES.has(l.status)).length,
-    returnedLoans: loans.filter((l) => l.status === 'RETURNED').length,
-    overdueLoans: loans.filter((l) => {
-      if (!ACTIVE_STATUSES.has(l.status)) return false;
-      if (!l.returnDate) return false;
-      return new Date(l.returnDate) < now;
-    }).length,
-  };
 }
 
 const COMPLETED_STATUSES = new Set(['RETURNED', 'NOT_RETURNED', 'ABANDONED']);
@@ -76,21 +48,18 @@ function computeBorrowerMetrics(loans: Loan[]): BorrowerMetrics {
   };
 }
 
-async function fetchLoansForRole(role: 'lender' | 'borrower'): Promise<Loan[]> {
+async function fetchLoansForBorrower(): Promise<Loan[]> {
   const { data } = await apiClient.get<PaginatedResponse<Loan>>('/loans', {
-    params: { role, limit: 100 },
+    params: { role: 'borrower', limit: 100 },
   });
   return data.data;
 }
 
 export function LenderStats() {
   const { t } = useTranslation();
-  const [lender, setLender] = useState<LenderMetrics>({
-    totalLoans: 0,
-    activeLoans: 0,
-    returnedLoans: 0,
-    overdueLoans: 0,
-  });
+  const { statistics } = useHistoryStore();
+  const overview = statistics?.overview;
+
   const [borrower, setBorrower] = useState<BorrowerMetrics>({
     loansReceived: 0,
     returnedOnTime: 0,
@@ -99,10 +68,7 @@ export function LenderStats() {
   });
 
   useEffect(() => {
-    fetchLoansForRole('lender')
-      .then((loans) => setLender(computeLenderMetrics(loans)))
-      .catch(() => {});
-    fetchLoansForRole('borrower')
+    fetchLoansForBorrower()
       .then((loans) => setBorrower(computeBorrowerMetrics(loans)))
       .catch(() => {});
   }, []);
@@ -111,27 +77,22 @@ export function LenderStats() {
     {
       icon: 'handshake-outline',
       label: t('profile.totalLoans'),
-      value: lender.totalLoans,
+      value: overview?.totalLoans ?? 0,
       color: '#4A6355',
     },
     {
       icon: 'clock-outline',
       label: t('profile.activeLoans'),
-      value: lender.activeLoans,
+      value: overview?.activeLoans ?? 0,
       color: '#6B8E7B',
     },
     {
       icon: 'check-circle-outline',
       label: t('profile.returnedLoans'),
-      value: lender.returnedLoans,
+      value: overview?.returnedLoans ?? 0,
       color: '#7BAE8E',
     },
-    {
-      icon: 'alert-circle-outline',
-      label: t('profile.overdueLoans'),
-      value: lender.overdueLoans,
-      color: '#D97A6B',
-    },
+    // TODO FIX-14: réafficher overdueLoans quand le backend l'ajoutera à overview (à demander à Ozias)
   ];
 
   const borrowerStatsData: StatItem[] = [
