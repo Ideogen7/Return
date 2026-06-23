@@ -10,6 +10,7 @@ import {
   RateLimitException,
 } from '../common/exceptions/problem-details.exception.js';
 import { LOAN_EVENTS } from '../common/events/loan.events.js';
+import { ACTIVE_LOAN_STATUSES } from '../common/constants/loan-statuses.js';
 import { isValidTransition, isAllowedForRole } from './loan-status-machine.js';
 import type { LoanRole } from './loan-status-machine.js';
 import { CreateLoanDto } from './dto/create-loan.dto.js';
@@ -77,6 +78,26 @@ export class LoansService {
     // Prevents orphaned records if any step fails
     const loan = await this.prisma.$transaction(async (tx) => {
       const itemId = await this.resolveItem(tx, dto.item, lenderId);
+
+      // FIX-04: an item can only be lent once at a time. Reject if it already
+      // has a loan in an active status (a freshly created inline item never does).
+      const activeLoan = await tx.loan.findFirst({
+        where: {
+          itemId,
+          status: { in: ACTIVE_LOAN_STATUSES },
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      if (activeLoan) {
+        throw new ConflictException(
+          'item-already-loaned',
+          'Item Already Loaned',
+          'This item already has an active loan and cannot be lent again until it is returned.',
+          '/v1/loans',
+        );
+      }
+
       const borrowerId = await this.resolveBorrower(tx, dto.borrowerId, lenderId);
 
       // CINV-019: Verify ACCEPTED contact invitation exists for this borrower.

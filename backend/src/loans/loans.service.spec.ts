@@ -209,6 +209,24 @@ describe('LoansService', () => {
       expect(redisClient.incr).toHaveBeenCalled();
     });
 
+    it('should throw 409 when the item already has an active loan (FIX-04)', async () => {
+      prisma.item.findUnique.mockResolvedValue(MOCK_ITEM);
+      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
+      // An active loan already exists for this item
+      prisma.loan.findFirst.mockResolvedValue({ id: 'existing-active-loan' } as never);
+
+      try {
+        await service.create(LENDER_USER_ID, CREATE_DTO);
+        fail('Expected ConflictException');
+      } catch (error: unknown) {
+        const body = (error as { getResponse: () => ProblemDetails }).getResponse();
+        expect(body.status).toBe(HttpStatus.CONFLICT);
+        expect(body.type).toBe('https://api.return.app/errors/item-already-loaned');
+      }
+
+      expect(prisma.loan.create).not.toHaveBeenCalled();
+    });
+
     it('should create inline item when item is an object', async () => {
       const inlineItem = {
         name: 'New Item',
@@ -222,6 +240,7 @@ describe('LoansService', () => {
       await service.create(LENDER_USER_ID, {
         item: inlineItem as never,
         borrowerId: BORROWER_ID,
+        returnDate: '2099-06-01',
       });
 
       expect(prisma.item.create).toHaveBeenCalledWith({
