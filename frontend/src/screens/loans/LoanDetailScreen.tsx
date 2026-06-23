@@ -19,7 +19,7 @@ import { CATEGORY_I18N } from '../../components/items/ItemCard';
 import { useLoanStore } from '../../stores/useLoanStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { parseProblemDetails, getErrorMessage } from '../../utils/error';
-import { getMinReturnDate } from '../../utils/date';
+import { getMinReturnDate, formatDate } from '../../utils/date';
 import { ui } from '../../config/theme.config';
 import type { LoanStackParamList } from '../../navigation/types';
 import type { AxiosError } from 'axios';
@@ -205,7 +205,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
               {t('loans.returnDate')}
             </Text>
             <Text variant="bodyMedium" style={styles.value}>
-              {new Date(selectedLoan.returnDate).toLocaleDateString()}
+              {formatDate(selectedLoan.returnDate, i18n.language)}
             </Text>
           </View>
         )}
@@ -477,7 +477,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
                   testID="edit-return-date-input"
                 >
                   {editReturnDateObj
-                    ? editReturnDateObj.toLocaleDateString(i18n.language)
+                    ? formatDate(editReturnDateObj, i18n.language)
                     : t('loans.returnDate')}
                 </Button>
                 {calendarExpanded && (

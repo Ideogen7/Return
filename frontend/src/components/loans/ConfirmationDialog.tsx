@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button, Dialog, Portal, TextInput, HelperText } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import { formatDate } from '../../utils/date';
 import type { Loan } from '../../types/api.types';
 
 interface ConfirmationDialogProps {
@@ -24,7 +25,7 @@ export function ConfirmationDialog({
   onContest,
   isLoading,
 }: ConfirmationDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showContestForm, setShowContestForm] = useState(false);
   const [reason, setReason] = useState('');
 
@@ -58,7 +59,7 @@ export function ConfirmationDialog({
             </Text>
             {loan.returnDate && (
               <Text variant="bodySmall" style={styles.sub}>
-                {t('loans.returnDate')}: {new Date(loan.returnDate).toLocaleDateString()}
+                {t('loans.returnDate')}: {formatDate(loan.returnDate, i18n.language)}
               </Text>
             )}
           </View>

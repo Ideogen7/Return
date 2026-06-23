@@ -18,7 +18,7 @@ import { ui } from '../../config/theme.config';
 import { useItemStore } from '../../stores/useItemStore';
 import { useBorrowerStore } from '../../stores/useBorrowerStore';
 import { ItemForm } from '../items/ItemForm';
-import { getMinReturnDate } from '../../utils/date';
+import { getMinReturnDate, formatDate } from '../../utils/date';
 import type { CreateLoanDto, CreateItemDto } from '../../types/api.types';
 
 type LoanType = 'OBJECT' | 'MONEY';
@@ -306,7 +306,7 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
           style={styles.input}
           testID="return-date-input"
         >
-          {returnDateObj ? returnDateObj.toLocaleDateString(i18n.language) : t('loans.returnDate')}
+          {returnDateObj ? formatDate(returnDateObj, i18n.language) : t('loans.returnDate')}
         </Button>
         {calendarExpanded && (
           <Calendar

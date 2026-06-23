@@ -8,3 +8,14 @@ export function getMinReturnDate(referenceDate?: Date): Date {
   min.setHours(0, 0, 0, 0);
   return min;
 }
+
+/**
+ * Formats a date using the app language so the output is consistent across machines.
+ * Returns an empty string when the input is absent or not a valid date — never "Invalid Date".
+ */
+export function formatDate(date: string | Date | null | undefined, language: string): string {
+  if (date == null) return '';
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(language);
+}

@@ -3,6 +3,7 @@ import { Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { STATUS_COLORS } from '../../config/theme.config';
 import { StatusBadge } from './StatusBadge';
+import { formatDate } from '../../utils/date';
 import type { Loan } from '../../types/api.types';
 
 interface TimelineStep {
@@ -19,19 +20,22 @@ interface LoanTimelineProps {
 function formatDateRange(
   from: string | null | undefined,
   to: string | null | undefined,
+  language: string,
 ): string | null {
   if (!from) return null;
-  const fromDate = new Date(from);
-  if (Number.isNaN(fromDate.getTime())) return null;
-  const f = fromDate.toLocaleDateString();
+  const f = formatDate(from, language);
+  if (!f) return null;
   if (!to) return f;
-  const toDate = new Date(to);
-  if (Number.isNaN(toDate.getTime())) return f;
-  const t = toDate.toLocaleDateString();
-  return f === t ? f : `${f} — ${t}`;
+  const toFormatted = formatDate(to, language);
+  if (!toFormatted) return f;
+  return f === toFormatted ? f : `${f} — ${toFormatted}`;
 }
 
-function getTimelineSteps(loan: Loan, t: (key: string) => string): TimelineStep[] {
+function getTimelineSteps(
+  loan: Loan,
+  t: (key: string) => string,
+  language: string,
+): TimelineStep[] {
   const activeLabel =
     loan.status === 'ACTIVE_BY_DEFAULT'
       ? t('loans.statusActiveByDefault')
@@ -39,7 +43,7 @@ function getTimelineSteps(loan: Loan, t: (key: string) => string): TimelineStep[
 
   // Active period: from confirmationDate to either returnDate, returnedDate, or updatedAt
   const activePeriodEnd = loan.returnedDate ?? loan.returnDate ?? loan.updatedAt;
-  const activeDate = formatDateRange(loan.confirmationDate, activePeriodEnd);
+  const activeDate = formatDateRange(loan.confirmationDate, activePeriodEnd, language);
 
   switch (loan.status) {
     case 'PENDING_CONFIRMATION':
@@ -118,17 +122,10 @@ function getTimelineSteps(loan: Loan, t: (key: string) => string): TimelineStep[
 }
 
 export function LoanTimeline({ loan }: LoanTimelineProps) {
-  const { t } = useTranslation();
-
-  const formatDate = (dateStr?: string | null) => {
-    if (!dateStr) return null;
-    const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime())) return null;
-    return d.toLocaleDateString();
-  };
+  const { t, i18n } = useTranslation();
 
   // TODO Sprint 5 : ajouter les étapes de rappel (J+3, J+7, J+14, J+21) pour AWAITING_RETURN tardif
-  const steps = getTimelineSteps(loan, t);
+  const steps = getTimelineSteps(loan, t, i18n.language);
 
   const getDotStyle = (step: TimelineStep) => {
     if (!step.reached) return styles.dotUnreached;
@@ -169,7 +166,7 @@ export function LoanTimeline({ loan }: LoanTimelineProps) {
               </Text>
               {step.date && (
                 <Text variant="bodySmall" style={styles.stepDate}>
-                  {formatDate(step.date)}
+                  {formatDate(step.date, i18n.language)}
                 </Text>
               )}
             </View>

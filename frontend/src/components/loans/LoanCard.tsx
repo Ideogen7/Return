@@ -1,6 +1,7 @@
 import { View, Image, StyleSheet } from 'react-native';
 import { Text, TouchableRipple, Icon } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import { formatDate } from '../../utils/date';
 import { ui } from '../../config/theme.config';
 import { StatusBadge } from './StatusBadge';
 import type { Loan } from '../../types/api.types';
@@ -11,13 +12,9 @@ interface LoanCardProps {
 }
 
 export function LoanCard({ loan, onPress }: LoanCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const hasPhoto = loan.item.photos && loan.item.photos.length > 0;
   const isMoney = loan.item.category === 'MONEY';
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString();
-  };
 
   return (
     <TouchableRipple
@@ -53,7 +50,7 @@ export function LoanCard({ loan, onPress }: LoanCardProps) {
             <StatusBadge status={loan.status} size="small" />
             {loan.returnDate && (
               <Text variant="bodySmall" style={styles.date}>
-                {formatDate(loan.returnDate)}
+                {formatDate(loan.returnDate, i18n.language)}
               </Text>
             )}
           </View>
