@@ -24,7 +24,7 @@ export function CreateLoanScreen({ navigation }: Props) {
     Promise.all([
       useItemStore
         .getState()
-        .fetchItems()
+        .fetchItems({ available: true })
         .catch(() => {}),
       useBorrowerStore
         .getState()
