@@ -2089,6 +2089,26 @@ paths:
                 timestamp: 2026-02-08T21:30:00Z
                 requestId: req-6d7e8f9a
 
+  /users/me/trust-score:
+    get:
+      tags:
+        - Users
+      summary: Récupérer le score de confiance global de l'utilisateur
+      description: |
+        Score de confiance global de l'utilisateur authentifié **en tant qu'emprunteur**,
+        agrégé sur tous les prêteurs (toutes ses fiches contact confondues). Source de
+        vérité unique, consommée aussi bien sur le profil que sur la fiche contact (FIX-15).
+      operationId: getMyTrustScore
+      responses:
+        '200':
+          description: Score de confiance global
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTrustScore'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /users/me/settings:
     get:
       tags:
@@ -2760,8 +2780,37 @@ components:
           maximum: 100
           example: 87.5
           description: |
-            Score de confiance calculé : 
-            (returnedOnTime * 100 + returnedLate * 50) / totalLoans
+            Score de confiance **global** de l'emprunteur lié, agrégé sur tous les
+            prêteurs (FIX-15) : (Σ returnedOnTime * 100 + Σ returnedLate * 50) / Σ totalLoans.
+            Identique au score exposé par GET /users/me/trust-score pour cet utilisateur.
+            Vaut 0 si le contact n'est pas encore lié à un compte (invitation en attente).
+
+    UserTrustScore:
+      type: object
+      description: |
+        Score de confiance global d'un utilisateur en tant qu'emprunteur, agrégé sur
+        tous les prêteurs ayant une relation avec lui (FIX-15).
+      properties:
+        trustScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          example: 87.5
+          description: '(Σ returnedOnTime * 100 + Σ returnedLate * 50) / Σ totalLoans, tous prêteurs confondus'
+        totalLoans:
+          type: integer
+          example: 12
+          description: Nombre total de prêts reçus, tous prêteurs confondus
+        returnedOnTime:
+          type: integer
+          example: 10
+        returnedLate:
+          type: integer
+          example: 1
+        notReturned:
+          type: integer
+          example: 1
 
     Reminder:
       type: object

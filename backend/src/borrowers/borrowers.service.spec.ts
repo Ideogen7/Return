@@ -3,6 +3,7 @@ import { HttpStatus } from '@nestjs/common';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { BorrowersService } from './borrowers.service.js';
+import { TrustScoreService } from '../trust-score/trust-score.service.js';
 import type { ProblemDetails } from '../common/exceptions/problem-details.exception.js';
 import type { Borrower } from '@prisma/client';
 
@@ -57,12 +58,26 @@ const MOCK_BORROWER_2: Borrower = {
 describe('BorrowersService', () => {
   let service: BorrowersService;
   let prisma: DeepMockProxy<PrismaService>;
+  let trustScoreService: { computeGlobalTrustScore: jest.Mock };
 
   beforeEach(async () => {
     prisma = mockDeep<PrismaService>();
+    trustScoreService = {
+      computeGlobalTrustScore: jest.fn().mockResolvedValue({
+        trustScore: 0,
+        totalLoans: 0,
+        returnedOnTime: 0,
+        returnedLate: 0,
+        notReturned: 0,
+      }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [BorrowersService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        BorrowersService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: TrustScoreService, useValue: trustScoreService },
+      ],
     }).compile();
 
     service = module.get<BorrowersService>(BorrowersService);
@@ -281,6 +296,8 @@ describe('BorrowersService', () => {
   // ===========================================================================
 
   describe('getStatistics', () => {
+    const LINKED_USER_ID = '990e8400-e29b-41d4-a716-446655440000';
+
     it('should return borrower statistics with defaults', async () => {
       prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
 
@@ -296,19 +313,40 @@ describe('BorrowersService', () => {
       });
     });
 
-    it('should map trustScore and totalLoans from database values', async () => {
-      const borrowerWithStats: Borrower = {
+    it('should use the GLOBAL trust score for a linked contact, with per-relation counters (FIX-15)', async () => {
+      const linkedBorrower: Borrower = {
         ...MOCK_BORROWER,
-        trustScore: 88,
+        userId: LINKED_USER_ID,
+        trustScore: 88, // per-relation value — must be ignored
         totalLoans: 12,
+        returnedOnTime: 9,
       };
-      prisma.borrower.findUnique.mockResolvedValue(borrowerWithStats);
+      prisma.borrower.findUnique.mockResolvedValue(linkedBorrower);
+      trustScoreService.computeGlobalTrustScore.mockResolvedValue({
+        trustScore: 73.5,
+        totalLoans: 20,
+        returnedOnTime: 14,
+        returnedLate: 1,
+        notReturned: 1,
+      });
 
       const result = await service.getStatistics(BORROWER_ID, LENDER_USER_ID);
 
-      expect(result.trustScore).toBe(88);
+      // trustScore comes from the global aggregation of the linked user
+      expect(trustScoreService.computeGlobalTrustScore).toHaveBeenCalledWith(LINKED_USER_ID);
+      expect(result.trustScore).toBe(73.5);
+      // counters stay relative to THIS lender's relationship
       expect(result.totalLoans).toBe(12);
-      expect(result.returnedOnTime).toBe(0);
+      expect(result.returnedOnTime).toBe(9);
+    });
+
+    it('should report trustScore 0 without aggregating for a pending (unlinked) contact', async () => {
+      prisma.borrower.findUnique.mockResolvedValue({ ...MOCK_BORROWER, userId: null });
+
+      const result = await service.getStatistics(BORROWER_ID, LENDER_USER_ID);
+
+      expect(result.trustScore).toBe(0);
+      expect(trustScoreService.computeGlobalTrustScore).not.toHaveBeenCalled();
     });
 
     it('should throw 404 if borrower does not exist', async () => {
