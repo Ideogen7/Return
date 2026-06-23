@@ -87,7 +87,7 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
     onSubmit({
       item: itemValue,
       borrowerId: selectedBorrowerId!,
-      returnDate: returnDate || null,
+      returnDate,
       notes: notes || null,
     });
   };
@@ -308,6 +308,11 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
         >
           {returnDateObj ? formatDate(returnDateObj, i18n.language) : t('loans.returnDate')}
         </Button>
+        {!returnDate && (
+          <HelperText type="error" testID="return-date-required">
+            {t('loans.returnDateRequired')}
+          </HelperText>
+        )}
         {calendarExpanded && (
           <Calendar
             locale={i18n.language}
@@ -402,7 +407,7 @@ export function LoanWizard({ onSubmit, isLoading, error }: LoanWizardProps) {
             mode="contained"
             onPress={handleSubmit}
             loading={isLoading}
-            disabled={isLoading}
+            disabled={isLoading || !returnDate}
             style={styles.nextButton}
             testID="wizard-submit-btn"
           >
