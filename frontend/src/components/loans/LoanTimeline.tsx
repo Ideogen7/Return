@@ -21,9 +21,13 @@ function formatDateRange(
   to: string | null | undefined,
 ): string | null {
   if (!from) return null;
-  const f = new Date(from).toLocaleDateString();
+  const fromDate = new Date(from);
+  if (Number.isNaN(fromDate.getTime())) return null;
+  const f = fromDate.toLocaleDateString();
   if (!to) return f;
-  const t = new Date(to).toLocaleDateString();
+  const toDate = new Date(to);
+  if (Number.isNaN(toDate.getTime())) return f;
+  const t = toDate.toLocaleDateString();
   return f === t ? f : `${f} — ${t}`;
 }
 
@@ -50,7 +54,8 @@ function getTimelineSteps(loan: Loan, t: (key: string) => string): TimelineStep[
     case 'ACTIVE_BY_DEFAULT':
       return [
         { label: t('loans.statusPendingConfirmation'), date: loan.createdAt, reached: true },
-        { label: activeLabel, date: activeDate, reached: true },
+        // Prêt en cours : pas de date à l'étape active (période non terminée)
+        { label: activeLabel, reached: true },
         { label: t('loans.statusAwaitingReturn'), date: loan.returnDate, reached: false },
         { label: t('loans.statusReturned'), reached: false },
       ];
@@ -117,7 +122,9 @@ export function LoanTimeline({ loan }: LoanTimelineProps) {
 
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return null;
-    return new Date(dateStr).toLocaleDateString();
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString();
   };
 
   // TODO Sprint 5 : ajouter les étapes de rappel (J+3, J+7, J+14, J+21) pour AWAITING_RETURN tardif
