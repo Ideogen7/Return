@@ -444,27 +444,10 @@ describe('BorrowersService', () => {
       }
     });
 
-    it('should throw 409 if updated email already exists for this lender', async () => {
-      prisma.borrower.findUnique.mockResolvedValue(MOCK_BORROWER);
-      const prismaError = new Error('Unique constraint failed') as Error & {
-        code: string;
-        meta?: { target?: string[] };
-      };
-      prismaError.code = 'P2002';
-      prismaError.meta = { target: ['lender_user_id', 'email'] };
-      prisma.borrower.update.mockRejectedValue(prismaError);
-
-      try {
-        await service.update(BORROWER_ID, LENDER_USER_ID, {
-          email: 'jean.martin@example.com',
-        });
-        fail('Expected ConflictException');
-      } catch (error: unknown) {
-        const body = (error as { getResponse: () => ProblemDetails }).getResponse();
-        expect(body.status).toBe(HttpStatus.CONFLICT);
-        expect(body.type).toBe('https://api.return.app/errors/borrower-already-exists');
-      }
-    });
+    // FIX-09: email is no longer part of UpdateBorrowerDto, so a borrower update
+    // can never collide on the (lender_user_id, email) unique constraint.
+    // The former "409 on updated email" test was removed as that path is now
+    // unreachable — email immutability is covered by update-borrower.dto.spec.ts.
   });
 
   // ===========================================================================
