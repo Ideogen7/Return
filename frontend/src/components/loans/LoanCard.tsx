@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { formatDate } from '../../utils/date';
 import { ui } from '../../config/theme.config';
 import { StatusBadge } from './StatusBadge';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { getContactForUser } from '../../utils/loan';
 import type { Loan } from '../../types/api.types';
 
 interface LoanCardProps {
@@ -13,6 +15,8 @@ interface LoanCardProps {
 
 export function LoanCard({ loan, onPress }: LoanCardProps) {
   const { t, i18n } = useTranslation();
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const contact = getContactForUser(loan, currentUserId);
   const hasPhoto = loan.item.photos && loan.item.photos.length > 0;
   const isMoney = loan.item.category === 'MONEY';
 
@@ -44,7 +48,7 @@ export function LoanCard({ loan, onPress }: LoanCardProps) {
             {loan.item.name}
           </Text>
           <Text variant="bodyMedium" style={styles.borrower} numberOfLines={1}>
-            {t('navigation.contacts')}: {loan.borrower.firstName} {loan.borrower.lastName}
+            {t('navigation.contacts')}: {contact.firstName} {contact.lastName}
           </Text>
           <View style={styles.bottom}>
             <StatusBadge status={loan.status} size="small" />

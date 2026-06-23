@@ -20,6 +20,7 @@ import { useLoanStore } from '../../stores/useLoanStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { parseProblemDetails, getErrorMessage } from '../../utils/error';
 import { getMinReturnDate, formatDate } from '../../utils/date';
+import { getContactForUser } from '../../utils/loan';
 import { ui } from '../../config/theme.config';
 import type { LoanStackParamList } from '../../navigation/types';
 import type { AxiosError } from 'axios';
@@ -163,6 +164,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
   }
 
   const isLender = selectedLoan.lender.id === currentUserId;
+  const contact = getContactForUser(selectedLoan, currentUserId);
 
   const canEdit = isLender && EDITABLE_STATUSES.includes(selectedLoan.status);
   const canReturn = isLender && RETURNABLE_STATUSES.includes(selectedLoan.status);
@@ -195,7 +197,7 @@ export function LoanDetailScreen({ route, navigation }: Props) {
             {t('navigation.contacts')}
           </Text>
           <Text variant="bodyMedium" style={styles.value}>
-            {selectedLoan.borrower.firstName} {selectedLoan.borrower.lastName}
+            {contact.firstName} {contact.lastName}
           </Text>
         </View>
 
