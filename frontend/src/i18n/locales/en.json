@@ -88,6 +88,7 @@
     "firstName": "First name",
     "lastName": "Last name",
     "email": "Email",
+    "emailReadonly": "Email cannot be changed",
     "phone": "Phone",
     "trustScore": "Trust score",
     "totalLoans": "Total loans",

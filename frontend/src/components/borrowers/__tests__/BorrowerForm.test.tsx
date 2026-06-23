@@ -114,4 +114,67 @@ describe('BorrowerForm', () => {
 
     expect(screen.getByTestId('form-error')).toBeTruthy();
   });
+
+  // FIX-09 — email field lock in edit mode
+  describe('FIX-09: email field lock in edit mode', () => {
+    const editDefaultValues = {
+      firstName: 'Marie',
+      lastName: 'Dupont',
+      email: 'marie@example.com',
+    };
+
+    it('should render email-input as non-editable in edit mode', () => {
+      renderWithProvider(
+        <BorrowerForm
+          mode="edit"
+          defaultValues={editDefaultValues}
+          onSubmit={mockOnSubmit}
+          isLoading={false}
+          submitLabel="Save"
+        />,
+      );
+
+      const emailInput = screen.getByTestId('email-input');
+      expect(emailInput.props.editable).toBe(false);
+    });
+
+    it('should display the readonly hint in edit mode', () => {
+      renderWithProvider(
+        <BorrowerForm
+          mode="edit"
+          defaultValues={editDefaultValues}
+          onSubmit={mockOnSubmit}
+          isLoading={false}
+          submitLabel="Save"
+        />,
+      );
+
+      expect(screen.getByTestId('email-readonly-hint')).toBeTruthy();
+    });
+
+    it('should display the default email value in edit mode', () => {
+      renderWithProvider(
+        <BorrowerForm
+          mode="edit"
+          defaultValues={editDefaultValues}
+          onSubmit={mockOnSubmit}
+          isLoading={false}
+          submitLabel="Save"
+        />,
+      );
+
+      const emailInput = screen.getByTestId('email-input');
+      expect(emailInput.props.value).toBe('marie@example.com');
+    });
+
+    it('should render email-input as editable in create mode and not show readonly hint', () => {
+      renderWithProvider(
+        <BorrowerForm onSubmit={mockOnSubmit} isLoading={false} submitLabel="Save" />,
+      );
+
+      const emailInput = screen.getByTestId('email-input');
+      expect(emailInput.props.editable).not.toBe(false);
+      expect(screen.queryByTestId('email-readonly-hint')).toBeNull();
+    });
+  });
 });

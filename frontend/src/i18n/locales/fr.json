@@ -88,6 +88,7 @@
     "firstName": "Prénom",
     "lastName": "Nom",
     "email": "Email",
+    "emailReadonly": "L'email ne peut pas être modifié",
     "phone": "Téléphone",
     "trustScore": "Score de confiance",
     "totalLoans": "Total des prêts",

@@ -102,7 +102,9 @@ export function BorrowerForm({
         name="email"
         rules={{
           ...(isCreate && { required: t('auth.emailRequired') }),
-          pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('auth.emailInvalid') },
+          ...(isCreate && {
+            pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('auth.emailInvalid') },
+          }),
         }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
@@ -115,17 +117,23 @@ export function BorrowerForm({
             onChangeText={onChange}
             value={value}
             error={!!errors.email}
+            editable={isCreate}
+            disabled={!isCreate}
             testID="email-input"
             style={[styles.input, ui.input]}
             outlineStyle={styles.outline}
           />
         )}
       />
-      {errors.email && (
+      {errors.email ? (
         <HelperText type="error" testID="email-error">
           {errors.email.message}
         </HelperText>
-      )}
+      ) : !isCreate ? (
+        <HelperText type="info" testID="email-readonly-hint">
+          {t('borrowers.emailReadonly')}
+        </HelperText>
+      ) : null}
 
       <Controller
         control={control}
