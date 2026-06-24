@@ -257,6 +257,9 @@ export const handlers = [
     return HttpResponse.json({ ...mockSettings }, { status: 200 });
   }),
 
+  // GET /users/me/trust-score
+  http.get('*/users/me/trust-score', () => HttpResponse.json({ trustScore: 87 })),
+
   // PATCH /users/me/settings
   http.patch(`${API_REAL}/users/me/settings`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;

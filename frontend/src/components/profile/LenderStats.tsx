@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Card, Text, Icon, Divider } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import apiClient from '../../api/apiClient';
-import type { Loan, PaginatedResponse } from '../../types/api.types';
+import type { Loan, PaginatedResponse, UserTrustScore } from '../../types/api.types';
 import { useHistoryStore } from '../../stores/useHistoryStore';
 
 interface StatItem {
@@ -55,6 +55,16 @@ async function fetchLoansForBorrower(): Promise<Loan[]> {
   return data.data;
 }
 
+async function fetchGlobalTrustScore(): Promise<number | null> {
+  try {
+    const { data } = await apiClient.get<UserTrustScore>('/users/me/trust-score');
+    return data.trustScore;
+  } catch {
+    // Endpoint pas encore livré (Ozias) → l'appelant retombe sur le calcul client.
+    return null;
+  }
+}
+
 export function LenderStats() {
   const { t } = useTranslation();
   const { statistics } = useHistoryStore();
@@ -67,9 +77,14 @@ export function LenderStats() {
     trustScore: 0,
   });
 
+  const [globalTrustScore, setGlobalTrustScore] = useState<number | null>(null);
+
   useEffect(() => {
     fetchLoansForBorrower()
       .then((loans) => setBorrower(computeBorrowerMetrics(loans)))
+      .catch(() => {});
+    fetchGlobalTrustScore()
+      .then(setGlobalTrustScore)
       .catch(() => {});
   }, []);
 
@@ -95,6 +110,10 @@ export function LenderStats() {
     // TODO FIX-14: réafficher overdueLoans quand le backend l'ajoutera à overview (à demander à Ozias)
   ];
 
+  // TODO FIX-15: quand Ozias aura livré GET /users/me/trust-score, supprimer le fallback
+  // computeBorrowerMetrics().trustScore (conservé uniquement le temps que l'endpoint arrive).
+  const displayedTrustScore = globalTrustScore ?? borrower.trustScore;
+
   const borrowerStatsData: StatItem[] = [
     {
       icon: 'package-variant',
@@ -117,7 +136,7 @@ export function LenderStats() {
     {
       icon: 'shield-check-outline',
       label: t('profile.trustScore'),
-      value: `${borrower.trustScore}%`,
+      value: `${displayedTrustScore}%`,
       color: '#6B8E7B',
     },
   ];

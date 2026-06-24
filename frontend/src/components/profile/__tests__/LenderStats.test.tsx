@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react-native';
+import { http, HttpResponse } from 'msw';
 import { PaperProvider } from 'react-native-paper';
 import { server } from '../../../../__mocks__/server';
 import { LenderStats } from '../LenderStats';
@@ -119,12 +120,25 @@ describe('LenderStats (unified)', () => {
   });
 
   describe('borrower section — reads from GET /loans?role=borrower via MSW', () => {
-    it('should display trust score computed from borrower loans (default MSW handler)', async () => {
-      // Default handler returns 1 RETURNED loan with returnedDate before returnDate → score 100%
+    it('should display the global trust score from GET /users/me/trust-score (FIX-15)', async () => {
+      // Default handler returns { trustScore: 87 } — the global value, not the client recalculation.
       useHistoryStore.setState({ statistics: makeStats() });
-
       renderStats();
+      await waitFor(() => {
+        expect(screen.getByText('87%')).toBeTruthy();
+      });
+    });
 
+    it('should fall back to the client-side trust score when the global endpoint is unavailable (FIX-15)', async () => {
+      // Endpoint not shipped yet (Ozias) → 404 → component falls back to computeBorrowerMetrics()
+      server.use(
+        http.get('*/users/me/trust-score', () =>
+          HttpResponse.json({ detail: 'Not Found' }, { status: 404 }),
+        ),
+      );
+      useHistoryStore.setState({ statistics: makeStats() });
+      renderStats();
+      // Default borrower loans handler → 1 RETURNED-on-time loan → client score 100%
       await waitFor(() => {
         expect(screen.getByText('100%')).toBeTruthy();
       });

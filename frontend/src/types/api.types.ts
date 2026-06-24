@@ -80,6 +80,12 @@ export interface BorrowerStatistics {
   trustScore: number;
 }
 
+// FIX-15: trustScore global de l'utilisateur courant en tant qu'emprunteur (agrégé tous prêteurs).
+// Servi par GET /users/me/trust-score — source de vérité unique, remplace le recalcul client.
+export interface UserTrustScore {
+  trustScore: number;
+}
+
 export interface Borrower {
   id: string;
   firstName: string;
