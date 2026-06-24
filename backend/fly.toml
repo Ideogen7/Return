@@ -22,7 +22,11 @@ primary_region = 'cdg'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  # CORR-01: keep one machine always running so the in-process CRON jobs
+  # (reminders, 24h/48h auto-confirmation, invitation expiry) actually fire.
+  # With 0, the machine sleeps when idle and the scheduled jobs never run —
+  # which would break Return's core promise (automatic reminders).
+  min_machines_running = 1
 
   [http_service.concurrency]
     type = 'requests'
