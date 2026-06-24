@@ -248,7 +248,7 @@ Aucune migration de données — les tokens en base sont déjà des `ExpoPushTok
 
   **Conserver impérativement les signatures publiques** :
     - `isAvailable(): boolean`
-    - `sendToMultipleTokens(tokens: string[], payload: PushPayload): Promise<string[]>` (retourne les tokens valides)
+    - `sendToMultipleTokens(tokens: string[], title: string, body: string, data?: Record<string, string>): Promise<string[]>` (retourne les tokens **invalides**, à purger par l'appelant)
 
   Ces signatures sont consommées par `notifications.service.ts:188/201` qui reste inchangé.
 - **Critères d'acceptation** :
