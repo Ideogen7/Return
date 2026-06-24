@@ -37,10 +37,10 @@ Aucune migration de données — les tokens en base sont déjà des `ExpoPushTok
 |---------|---------------------------------------------------------------|-----------|--------|---------------------------|--------|
 | PUSH-P1 | Créer et uploader la clé APNs (iOS)                           | natismael | 20 min | —                         | ☐      |
 | PUSH-P2 | Uploader le compte de service FCM V1 (Android)                | natismael | 15 min | —                         | ☐      |
-| PUSH-F1 | Ajouter `projectId` à `getExpoPushTokenAsync`                 | Ismael    | 15 min | —                         | ☐      |
-| PUSH-F2 | Déclarer `expo-notifications` dans `app.json > plugins`       | Ismael    | 5 min  | —                         | ☐      |
-| PUSH-F3 | Canal Android `setNotificationChannelAsync`                   | Ismael    | 20 min | PUSH-F1                   | ☐      |
-| PUSH-F4 | Listeners de tap + navigation vers `LoanDetailScreen`         | Ismael    | 1h     | PUSH-F1, PUSH-F2          | ☐      |
+| PUSH-F1 | Ajouter `projectId` à `getExpoPushTokenAsync`                 | Ismael    | 15 min | —                         | ✅     |
+| PUSH-F2 | Déclarer `expo-notifications` dans `app.json > plugins`       | Ismael    | 5 min  | —                         | ✅     |
+| PUSH-F3 | Canal Android `setNotificationChannelAsync`                   | Ismael    | 20 min | PUSH-F1                   | ✅     |
+| PUSH-F4 | Listeners de tap + navigation vers `LoanDetailScreen`         | Ismael    | 1h     | PUSH-F1, PUSH-F2          | ✅     |
 | PUSH-F5 | Rebuild EAS preview (Android + iOS)                           | Ismael    | 30 min | PUSH-F1, PUSH-F2, PUSH-F3 | ☐      |
 | PUSH-B1 | Installer `expo-server-sdk`, retirer `firebase-admin`         | Ozias     | 10 min | —                         | ✅ Fait |
 | PUSH-B2 | Réécrire `firebase.service.ts` avec `expo-server-sdk`         | Ozias     | 1h30   | PUSH-B1                   | ✅ Fait |
@@ -48,6 +48,8 @@ Aucune migration de données — les tokens en base sont déjà des `ExpoPushTok
 | PUSH-B4 | Réécrire les specs back (`firebase.service.spec.ts` + notifs) | Ozias     | 1h     | PUSH-B2                   | ✅ Fait |
 | PUSH-B5 | Secrets Fly : set `EXPO_ACCESS_TOKEN`, unset Firebase         | Ozias     | 10 min | PUSH-B1                   | ◑ doc faite — secrets Fly = ops |
 | PUSH-B6 | Receipts Phase 2 : CRON + migration Prisma (POST-MVP)         | Ozias     | +2h    | PUSH-B2, PUSH-B5          | ⏸ POST-MVP |
+
+> **Suivi front** (24/06/2026) — PUSH-F1/F2/F3/F4 livrés et testés (20 tests front ajoutés, suite verte 259/259), commits `dc6f4a0` (F1-F3) + `0781cd5` (F4). Reste front : **PUSH-F5** (rebuild EAS preview Android + iOS), bloqué par les credentials **PUSH-P1/P2** (natismael).
 
 ---
 
@@ -118,8 +120,8 @@ Aucune migration de données — les tokens en base sont déjà des `ExpoPushTok
   `expo-constants` est une dépendance directe du `package.json` frontend — l'ajouter si elle est absente ou seulement
   transitive.
 - **Critères d'acceptation** :
-    - [ ] `projectId` passé explicitement à `getExpoPushTokenAsync`
-    - [ ] `expo-constants` présent dans `frontend/package.json` (dépendance directe)
+    - [x] `projectId` passé explicitement à `getExpoPushTokenAsync`
+    - [x] `expo-constants` présent dans `frontend/package.json` (dépendance directe)
     - [ ] Le token retourné commence bien par `ExponentPushToken[` (vérifiable via log ou debugger)
 
 ---
@@ -136,7 +138,7 @@ Aucune migration de données — les tokens en base sont déjà des `ExpoPushTok
   les entitlements push sont absents du build natif et la demande de permission ne fonctionne pas sur device
   standalone.
 - **Critères d'acceptation** :
-    - [ ] `"expo-notifications"` présent dans `expo.plugins` de `app.json`
+    - [x] `"expo-notifications"` présent dans `expo.plugins` de `app.json`
     - [ ] Le build EAS suivant (PUSH-F5) inclut les entitlements push natifs (iOS: `aps-environment`, Android: FCM)
 
 ---
@@ -154,10 +156,10 @@ Aucune migration de données — les tokens en base sont déjà des `ExpoPushTok
   **avant** `getExpoPushTokenAsync`, sous un guard `Platform.OS === 'android'`. L'identifiant `"default"` doit
   correspondre au `channelId` envoyé par le back dans le payload push (PUSH-B2).
 - **Critères d'acceptation** :
-    - [ ] `setNotificationChannelAsync('default', ...)` appelé avant `getExpoPushTokenAsync` dans le service push
-    - [ ] Guard `Platform.OS === 'android'` en place (pas d'appel inutile sur iOS)
-    - [ ] L'identifiant du canal est `"default"` (cohérent avec le `channelId` back)
-    - [ ] Aucune régression sur iOS (le code iOS est inchangé)
+    - [x] `setNotificationChannelAsync('default', ...)` appelé avant `getExpoPushTokenAsync` dans le service push
+    - [x] Guard `Platform.OS === 'android'` en place (pas d'appel inutile sur iOS)
+    - [x] L'identifiant du canal est `"default"` (cohérent avec le `channelId` back)
+    - [x] Aucune régression sur iOS (le code iOS est inchangé)
 
 ---
 
@@ -176,10 +178,10 @@ Aucune migration de données — les tokens en base sont déjà des `ExpoPushTok
 
   Dans les deux cas : lire `data.loanId` dans le payload et naviguer vers `LoanDetailScreen` via le navigateur.
 - **Critères d'acceptation** :
-    - [ ] `addNotificationResponseReceivedListener` enregistré dans `RootNavigator` (et nettoyé au démontage)
-    - [ ] `getLastNotificationResponseAsync()` appelé au montage pour gérer le cas app killed
-    - [ ] Un tap sur une notification push navigue vers `LoanDetailScreen` avec le bon `loanId`
-    - [ ] Pas de crash si `data.loanId` est absent du payload
+    - [x] `addNotificationResponseReceivedListener` enregistré dans `RootNavigator` (et nettoyé au démontage)
+    - [x] `getLastNotificationResponseAsync()` appelé au montage pour gérer le cas app killed
+    - [x] Un tap sur une notification push navigue vers `LoanDetailScreen` avec le bon `loanId`
+    - [x] Pas de crash si `data.loanId` est absent du payload
 
 ---
 
