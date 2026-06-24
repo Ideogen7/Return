@@ -81,9 +81,13 @@ export interface BorrowerStatistics {
 }
 
 // FIX-15: trustScore global de l'utilisateur courant en tant qu'emprunteur (agrégé tous prêteurs).
-// Servi par GET /users/me/trust-score — source de vérité unique, remplace le recalcul client.
-export interface UserTrustScore {
+// Contrat backend GET /users/me/trust-score → TrustScoreService.GlobalTrustScore.
+export interface GlobalTrustScore {
   trustScore: number;
+  totalLoans: number;
+  returnedOnTime: number;
+  returnedLate: number;
+  notReturned: number;
 }
 
 export interface Borrower {

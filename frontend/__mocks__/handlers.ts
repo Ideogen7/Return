@@ -258,7 +258,15 @@ export const handlers = [
   }),
 
   // GET /users/me/trust-score
-  http.get('*/users/me/trust-score', () => HttpResponse.json({ trustScore: 87 })),
+  http.get('*/users/me/trust-score', () =>
+    HttpResponse.json({
+      trustScore: 87,
+      totalLoans: 40,
+      returnedOnTime: 31,
+      returnedLate: 8,
+      notReturned: 3,
+    }),
+  ),
 
   // PATCH /users/me/settings
   http.patch(`${API_REAL}/users/me/settings`, async ({ request }) => {

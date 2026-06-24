@@ -119,18 +119,22 @@ describe('LenderStats (unified)', () => {
     });
   });
 
-  describe('borrower section — reads from GET /loans?role=borrower via MSW', () => {
-    it('should display the global trust score from GET /users/me/trust-score (FIX-15)', async () => {
-      // Default handler returns { trustScore: 87 } — the global value, not the client recalculation.
+  describe('borrower section — reads from GET /users/me/trust-score via MSW', () => {
+    it('should display the global borrower stats from GET /users/me/trust-score (FIX-15)', async () => {
+      // Default handler → { trustScore:87, totalLoans:40, returnedOnTime:31, returnedLate:8 }
+      // The whole borrower section is server-sourced — no client recalculation.
       useHistoryStore.setState({ statistics: makeStats() });
       renderStats();
       await waitFor(() => {
         expect(screen.getByText('87%')).toBeTruthy();
       });
+      expect(screen.getByText('40')).toBeTruthy();
+      expect(screen.getByText('31')).toBeTruthy();
+      expect(screen.getByText('8')).toBeTruthy();
     });
 
-    it('should fall back to the client-side trust score when the global endpoint is unavailable (FIX-15)', async () => {
-      // Endpoint not shipped yet (Ozias) → 404 → component falls back to computeBorrowerMetrics()
+    it('should display zeros when the global endpoint is unavailable (FIX-15)', async () => {
+      // Endpoint error → no client fallback anymore → borrower cards default to zeros.
       server.use(
         http.get('*/users/me/trust-score', () =>
           HttpResponse.json({ detail: 'Not Found' }, { status: 404 }),
@@ -138,9 +142,8 @@ describe('LenderStats (unified)', () => {
       );
       useHistoryStore.setState({ statistics: makeStats() });
       renderStats();
-      // Default borrower loans handler → 1 RETURNED-on-time loan → client score 100%
       await waitFor(() => {
-        expect(screen.getByText('100%')).toBeTruthy();
+        expect(screen.getByText('0%')).toBeTruthy();
       });
     });
 
