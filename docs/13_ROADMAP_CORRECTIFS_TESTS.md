@@ -49,21 +49,21 @@
 
 | ID     | Titre                                                                     | Gravité     | Périmètre / Qui                      | Effort               | Statut   |
 |--------|---------------------------------------------------------------------------|-------------|--------------------------------------|----------------------|----------|
-| FIX-01 | Photos objets : upload ET GET KO                                          | 🔴 Critique | Back (Ozias) + Front (Ismael, vérif) | M                    | ☐        |
-| FIX-02 | Photo de profil ajoutée non affichée                                      | 🔴 Critique | Back (Ozias) + Front (Ismael, vérif) | M (mutualisé FIX-01) | ☐        |
-| FIX-03 | Date de retour obligatoire                                                | 🟠 Majeur   | Les deux                             | XS                   | ☐        |
-| FIX-04 | Objet déjà prêté reste re-prêtable                                        | 🟠 Majeur   | Les deux                             | M                    | ☐        |
-| FIX-05 | Workflow prêt court (Δ<3j) : auto-confirm 24h + pas de préventive avant J | 🟠 Majeur   | Back (Ozias)                         | S                    | ☐        |
+| FIX-01 | Photos objets : upload ET GET KO                                          | 🔴 Critique | Back (Ozias) + Front (Ismael, vérif) | M                    | 🟡 Partiel |
+| FIX-02 | Photo de profil ajoutée non affichée                                      | 🔴 Critique | Back (Ozias) + Front (Ismael, vérif) | M (mutualisé FIX-01) | 🟡 Partiel |
+| FIX-03 | Date de retour obligatoire                                                | 🟠 Majeur   | Les deux                             | XS                   | ✅ Fait    |
+| FIX-04 | Objet déjà prêté reste re-prêtable                                        | 🟠 Majeur   | Les deux                             | M                    | ✅ Fait    |
+| FIX-05 | Workflow prêt court (Δ<3j) : auto-confirm 24h + pas de préventive avant J | 🟠 Majeur   | Back (Ozias)                         | S                    | ✅ Fait    |
 | FIX-06 | Stats : prêts CONTESTÉS comptés comme actifs                              | 🟠 Majeur   | Front (Ismael)                       | XS                   | → FIX-14 |
 | FIX-07 | Stats figées / "s'affichent quand elles veulent"                          | 🟠 Majeur   | Front (Ismael)                       | S                    | → FIX-14 |
 | FIX-08 | Mise à jour d'un prêt non reflétée dans les stats                         | 🟠 Majeur   | Front (Ismael)                       | M                    | → FIX-14 |
-| FIX-09 | Email d'un contact ne doit pas être modifiable                            | 🟠 Majeur   | Les deux                             | XS                   | ☐        |
-| FIX-10 | Format de date incohérent selon la machine                                | 🟠 Majeur   | Front (Ismael)                       | XS                   | ☐        |
-| FIX-11 | Champ "Contact" figé sur loan.borrower quel que soit le spectateur        | 🟠 Majeur   | Front (Ismael)                       | S                    | ☐        |
-| FIX-12 | Timeline affiche "Invalid Date" pour prêt actif (date absente)            | 🟡 Mineur   | Front (Ismael)                       | XS                   | ☐        |
+| FIX-09 | Email d'un contact ne doit pas être modifiable                            | 🟠 Majeur   | Les deux                             | XS                   | ✅ Fait    |
+| FIX-10 | Format de date incohérent selon la machine                                | 🟠 Majeur   | Front (Ismael)                       | XS                   | ✅ Fait    |
+| FIX-11 | Champ "Contact" figé sur loan.borrower quel que soit le spectateur        | 🟠 Majeur   | Front (Ismael)                       | S                    | ✅ Fait    |
+| FIX-12 | Timeline affiche "Invalid Date" pour prêt actif (date absente)            | 🟡 Mineur   | Front (Ismael)                       | XS                   | ✅ Fait    |
 | FIX-13 | Renommer un contact (impossible aujourd'hui)                              | 🟡 Mineur   | —                                    | —                    | ❌ Annulé |
-| FIX-14 | Chantier stats prêteur : brancher `/history/statistics` (ex-FIX-06/07/08) | 🟠 Majeur   | Les deux (surtout Front)             | M                    | ☐        |
-| FIX-15 | trustScore global incohérent (par-relation back vs global front)          | 🟠 Majeur   | Front + Back — MVP                   | M                    | ☐        |
+| FIX-14 | Chantier stats prêteur : brancher `/history/statistics` (ex-FIX-06/07/08) | 🟠 Majeur   | Les deux (surtout Front)             | M                    | ✅ Fait    |
+| FIX-15 | trustScore global incohérent (par-relation back vs global front)          | 🟠 Majeur   | Front + Back — MVP                   | M                    | ✅ Fait    |
 | FIX-16 | Temps réel (websockets)                                                   | 🟡 Mineur   | Back + Front — POST-MVP              | M→L                  | ☐        |
 
 ---
@@ -91,7 +91,7 @@
        persistance réelle
 - **Action Front (Ismael)** : vérifier que `PhotoGallery` affiche bien l'URL absolue renvoyée par le backend (pas de
   reconstruction côté client). Aucune reconstruction locale si l'URL est déjà absolue.
-- **Statut** : ☐ À faire
+- **Statut** : 🟡 Partiel — front vérifié ✅ ; reste back : `fly deploy` (UPLOAD_BASE_URL) + persistance R2 (CORR-02)
 
 ---
 
@@ -111,7 +111,7 @@
 - **Action Back (Ozias)** : identique FIX-01 — le correctif `UPLOAD_BASE_URL` couvre aussi les avatars.
 - **Action Front (Ismael)** : vérifier que `ProfileCard` consomme l'URL absolue stockée dans `useAuthStore` sans la
   reconstruire.
-- **Statut** : ☐ À faire
+- **Statut** : 🟡 Partiel — front vérifié ✅ ; couvert par le même correctif backend que FIX-01 (deploy + R2)
 
 ---
 
@@ -133,7 +133,7 @@
   obligatoire (400 si absente).
 - **Action Front (Ismael)** : rendre le champ date obligatoire dans le wizard (bloquer `canNext()` si `returnDate` est
   vide) + message de validation visible.
-- **Statut** : ☐ À faire
+- **Statut** : ✅ Fait — front (wizard : étape bloquée tant que la date est vide) + back (`returnDate` requis dans le DTO)
 
 ---
 
@@ -153,7 +153,7 @@
   409 Conflict si c'est le cas.
 - **Action Front (Ismael)** : appeler `GET /items?available=true` (ou filtrer côté store) pour ne proposer que les
   objets disponibles dans le sélecteur du wizard. Griser ou masquer les objets déjà prêtés.
-- **Statut** : ☐ À faire
+- **Statut** : ✅ Fait — front (sélecteur `available=true` + mapping i18n du 409 `item-already-loaned`) + back (409 Conflict)
 
 ---
 
@@ -204,7 +204,7 @@ Comportement inchangé : auto-confirmation à 48h + PREVENTIVE J-3.
 La transition automatique `ACTIVE → AWAITING_RETURN` à l'échéance (soulevée lors du 1er audit) est un **sujet
 séparé**, à confirmer avec Ozias — hors périmètre FIX-05.
 
-- **Statut** : ☐ À faire
+- **Statut** : ✅ Fait — back : volet A (auto-confirm 24h pour Δ<3j) + volet B (pas de PREVENTIVE pour Δ<3j) livrés
 
 ---
 
@@ -242,7 +242,7 @@ séparé**, à confirmer avec Ozias — hors périmètre FIX-05.
   (`editable={false}` + style visuel désactivé).
 - **Action Back (Ozias)** : retirer `email` du `UpdateBorrowerDto` ou lever une `BadRequestException` si `email` est
   présent dans le body d'un PATCH.
-- **Statut** : ☐ À faire
+- **Statut** : ✅ Fait — front (champ email verrouillé en édition) + back (email retiré du `UpdateBorrowerDto`)
 
 ---
 
@@ -268,7 +268,7 @@ séparé**, à confirmer avec Ozias — hors périmètre FIX-05.
   dans `frontend/src/utils/date.ts` (appelle `toLocaleDateString(language, { ... })`), puis remplacer les 9 occurrences
   incriminées.
 - **Action Back** : aucune.
-- **Statut** : ☐ À faire
+- **Statut** : ✅ Fait — front (`formatDate(date, language)` centralisé)
 
 ---
 
@@ -291,7 +291,7 @@ séparé**, à confirmer avec Ozias — hors périmètre FIX-05.
   `loan.lender.id === currentUserId`, sinon `loan.lender`. Appliquer ce helper dans `LoanCard` et `LoanDetailScreen` en
   remplacement de l'accès direct à `loan.borrower`.
 - **Action Back** : aucune — le backend est déjà correct.
-- **Statut** : ☐ À faire
+- **Statut** : ✅ Fait — front (helper `getContactForUser(loan, currentUserId)`)
 
 ---
 
@@ -312,7 +312,7 @@ séparé**, à confirmer avec Ozias — hors périmètre FIX-05.
 - **Action Front (Ismael)** : ajouter une garde sur `returnDate` avant de le passer à `formatDateRange` — ne rien
   afficher lorsque la date est absente (ne pas afficher de label de substitution).
 - **Action Back** : aucune.
-- **Statut** : ☐ À faire
+- **Statut** : ✅ Fait — front (garde sur `returnDate` avant formatage)
 
 ---
 
@@ -351,7 +351,7 @@ séparé**, à confirmer avec Ozias — hors périmètre FIX-05.
     3. Invalider / refetch les stats après chaque mutation `useLoanStore` (création, confirmation, contestation)
 - **Action Back (Ozias)** : vérifier que l'endpoint retourne bien les données dans le format attendu par le front (
   confronter avec `openapi.yaml`).
-- **Statut** : ☐ À faire
+- **Statut** : ✅ Fait — front (`/history/statistics` + `useFocusEffect` + invalidation après mutation ; ex-FIX-06/07/08 réglés) + back. **Reste** : ajouter `overdueLoans` à l'`overview` côté back (carte masquée côté front en attendant — TODO documenté)
 
 ---
 
@@ -375,7 +375,7 @@ séparé**, à confirmer avec Ozias — hors périmètre FIX-05.
   agrégé tous prêteurs confondus).
 - **Action Front (Ismael)** : afficher ce score global sur le profil self (remplacer le recalcul client dans
   `LenderStats`) et sur la fiche contact (remplacer la valeur par-relation actuelle).
-- **Statut** : ☐ À faire
+- **Statut** : ✅ Fait — front (section emprunteur 100% serveur via `GET /users/me/trust-score`, plus aucun recalcul client) + back (endpoint trustScore global agrégé)
 
 ---
 
