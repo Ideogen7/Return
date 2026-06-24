@@ -125,10 +125,12 @@
 - **Fichier(s) & preuve** :
     - `backend/src/main.ts:53` → `origin: config.get('CORS_ORIGIN', 'http://localhost:8081')` (valeur par défaut)
     - `backend/fly.toml` → aucune variable `CORS_ORIGIN`
-- **Problème** : sans `FIREBASE_SERVICE_ACCOUNT_BASE64`, Firebase démarre en mode dégradé → **push KO silencieusement**.
-  Sans `CORS_ORIGIN`, la valeur par défaut `localhost:8081` s'applique.
-- **Action recommandée** : `fly secrets set FIREBASE_SERVICE_ACCOUNT_BASE64=… CORS_ORIGIN=… -a return-api`, puis
-  `fly secrets list -a return-api` pour vérifier.
+- **Problème** : **Obsolète depuis CORR-13 (option B)** — le push passe désormais par l'Expo Push Service
+  (`firebase-admin` retiré). `FIREBASE_SERVICE_ACCOUNT_BASE64` n'est plus utilisé ; l'envoi fonctionne sans credential
+  (un `EXPO_ACCESS_TOKEN` optionnel lève seulement le rate-limit ~1000 notifs/h). Reste valable : sans `CORS_ORIGIN`,
+  la valeur par défaut `localhost:8081` s'applique.
+- **Action recommandée** : `fly secrets set EXPO_ACCESS_TOKEN=… CORS_ORIGIN=… -a return-api`, puis
+  `fly secrets unset FIREBASE_SERVICE_ACCOUNT_BASE64 -a return-api` et `fly secrets list -a return-api` pour vérifier.
 - **Statut** : ☐ À faire
 
 ### CORR-13 — Incompatibilité Expo Push Token ↔ Firebase Admin SDK (FCM)

@@ -42,12 +42,12 @@ Aucune migration de données — les tokens en base sont déjà des `ExpoPushTok
 | PUSH-F3 | Canal Android `setNotificationChannelAsync`                   | Ismael    | 20 min | PUSH-F1                   | ☐      |
 | PUSH-F4 | Listeners de tap + navigation vers `LoanDetailScreen`         | Ismael    | 1h     | PUSH-F1, PUSH-F2          | ☐      |
 | PUSH-F5 | Rebuild EAS preview (Android + iOS)                           | Ismael    | 30 min | PUSH-F1, PUSH-F2, PUSH-F3 | ☐      |
-| PUSH-B1 | Installer `expo-server-sdk`, retirer `firebase-admin`         | Ozias     | 10 min | —                         | ☐      |
-| PUSH-B2 | Réécrire `firebase.service.ts` avec `expo-server-sdk`         | Ozias     | 1h30   | PUSH-B1                   | ☐      |
-| PUSH-B3 | Vérifier compat `isAvailable()` — `notifications.service.ts`  | Ozias     | 15 min | PUSH-B2                   | ☐      |
-| PUSH-B4 | Réécrire les specs back (`firebase.service.spec.ts` + notifs) | Ozias     | 1h     | PUSH-B2                   | ☐      |
-| PUSH-B5 | Secrets Fly : set `EXPO_ACCESS_TOKEN`, unset Firebase         | Ozias     | 10 min | PUSH-B1                   | ☐      |
-| PUSH-B6 | Receipts Phase 2 : CRON + migration Prisma (POST-MVP)         | Ozias     | +2h    | PUSH-B2, PUSH-B5          | ☐      |
+| PUSH-B1 | Installer `expo-server-sdk`, retirer `firebase-admin`         | Ozias     | 10 min | —                         | ✅ Fait |
+| PUSH-B2 | Réécrire `firebase.service.ts` avec `expo-server-sdk`         | Ozias     | 1h30   | PUSH-B1                   | ✅ Fait |
+| PUSH-B3 | Vérifier compat `isAvailable()` — `notifications.service.ts`  | Ozias     | 15 min | PUSH-B2                   | ✅ Fait |
+| PUSH-B4 | Réécrire les specs back (`firebase.service.spec.ts` + notifs) | Ozias     | 1h     | PUSH-B2                   | ✅ Fait |
+| PUSH-B5 | Secrets Fly : set `EXPO_ACCESS_TOKEN`, unset Firebase         | Ozias     | 10 min | PUSH-B1                   | ◑ doc faite — secrets Fly = ops |
+| PUSH-B6 | Receipts Phase 2 : CRON + migration Prisma (POST-MVP)         | Ozias     | +2h    | PUSH-B2, PUSH-B5          | ⏸ POST-MVP |
 
 ---
 

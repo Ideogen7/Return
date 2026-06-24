@@ -41,7 +41,10 @@ export class EnvironmentVariables {
   @IsString()
   CORS_ORIGIN: string = 'http://localhost:8081';
 
+  // CORR-13 / Option B: push goes through the Expo Push Service. The access
+  // token is optional (it only lifts the anonymous rate limit). The former
+  // FIREBASE_SERVICE_ACCOUNT_BASE64 is no longer used.
   @IsOptional()
   @IsString()
-  FIREBASE_SERVICE_ACCOUNT_BASE64?: string;
+  EXPO_ACCESS_TOKEN?: string;
 }
