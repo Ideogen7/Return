@@ -42,6 +42,7 @@ const ERROR_TYPE_MAP: Record<string, string> = {
   'https://api.return.app/errors/network-error': 'errors.networkError',
   'https://api.return.app/errors/item-not-found': 'errors.itemNotFound',
   'https://api.return.app/errors/item-currently-loaned': 'errors.itemCurrentlyLoaned',
+  'https://api.return.app/errors/item-already-loaned': 'errors.itemAlreadyLoaned',
   'https://api.return.app/errors/max-photos-exceeded': 'errors.maxPhotosExceeded',
   'https://api.return.app/errors/photo-not-found': 'errors.photoNotFound',
   'https://api.return.app/errors/estimated-value-required': 'items.estimatedValueRequired',

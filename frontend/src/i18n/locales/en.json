@@ -116,6 +116,7 @@
     "borrowerNotFound": "Contact not found",
     "itemNotFound": "Item not found",
     "itemCurrentlyLoaned": "This item cannot be deleted because it is currently loaned",
+    "itemAlreadyLoaned": "This item is already on loan and cannot be lent again",
     "maxPhotosExceeded": "Maximum number of photos reached (5)",
     "unauthorized": "Session expired. Please log in again.",
     "forbidden": "You do not have permission to perform this action.",

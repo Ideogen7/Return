@@ -116,6 +116,7 @@
     "borrowerNotFound": "Contact introuvable",
     "itemNotFound": "Objet introuvable",
     "itemCurrentlyLoaned": "Cet objet ne peut pas être supprimé car il est actuellement prêté",
+    "itemAlreadyLoaned": "Cet objet est déjà prêté et ne peut pas faire l'objet d'un nouveau prêt",
     "maxPhotosExceeded": "Nombre maximum de photos atteint (5)",
     "unauthorized": "Session expirée. Veuillez vous reconnecter.",
     "forbidden": "Vous n'avez pas la permission d'effectuer cette action.",
