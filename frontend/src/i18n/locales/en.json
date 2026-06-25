@@ -66,6 +66,7 @@
     "returnedOnTime": "On time",
     "returnedLate": "Late",
     "trustScore": "Trust",
+    "notRated": "Not yet rated",
     "phone": "Phone",
     "phoneInvalidFormat": "Invalid format (e.g. +33612345678)",
     "deletePhoto": "Delete photo"
@@ -91,6 +92,7 @@
     "emailReadonly": "Email cannot be changed",
     "phone": "Phone",
     "trustScore": "Trust score",
+    "notRated": "Not yet rated",
     "totalLoans": "Total loans",
     "returnedOnTime": "Returned on time",
     "returnedLate": "Returned late",

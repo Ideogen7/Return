@@ -80,7 +80,8 @@ export function LenderStats() {
     {
       icon: 'shield-check-outline',
       label: t('profile.trustScore'),
-      value: `${borrowerStats?.trustScore ?? 0}%`,
+      value:
+        borrowerStats?.trustScore == null ? t('profile.notRated') : `${borrowerStats.trustScore}%`,
       color: '#6B8E7B',
     },
   ];

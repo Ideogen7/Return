@@ -77,13 +77,15 @@ export interface BorrowerStatistics {
   returnedLate: number;
   notReturned: number;
   averageReturnDelay: number | null;
-  trustScore: number;
+  // FIX-17: null = pas encore noté (aucun prêt résolu / contact non lié)
+  trustScore: number | null;
 }
 
 // FIX-15: trustScore global de l'utilisateur courant en tant qu'emprunteur (agrégé tous prêteurs).
 // Contrat backend GET /users/me/trust-score → TrustScoreService.GlobalTrustScore.
 export interface GlobalTrustScore {
-  trustScore: number;
+  // FIX-17: null = pas encore noté (aucun prêt résolu / contact non lié)
+  trustScore: number | null;
   totalLoans: number;
   returnedOnTime: number;
   returnedLate: number;
@@ -346,7 +348,8 @@ export interface HistoryTopBorrower {
     profilePicture: string | null;
   };
   loanCount: number;
-  trustScore: number;
+  // FIX-17: null = pas encore noté (aucun prêt résolu / contact non lié)
+  trustScore: number | null;
 }
 
 export interface HistoryMostLoanedItem {

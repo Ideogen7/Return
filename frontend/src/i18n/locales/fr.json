@@ -66,6 +66,7 @@
     "returnedOnTime": "À temps",
     "returnedLate": "En retard",
     "trustScore": "Confiance",
+    "notRated": "Pas encore noté",
     "phone": "Téléphone",
     "phoneInvalidFormat": "Format invalide (ex: +33612345678)",
     "deletePhoto": "Supprimer la photo"
@@ -91,6 +92,7 @@
     "emailReadonly": "L'email ne peut pas être modifié",
     "phone": "Téléphone",
     "trustScore": "Score de confiance",
+    "notRated": "Pas encore noté",
     "totalLoans": "Total des prêts",
     "returnedOnTime": "Rendus à temps",
     "returnedLate": "Rendus en retard",

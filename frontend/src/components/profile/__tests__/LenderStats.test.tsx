@@ -133,8 +133,8 @@ describe('LenderStats (unified)', () => {
       expect(screen.getByText('8')).toBeTruthy();
     });
 
-    it('should display zeros when the global endpoint is unavailable (FIX-15)', async () => {
-      // Endpoint error → no client fallback anymore → borrower cards default to zeros.
+    it('should display "Not yet rated" when the global endpoint is unavailable (FIX-15, FIX-17)', async () => {
+      // Endpoint error → borrowerStats stays null → trustScore card shows "Not yet rated" instead of "0%".
       server.use(
         http.get('*/users/me/trust-score', () =>
           HttpResponse.json({ detail: 'Not Found' }, { status: 404 }),
@@ -143,7 +143,27 @@ describe('LenderStats (unified)', () => {
       useHistoryStore.setState({ statistics: makeStats() });
       renderStats();
       await waitFor(() => {
-        expect(screen.getByText('0%')).toBeTruthy();
+        expect(screen.getByText('Not yet rated')).toBeTruthy();
+      });
+    });
+
+    it('should display "Not yet rated" when trustScore is null (FIX-17)', async () => {
+      // Backend returns null trustScore (no resolved loans yet) — numeric counters are present.
+      server.use(
+        http.get('*/users/me/trust-score', () =>
+          HttpResponse.json({
+            trustScore: null,
+            totalLoans: 5,
+            returnedOnTime: 4,
+            returnedLate: 1,
+            notReturned: 0,
+          }),
+        ),
+      );
+      useHistoryStore.setState({ statistics: makeStats() });
+      renderStats();
+      await waitFor(() => {
+        expect(screen.getByText('Not yet rated')).toBeTruthy();
       });
     });
 
