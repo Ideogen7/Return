@@ -108,7 +108,7 @@ export class BorrowersService {
     // an account (pending invitation) has no global score → 0.
     const trustScore = borrower.userId
       ? (await this.trustScoreService.computeGlobalTrustScore(borrower.userId)).trustScore
-      : 0;
+      : null;
 
     return {
       totalLoans: borrower.totalLoans,

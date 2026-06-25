@@ -46,7 +46,8 @@ export interface TopBorrower {
     profilePicture: string | null;
   };
   loanCount: number;
-  trustScore: number;
+  /** null = pas encore noté (aucun prêt résolu). */
+  trustScore: number | null;
 }
 
 export interface MostLoanedItem {

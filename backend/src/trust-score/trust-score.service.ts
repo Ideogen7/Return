@@ -7,7 +7,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
  * lender who has a contact (Borrower) record pointing at that user.
  */
 export interface GlobalTrustScore {
-  trustScore: number;
+  /** null = not yet rated (no resolved loan). */
+  trustScore: number | null;
   totalLoans: number;
   returnedOnTime: number;
   returnedLate: number;
@@ -44,11 +45,14 @@ export class TrustScoreService {
     const returnedLate = _sum.returnedLate ?? 0;
     const notReturned = _sum.notReturned ?? 0;
 
-    // Same formula as the per-relation score, applied to the aggregated counters.
+    // Denominator = RESOLVED loans only (returned on time / late / not returned).
+    // CONTESTED and in-progress loans are excluded — they must not weigh the
+    // score down. No resolved loan yet → null ("not yet rated").
+    const resolved = returnedOnTime + returnedLate + notReturned;
     const trustScore =
-      totalLoans > 0
-        ? Math.round(((returnedOnTime * 100 + returnedLate * 50) / totalLoans) * 10) / 10
-        : 0;
+      resolved > 0
+        ? Math.round(((returnedOnTime * 100 + returnedLate * 50) / resolved) * 10) / 10
+        : null;
 
     return { trustScore, totalLoans, returnedOnTime, returnedLate, notReturned };
   }

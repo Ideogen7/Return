@@ -2400,9 +2400,10 @@ paths:
                           type: integer
                           example: 8
                         trustScore:
-                          type: number
+                          type: [number, 'null']
                           format: float
                           example: 92.5
+                          description: Score de confiance global de l'emprunteur (null si pas encore noté)
                   mostLoanedItems:
                     type: array
                     description: Top 5 objets les plus prêtés
@@ -2774,16 +2775,17 @@ components:
           example: 2
           description: Délai moyen de retour en jours (+ = retard, - = avance, null si aucun prêt rendu)
         trustScore:
-          type: number
+          type: [number, 'null']
           format: float
           minimum: 0
           maximum: 100
           example: 87.5
           description: |
-            Score de confiance **global** de l'emprunteur lié, agrégé sur tous les
-            prêteurs (FIX-15) : (Σ returnedOnTime * 100 + Σ returnedLate * 50) / Σ totalLoans.
-            Identique au score exposé par GET /users/me/trust-score pour cet utilisateur.
-            Vaut 0 si le contact n'est pas encore lié à un compte (invitation en attente).
+            Score de confiance **global** de l'emprunteur lié, agrégé sur tous les prêteurs
+            (FIX-15), calculé sur les prêts **résolus** uniquement :
+            (Σ returnedOnTime * 100 + Σ returnedLate * 50) / Σ(returnedOnTime + returnedLate + notReturned).
+            Les prêts CONTESTÉS et en cours sont exclus. Identique à GET /users/me/trust-score.
+            **null** si le contact n'a aucun prêt résolu ou n'est pas encore lié à un compte.
 
     UserTrustScore:
       type: object
@@ -2792,12 +2794,14 @@ components:
         tous les prêteurs ayant une relation avec lui (FIX-15).
       properties:
         trustScore:
-          type: number
+          type: [number, 'null']
           format: float
           minimum: 0
           maximum: 100
           example: 87.5
-          description: '(Σ returnedOnTime * 100 + Σ returnedLate * 50) / Σ totalLoans, tous prêteurs confondus'
+          description: |
+            (Σ returnedOnTime * 100 + Σ returnedLate * 50) / Σ(returnedOnTime + returnedLate + notReturned),
+            tous prêteurs confondus, sur les prêts résolus uniquement. **null** si aucun prêt résolu.
         totalLoans:
           type: integer
           example: 12

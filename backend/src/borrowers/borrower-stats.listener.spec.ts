@@ -144,7 +144,7 @@ describe('BorrowerStatsListener', () => {
 
       await listener.handleStatusChanged(event);
 
-      // trustScore = (1*100 + 0*50) / 4 = 25
+      // resolved = 1 + 0 + 2 = 3 → trustScore = (1*100) / 3 = 33.3 (rounded)
       expect(prisma.borrower.update).toHaveBeenCalledWith({
         where: { id: BORROWER_ID },
         data: {
@@ -152,7 +152,7 @@ describe('BorrowerStatsListener', () => {
           returnedLate: 0,
           notReturned: 2,
           averageReturnDelay: expect.any(Number),
-          trustScore: 25,
+          trustScore: 33.3,
         },
       });
     });
@@ -201,7 +201,7 @@ describe('BorrowerStatsListener', () => {
       expect(prisma.borrower.update).not.toHaveBeenCalled();
     });
 
-    it('should set all stats to zero when borrower has 0 totalLoans', async () => {
+    it('should set trustScore to null when borrower has 0 totalLoans', async () => {
       const event: LoanStatusChangedEvent = {
         loanId: LOAN_ID,
         borrowerId: BORROWER_ID,
@@ -218,7 +218,7 @@ describe('BorrowerStatsListener', () => {
       expect(prisma.borrower.update).toHaveBeenCalledWith({
         where: { id: BORROWER_ID },
         data: {
-          trustScore: 0,
+          trustScore: null,
           returnedOnTime: 0,
           returnedLate: 0,
           notReturned: 0,
@@ -259,7 +259,7 @@ describe('BorrowerStatsListener', () => {
       });
     });
 
-    it('should compute trustScore as float (no rounding)', async () => {
+    it('should compute trustScore over resolved loans only (excludes in-progress)', async () => {
       const event: LoanStatusChangedEvent = {
         loanId: LOAN_ID,
         borrowerId: BORROWER_ID,
@@ -268,22 +268,23 @@ describe('BorrowerStatsListener', () => {
         newStatus: 'RETURNED',
       };
 
+      // totalLoans = 3 but only 2 are resolved (1 on-time + 1 late);
+      // the 3rd is in-progress/contested and must not weigh the score down.
       prisma.borrower.findUnique.mockResolvedValue({ totalLoans: 3 } as never);
       prisma.loan.findMany.mockResolvedValue([
-        { returnDate: new Date('2025-03-10'), returnedDate: new Date('2025-03-09') },
-        { returnDate: new Date('2025-03-10'), returnedDate: new Date('2025-03-12') },
+        { returnDate: new Date('2025-03-10'), returnedDate: new Date('2025-03-09') }, // on-time
+        { returnDate: new Date('2025-03-10'), returnedDate: new Date('2025-03-12') }, // late
       ] as never);
       prisma.loan.count.mockResolvedValue(0);
       prisma.borrower.update.mockResolvedValue({} as never);
 
       await listener.handleStatusChanged(event);
 
-      // returnedOnTime=1, returnedLate=1
-      // trustScore = (1*100 + 1*50) / 3 = 150/3 = 50
+      // resolved = 1 + 1 + 0 = 2 → trustScore = (100 + 50) / 2 = 75 (NOT /3)
       expect(prisma.borrower.update).toHaveBeenCalledWith({
         where: { id: BORROWER_ID },
         data: expect.objectContaining({
-          trustScore: 50,
+          trustScore: 75,
         }),
       });
     });
@@ -319,7 +320,7 @@ describe('BorrowerStatsListener', () => {
       });
 
       // Second update: full stats recalculation
-      // trustScore = (1*100 + 0*50) / 2 = 50
+      // resolved = 1 + 0 + 0 = 1 → trustScore = (1*100) / 1 = 100 (the 2nd loan is in-progress)
       expect(prisma.borrower.update).toHaveBeenCalledWith({
         where: { id: BORROWER_ID },
         data: {
@@ -327,7 +328,7 @@ describe('BorrowerStatsListener', () => {
           returnedLate: 0,
           notReturned: 0,
           averageReturnDelay: expect.any(Number),
-          trustScore: 50,
+          trustScore: 100,
         },
       });
     });

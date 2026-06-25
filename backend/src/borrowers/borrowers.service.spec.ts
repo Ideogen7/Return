@@ -309,7 +309,7 @@ describe('BorrowersService', () => {
         returnedLate: 0,
         notReturned: 0,
         averageReturnDelay: null,
-        trustScore: 0,
+        trustScore: null,
       });
     });
 
@@ -340,12 +340,12 @@ describe('BorrowersService', () => {
       expect(result.returnedOnTime).toBe(9);
     });
 
-    it('should report trustScore 0 without aggregating for a pending (unlinked) contact', async () => {
+    it('should report a null trustScore without aggregating for a pending (unlinked) contact', async () => {
       prisma.borrower.findUnique.mockResolvedValue({ ...MOCK_BORROWER, userId: null });
 
       const result = await service.getStatistics(BORROWER_ID, LENDER_USER_ID);
 
-      expect(result.trustScore).toBe(0);
+      expect(result.trustScore).toBeNull();
       expect(trustScoreService.computeGlobalTrustScore).not.toHaveBeenCalled();
     });
 

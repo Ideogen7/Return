@@ -21,9 +21,11 @@ describe('TrustScoreService', () => {
   });
 
   describe('computeGlobalTrustScore', () => {
-    it('aggregates the denormalized counters across all of the user borrower records', async () => {
+    it('computes the score over RESOLVED loans only, excluding in-progress/contested', async () => {
+      // 20 total loans but only 10 resolved (7 on time + 2 late + 1 not returned);
+      // the other 10 are in-progress or contested and must NOT weigh the score down.
       prisma.borrower.aggregate.mockResolvedValue({
-        _sum: { totalLoans: 10, returnedOnTime: 7, returnedLate: 2, notReturned: 1 },
+        _sum: { totalLoans: 20, returnedOnTime: 7, returnedLate: 2, notReturned: 1 },
       } as never);
 
       const result = await service.computeGlobalTrustScore(USER_ID);
@@ -37,17 +39,28 @@ describe('TrustScoreService', () => {
           notReturned: true,
         },
       });
-      // (7 * 100 + 2 * 50) / 10 = 80
+      // (7 * 100 + 2 * 50) / (7 + 2 + 1 resolved) = 800 / 10 = 80
       expect(result).toEqual({
         trustScore: 80,
-        totalLoans: 10,
+        totalLoans: 20,
         returnedOnTime: 7,
         returnedLate: 2,
         notReturned: 1,
       });
     });
 
-    it('returns a zeroed score when the user has no borrower records', async () => {
+    it('returns null trustScore when there is no resolved loan (in-progress only)', async () => {
+      prisma.borrower.aggregate.mockResolvedValue({
+        _sum: { totalLoans: 4, returnedOnTime: 0, returnedLate: 0, notReturned: 0 },
+      } as never);
+
+      const result = await service.computeGlobalTrustScore(USER_ID);
+
+      expect(result.trustScore).toBeNull();
+      expect(result.totalLoans).toBe(4);
+    });
+
+    it('returns null trustScore when the user has no borrower records at all', async () => {
       prisma.borrower.aggregate.mockResolvedValue({
         _sum: { totalLoans: null, returnedOnTime: null, returnedLate: null, notReturned: null },
       } as never);
@@ -55,7 +68,7 @@ describe('TrustScoreService', () => {
       const result = await service.computeGlobalTrustScore(USER_ID);
 
       expect(result).toEqual({
-        trustScore: 0,
+        trustScore: null,
         totalLoans: 0,
         returnedOnTime: 0,
         returnedLate: 0,
@@ -70,7 +83,7 @@ describe('TrustScoreService', () => {
 
       const result = await service.computeGlobalTrustScore(USER_ID);
 
-      // (100 + 50) / 3 = 50 exactly
+      // (100 + 50) / 3 resolved = 50 exactly
       expect(result.trustScore).toBe(50);
     });
   });
