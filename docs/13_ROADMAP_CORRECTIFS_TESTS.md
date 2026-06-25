@@ -25,6 +25,12 @@
 - **FIX-15** reformulé et passé en **MVP** (🟠) : le vrai sujet est l'incohérence du trustScore calculé par-relation côté
   back mais global côté front — décision validée : trustScore global unique par utilisateur
 
+### Révision du 25/06/2026 (test terrain Ozias)
+
+- **FIX-17** ajouté : le trustScore comptait les prêts **CONTESTÉS** et **en cours** au dénominateur, faussant le score à
+  la baisse. Décision validée : dénominateur = prêts **résolus** uniquement (RETURNED + NOT_RETURNED + ABANDONED), et
+  **`null`** (« pas encore noté ») quand aucun prêt résolu. Back livré ; front à adapter (gérer `null` à l'affichage).
+
 ---
 
 ### Liens avec le backlog CORR existant
@@ -65,6 +71,7 @@
 | FIX-14 | Chantier stats prêteur : brancher `/history/statistics` (ex-FIX-06/07/08) | 🟠 Majeur   | Les deux (surtout Front)             | M                    | ✅ Fait    |
 | FIX-15 | trustScore global incohérent (par-relation back vs global front)          | 🟠 Majeur   | Front + Back — MVP                   | M                    | ✅ Fait    |
 | FIX-16 | Temps réel (websockets)                                                   | 🟡 Mineur   | Back + Front — POST-MVP              | M→L                  | ☐        |
+| FIX-17 | trustScore faussé : CONTESTÉS + prêts en cours comptés au dénominateur     | 🟠 Majeur   | Back (Ozias) + Front (Ismael)        | S                    | ✅ Back / ⏳ Front |
 
 ---
 
@@ -376,6 +383,32 @@ séparé**, à confirmer avec Ozias — hors périmètre FIX-05.
 - **Action Front (Ismael)** : afficher ce score global sur le profil self (remplacer le recalcul client dans
   `LenderStats`) et sur la fiche contact (remplacer la valeur par-relation actuelle).
 - **Statut** : ✅ Fait — front (section emprunteur 100% serveur via `GET /users/me/trust-score`, plus aucun recalcul client) + back (endpoint trustScore global agrégé)
+
+---
+
+### FIX-17 — trustScore faussé par les prêts contestés et en cours
+
+- **Gravité** : 🟠 Majeur — MVP
+- **Périmètre** : Back (Ozias) ✅ + Front (Ismael) ⏳
+- **Effort** : S
+- **Lien** : prolonge **FIX-15** (même calcul de trustScore)
+- **Fichier(s) & preuve** :
+    - `backend/src/borrowers/borrower-stats.listener.ts` → dénominateur = `borrower.totalLoans` (tous les prêts créés)
+    - `backend/src/trust-score/trust-score.service.ts` → agrégation `Σ totalLoans` (hérite du même biais)
+    - `totalLoans` incrémenté à chaque création (y compris prêts qui deviennent CONTESTED), jamais décrémenté au contest
+- **Problème** : les prêts **CONTESTÉS** (refusés par l'emprunteur) et **en cours** (PENDING/ACTIVE/AWAITING) étaient
+  comptés au dénominateur du trustScore, le faisant chuter à tort. Ex. : 1 prêt rendu à temps + 1 contesté → 50 % au
+  lieu de 100 % ; nouvel emprunteur avec 1 prêt actif → 0 %.
+- **Décision validée (25/06/2026)** : dénominateur = prêts **résolus** uniquement
+  (`returnedOnTime + returnedLate + notReturned`), CONTESTÉS et en cours exclus. Score **`null`** (« pas encore noté »)
+  quand aucun prêt résolu, au lieu d'un 0 trompeur. Arrondi à 1 décimale (cohérent back/global).
+- **Action Back (Ozias)** : ✅ corrigé dans le listener par-relation ET le `TrustScoreService` global ;
+  `Borrower.trustScore` rendu **nullable** (migration `trust_score_nullable_resolved`) ; `BorrowerStatistics` /
+  `UserTrustScore` / `topBorrowers` nullables dans `openapi.yaml` + interfaces.
+- **Action Front (Ismael)** : gérer `trustScore = null` partout où il s'affiche (profil self, fiche contact, liste des
+  emprunteurs, détail de prêt, top emprunteurs) → afficher un état « pas encore noté » / « — », **ne pas** supposer un
+  nombre (risque de `null %` ou crash sur `.toFixed()`).
+- **Statut** : ✅ Back livré (commit `e4d7ed0`) · ⏳ Front à faire
 
 ---
 
