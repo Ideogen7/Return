@@ -23,6 +23,7 @@
     },
     "android": {
       "package": "com.ideogen.returnapp",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
