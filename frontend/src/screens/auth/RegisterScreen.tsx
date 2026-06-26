@@ -1,5 +1,5 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Text, Button, Icon } from 'react-native-paper';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, Button } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RegisterForm } from '../../components/auth/RegisterForm';
@@ -29,12 +29,12 @@ export function RegisterScreen({ navigation }: Props) {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.logoRow}>
-        <View style={styles.logoBadge}>
-          <Icon source="undo-variant" size={24} color="#FFFFFF" />
-        </View>
-        <Text variant="headlineSmall" style={styles.logoText}>
-          Return
-        </Text>
+        <Image
+          source={require('../../../assets/branding/return-logo-horizontal.png')}
+          style={styles.logo}
+          resizeMode="contain"
+          accessibilityLabel="Return"
+        />
       </View>
 
       <Text variant="titleLarge" style={styles.title}>
@@ -68,16 +68,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 32,
   },
-  logoBadge: {
-    backgroundColor: '#6B8E7B',
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  logoText: { color: '#2D3748', fontWeight: '700', letterSpacing: -0.5 },
+  logo: { width: 200, height: 58 },
   title: { textAlign: 'center', marginBottom: 24, color: '#6B7A8D' },
   linkLabel: { fontSize: 14, letterSpacing: 0.3 },
 });
