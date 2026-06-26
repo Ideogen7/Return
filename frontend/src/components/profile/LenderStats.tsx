@@ -55,6 +55,18 @@ export function LenderStats() {
       value: overview?.returnedLoans ?? 0,
       color: '#7BAE8E',
     },
+    {
+      icon: 'comment-alert-outline',
+      label: t('profile.contestedLoans'),
+      value: overview?.contestedLoans ?? 0,
+      color: '#C46A5D',
+    },
+    {
+      icon: 'close-circle-outline',
+      label: t('profile.notReturnedLoans'),
+      value: overview?.notReturnedLoans ?? 0,
+      color: '#D97A6B',
+    },
     // TODO FIX-14: réafficher overdueLoans quand le backend l'ajoutera à overview (à demander à Ozias)
   ];
 
@@ -129,8 +141,8 @@ const styles = StyleSheet.create({
   card: { marginHorizontal: 16, marginBottom: 16, borderRadius: 16, backgroundColor: '#FFFFFF' },
   title: { color: '#2D3748', fontWeight: '700', marginBottom: 12 },
   sectionLabel: { color: '#4A6355', fontWeight: '600', marginBottom: 8 },
-  grid: { flexDirection: 'row', justifyContent: 'space-around' },
-  statItem: { alignItems: 'center', gap: 4 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, rowGap: 16, justifyContent: 'center' },
+  statItem: { alignItems: 'center', gap: 4, minWidth: '28%', flex: 1 },
   statValue: { fontWeight: '700' },
   statLabel: { color: '#6B7A8D', textAlign: 'center' },
   divider: { marginVertical: 12 },

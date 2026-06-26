@@ -60,6 +60,8 @@
     "totalLoans": "Total loans",
     "activeLoans": "Active loans",
     "returnedLoans": "Returned",
+    "contestedLoans": "Contested",
+    "notReturnedLoans": "Not returned",
     "overdueLoans": "Overdue",
     "borrowerStatistics": "My borrowings",
     "loansReceived": "Received",

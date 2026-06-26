@@ -60,6 +60,8 @@
     "totalLoans": "Total des prêts",
     "activeLoans": "Prêts en cours",
     "returnedLoans": "Rendus",
+    "contestedLoans": "Contestés",
+    "notReturnedLoans": "Non rendus",
     "overdueLoans": "En retard",
     "borrowerStatistics": "Mes emprunts",
     "loansReceived": "Reçus",

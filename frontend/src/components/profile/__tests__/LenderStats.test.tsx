@@ -117,6 +117,34 @@ describe('LenderStats (unified)', () => {
       // "Overdue" is the en.json translation for profile.overdueLoans
       expect(screen.queryByText('Overdue')).toBeNull();
     });
+
+    it('should display contested and not-returned loan counts (new cards)', async () => {
+      // Values chosen to be distinct from each other, from the MSW borrower defaults
+      // (87%, 40, 31, 8) and from any overview field left at 0 — no collision risk.
+      useHistoryStore.setState({
+        statistics: makeStats({
+          totalLoans: 10,
+          activeLoans: 3,
+          returnedLoans: 4,
+          contestedLoans: 2,
+          notReturnedLoans: 1,
+        }),
+      });
+
+      renderStats();
+
+      await waitFor(() => expect(screen.getByTestId('lender-stats')).toBeTruthy());
+
+      // Labels from i18n (en): profile.contestedLoans → "Contested", profile.notReturnedLoans → "Not returned"
+      expect(screen.getByText('Contested')).toBeTruthy();
+      expect(screen.getByText('Not returned')).toBeTruthy();
+
+      // Values: 2 (contestedLoans) and 1 (notReturnedLoans)
+      // Neither appears in the MSW trust-score response (87%, 40, 31, 8)
+      // nor in any other overview field (remaining fields default to 0 via makeStats spread)
+      expect(screen.getByText('2')).toBeTruthy();
+      expect(screen.getByText('1')).toBeTruthy();
+    });
   });
 
   describe('borrower section — reads from GET /users/me/trust-score via MSW', () => {
