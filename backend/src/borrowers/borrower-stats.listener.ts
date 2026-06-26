@@ -116,8 +116,20 @@ export class BorrowerStatsListener {
         continue;
       }
 
-      const delayMs = loan.returnedDate.getTime() - loan.returnDate.getTime();
-      const delayDays = delayMs / (1000 * 60 * 60 * 24);
+      // Compare by calendar day (UTC), not by full timestamp: a loan due at
+      // midnight and returned the same day at 14:00 is ON TIME, not late.
+      // This also keeps averageReturnDelay an exact whole number of days.
+      const dueDay = Date.UTC(
+        loan.returnDate.getUTCFullYear(),
+        loan.returnDate.getUTCMonth(),
+        loan.returnDate.getUTCDate(),
+      );
+      const returnedDay = Date.UTC(
+        loan.returnedDate.getUTCFullYear(),
+        loan.returnedDate.getUTCMonth(),
+        loan.returnedDate.getUTCDate(),
+      );
+      const delayDays = (returnedDay - dueDay) / (1000 * 60 * 60 * 24);
 
       if (delayDays <= 0) {
         returnedOnTime++;

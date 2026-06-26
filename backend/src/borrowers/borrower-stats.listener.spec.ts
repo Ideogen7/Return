@@ -126,6 +126,40 @@ describe('BorrowerStatsListener', () => {
       });
     });
 
+    it('should count a return on the due date (same calendar day) as on-time', async () => {
+      const event: LoanStatusChangedEvent = {
+        loanId: LOAN_ID,
+        borrowerId: BORROWER_ID,
+        lenderUserId: LENDER_ID,
+        previousStatus: 'AWAITING_RETURN',
+        newStatus: 'RETURNED',
+      };
+
+      prisma.borrower.findUnique.mockResolvedValue({ totalLoans: 1 } as never);
+      // Due at midnight, returned the SAME day at 14:00 → must be on-time, not late
+      prisma.loan.findMany.mockResolvedValue([
+        {
+          returnDate: new Date('2025-03-10T00:00:00Z'),
+          returnedDate: new Date('2025-03-10T14:00:00Z'),
+        },
+      ] as never);
+      prisma.loan.count.mockResolvedValue(0);
+      prisma.borrower.update.mockResolvedValue({} as never);
+
+      await listener.handleStatusChanged(event);
+
+      expect(prisma.borrower.update).toHaveBeenCalledWith({
+        where: { id: BORROWER_ID },
+        data: {
+          returnedOnTime: 1,
+          returnedLate: 0,
+          notReturned: 0,
+          averageReturnDelay: 0, // same day → 0 days (not ~0.6 rounded up to 1)
+          trustScore: 100,
+        },
+      });
+    });
+
     it('should recalculate stats when status changes to NOT_RETURNED', async () => {
       const event: LoanStatusChangedEvent = {
         loanId: LOAN_ID,
